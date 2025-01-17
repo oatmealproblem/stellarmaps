@@ -31,13 +31,13 @@
 <Toast position="t" background="variant-filled-error" class="!z-[1000]" />
 <Modal components={{ export: { ref: ExportModal }, settings: { ref: AppSettingsModal } }} />
 <AppShell slotPageContent="h-full" regionPage="h-full">
-	<svelte:fragment slot="header">
+	{#snippet header()}
 		<AppBar>
-			<svelte:fragment slot="lead">
+			{#snippet lead()}
 				{$t('top_bar.stellar_maps')}
 				<VersionInfo />
-			</svelte:fragment>
-			<svelte:fragment slot="trail">
+			{/snippet}
+			{#snippet trail()}
 				<a
 					class="anchor"
 					href="https://github.com/MichaelMakesGames/stellarmaps"
@@ -52,16 +52,16 @@
 				<div class="mx-2 h-6 border-r border-r-surface-500"></div>
 				<button
 					type="button"
-					on:click={() => modalStore.trigger({ type: 'component', component: 'settings' })}
+					onclick={() => modalStore.trigger({ type: 'component', component: 'settings' })}
 				>
 					<HeroiconCog6ToothSolid />
 				</button>
-			</svelte:fragment>
+			{/snippet}
 		</AppBar>
-	</svelte:fragment>
-	<svelte:fragment slot="sidebarLeft">
+	{/snippet}
+	{#snippet sidebarLeft()}
 		<Sidebar />
-	</svelte:fragment>
+	{/snippet}
 	<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4"></div>
 	<MapContainer />
 </AppShell>

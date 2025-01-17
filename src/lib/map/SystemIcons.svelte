@@ -14,8 +14,12 @@
 	import type { ProcessedSystem } from './data/processSystems';
 	import { getFillColorAttributes } from './mapUtils';
 
-	export let data: MapData;
-	export let colors: Record<string, string>;
+	interface Props {
+		data: MapData;
+		colors: Record<string, string>;
+	}
+
+	let { data, colors }: Props = $props();
 
 	interface IconSettingMetadata {
 		systemProperty?: keyof PickByValue<ProcessedSystem, boolean>;

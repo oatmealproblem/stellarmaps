@@ -1,19 +1,23 @@
 <script lang="ts">
 	import { mapSettings } from '../settings';
-	$: terraIncognitaLightStripeColor = `rgb(${Math.min(
-		255,
-		$mapSettings.terraIncognitaBrightness + 10,
-	)},${Math.min(255, $mapSettings.terraIncognitaBrightness + 10)},${Math.min(
-		255,
-		$mapSettings.terraIncognitaBrightness + 10,
-	)})`;
-	$: terraIncognitaDarkStripeColor = `rgb(${Math.max(
-		0,
-		$mapSettings.terraIncognitaBrightness - 10,
-	)},${Math.max(0, $mapSettings.terraIncognitaBrightness - 10)},${Math.max(
-		0,
-		$mapSettings.terraIncognitaBrightness - 10,
-	)})`;
+	let terraIncognitaLightStripeColor = $derived(
+		`rgb(${Math.min(
+			255,
+			$mapSettings.terraIncognitaBrightness + 10,
+		)},${Math.min(255, $mapSettings.terraIncognitaBrightness + 10)},${Math.min(
+			255,
+			$mapSettings.terraIncognitaBrightness + 10,
+		)})`,
+	);
+	let terraIncognitaDarkStripeColor = $derived(
+		`rgb(${Math.max(
+			0,
+			$mapSettings.terraIncognitaBrightness - 10,
+		)},${Math.max(0, $mapSettings.terraIncognitaBrightness - 10)},${Math.max(
+			0,
+			$mapSettings.terraIncognitaBrightness - 10,
+		)})`,
+	);
 </script>
 
 {#if $mapSettings.terraIncognita && $mapSettings.terraIncognitaStyle === 'striped'}

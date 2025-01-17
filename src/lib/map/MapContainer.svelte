@@ -3,18 +3,20 @@
 	import * as dialog from '@tauri-apps/plugin-dialog';
 	import { select } from 'd3-selection';
 	import { zoom, zoomIdentity, ZoomTransform } from 'd3-zoom';
-	import { onDestroy } from 'svelte';
 	import { get } from 'svelte/store';
 	import { fade } from 'svelte/transition';
 
 	import { t } from '../../intl';
-	import orbitronPath from '../../static/Orbitron-VariableFont_wght.ttf';
 	import resizeObserver from '../actions/resizeObserver';
 	import { ADDITIONAL_COLORS } from '../colors';
 	import convertBlobToDataUrl from '../convertBlobToDataUrl';
 	import convertSvgToPng from '../convertSvgToPng';
 	import debug from '../debug';
-	import { type GalacticObject, type GameState, gameStatePromise } from '../GameState';
+	import {
+		type GalacticObject,
+		type GameState,
+		gameStatePromise as gameStatePromiseStore,
+	} from '../GameState';
 	import HeroiconArrowsPointingOut from '../icons/HeroiconArrowsPointingOut.svelte';
 	import {
 		loadStellarisData,
@@ -39,41 +41,60 @@
 
 	const modalStore = getModalStore();
 
-	$: mapDataPromise =
-		$gameStatePromise?.then((gs) =>
+	let stellarisDataPromise = $state<ReturnType<typeof loadStellarisData>>(new Promise(() => {}));
+	$effect(() => {
+		const unsubscribe = stellarisDataPromiseStore.subscribe((value) => {
+			stellarisDataPromise = value;
+		});
+		return unsubscribe;
+	});
+
+	let gameStatePromise = $state<Promise<GameState> | null>(null);
+	$effect(() => {
+		const unsubscribe = gameStatePromiseStore.subscribe((value) => {
+			gameStatePromise = value;
+		});
+		return unsubscribe;
+	});
+
+	let mapDataPromise = $derived(
+		gameStatePromise?.then((gs) =>
 			processMapData(gs, $lastProcessedMapSettings, $appStellarisLanguage),
-		) ?? new Promise<Awaited<ReturnType<typeof processMapData>>>(() => {});
+		) ?? new Promise<Awaited<ReturnType<typeof processMapData>>>(() => {}),
+	);
 
 	loadStellarisData();
 	const toastStore = getToastStore();
-	$: $stellarisDataPromiseStore.catch(
-		toastError({
-			title: $t('notification.failed_to_load_stellaris_data.title'),
-			description: $t('notification.failed_to_load_stellaris_data.description'),
-			defaultValue: {} as Record<string, string>,
-			toastStore,
-			action: {
-				label: $t('notification.failed_to_load_stellaris_data.action'),
-				response: () =>
-					dialog
-						.open({
-							directory: true,
-							multiple: false,
-							title: $t('prompt.select_stellaris_install'),
-						})
-						.then((result) => {
-							if (typeof result === 'string') {
-								stellarisPathStore.set(result);
-								loadStellarisData();
-							}
-						}),
-			},
-		}),
-	);
-	$: colorsPromise = $stellarisDataPromiseStore.then(({ colors }) => colors);
+	$effect(() => {
+		stellarisDataPromise.catch(
+			toastError({
+				title: $t('notification.failed_to_load_stellaris_data.title'),
+				description: $t('notification.failed_to_load_stellaris_data.description'),
+				defaultValue: {} as Record<string, string>,
+				toastStore,
+				action: {
+					label: $t('notification.failed_to_load_stellaris_data.action'),
+					response: () =>
+						dialog
+							.open({
+								directory: true,
+								multiple: false,
+								title: $t('prompt.select_stellaris_install'),
+							})
+							.then((result) => {
+								if (typeof result === 'string') {
+									stellarisPathStore.set(result);
+									loadStellarisData();
+								}
+							}),
+				},
+			}),
+		);
+	});
+	let colorsPromise = $derived(stellarisDataPromise.then(({ colors }) => colors));
 
 	async function openExportModal() {
-		Promise.all([$stellarisDataPromiseStore, mapDataPromise]).then(([{ colors }, mapData]) => {
+		Promise.all([stellarisDataPromise, mapDataPromise]).then(([{ colors }, mapData]) => {
 			modalStore.trigger({
 				type: 'component',
 				component: 'export',
@@ -81,31 +102,20 @@
 					colors,
 					mapData,
 					gameState: gameStateOrNull,
-					svg: mapTarget.firstChild,
+					svg: document.createElementNS('http://www.w3.org/2000/svg', 'svg'), // TODO
 					openedSystem,
 				},
 			});
 		});
 	}
 
-	let orbitronPromise = fetch(orbitronPath)
-		.then((r) => r.blob())
-		.then(convertBlobToDataUrl);
-	let orbitronDataUrl = '';
-	orbitronPromise.then((url) => {
-		orbitronDataUrl = url;
-	});
-
-	$: allAsyncDataPromise = Promise.all([
-		colorsPromise,
-		$gameStatePromise,
-		mapDataPromise,
-		orbitronPromise,
-	]);
-	let colorsOrNull: null | Awaited<typeof colorsPromise> = null;
-	let gameStateOrNull: null | GameState = null;
-	let dataOrNull: null | Awaited<typeof mapDataPromise> = null;
-	$: {
+	let allAsyncDataPromise = $derived(
+		Promise.all([colorsPromise, $gameStatePromiseStore, mapDataPromise]),
+	);
+	let colorsOrNull: null | Awaited<typeof colorsPromise> = $state(null);
+	let gameStateOrNull: null | GameState = $state(null);
+	let dataOrNull: null | Awaited<typeof mapDataPromise> = $state(null);
+	$effect(() => {
 		colorsOrNull = null;
 		gameStateOrNull = null;
 		dataOrNull = null;
@@ -114,39 +124,21 @@
 			gameStateOrNull = gameState;
 			dataOrNull = data;
 		});
-	}
+	});
 
 	let pngDataUrlRequestId: null | string = null;
-	let pngDataUrl = '';
+	let pngDataUrl = $state('');
 	let zoomedPngDataUrlRequestId: null | string = null;
-	let zoomedPngDataUrl = '';
+	let zoomedPngDataUrl = $state('');
 	let starScapeDataUrlRequestId: null | string = null;
-	let starScapeDataUrl = '';
-	let unzoomedStarScapeDataUrl = '';
+	let starScapeDataUrl = $state('');
+	let unzoomedStarScapeDataUrl = $state('');
 
-	const mapTarget = document.createElement('div');
-	const map = new Map({
-		target: mapTarget,
-		props: {
-			colors: colorsOrNull,
-			data: dataOrNull,
-			orbitronDataUrl: orbitronDataUrl,
-		},
-	});
-	$: {
-		map.$set({
-			colors: colorsOrNull,
-			data: dataOrNull,
-			orbitronDataUrl: orbitronDataUrl,
-		});
-	}
-	map.$on('map-updated', () => renderMap());
+	let container: HTMLDivElement | undefined = $state();
+	let outputWidth = $state(0);
+	let outputHeight = $state(0);
 
-	let container: HTMLDivElement | undefined;
-	let outputWidth = 0;
-	let outputHeight = 0;
-
-	let resizing = false;
+	let resizing = $state(false);
 	const onResizeEnd = debounce(() => {
 		resetZoom();
 		renderMap().then(() => {
@@ -167,13 +159,13 @@
 		onResizeEnd();
 	};
 
-	let svg: SVGElement | undefined;
-	let transform: ZoomTransform | null = null;
-	let lastRenderedTransform: ZoomTransform | null = null;
-	let lastRenderedTransformPngDataUrl = '';
-	let lastRenderedTransformStarScape: ZoomTransform | null = null;
-	let lastRenderedTransformStarScapePngDataUrl = '';
-	let zooming = false;
+	let svg: SVGElement | undefined = $state();
+	let transform: ZoomTransform | null = $state(null);
+	let lastRenderedTransform: ZoomTransform | null = $state(null);
+	let lastRenderedTransformPngDataUrl = $state('');
+	let lastRenderedTransformStarScape: ZoomTransform | null = $state(null);
+	let lastRenderedTransformStarScapePngDataUrl = $state('');
+	let zooming = $state(false);
 	let endZooming = debounce(() => {
 		zooming = false;
 	}, 100);
@@ -194,9 +186,11 @@
 			// this is the default implementation
 			return (!event.ctrlKey || event.type === 'wheel') && !event.button;
 		});
-	$: if (svg) {
-		select(svg).call(zoomHandler as any);
-	}
+	$effect(() => {
+		if (svg) {
+			select(svg).call(zoomHandler as any);
+		}
+	});
 	function resetZoom() {
 		if (svg) {
 			select(svg).call(zoomHandler.transform as any, zoomIdentity);
@@ -204,7 +198,7 @@
 		transform = null;
 	}
 
-	let pngDataUrlPromise = Promise.resolve('');
+	let pngDataUrlPromise = $state(Promise.resolve(''));
 	async function renderMap(onlyRenderZoomed = false) {
 		outputWidth = container?.clientWidth ?? 0;
 		outputHeight = container?.clientHeight ?? 0;
@@ -226,7 +220,7 @@
 		let left = -width / 2;
 		let top = -height / 2;
 
-		const mapSvg = mapTarget.firstChild as SVGElement;
+		const mapSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
 		let newPngDataUrlPromise = onlyRenderZoomed
 			? Promise.resolve(pngDataUrl)
 			: dataOrNull == null || colorsOrNull == null
@@ -302,18 +296,17 @@
 
 	const renderOnTransformChange = debounce(() => renderMap(true), 500);
 	// always true, just triggering reactivity
-	$: if (typeof transform === 'object') {
-		renderOnTransformChange();
-	}
+	$effect(() => {
+		if (typeof transform === 'object') {
+			renderOnTransformChange();
+		}
+	});
 
-	$: bg =
+	let bg = $derived(
 		dataOrNull == null
 			? ADDITIONAL_COLORS.very_black
-			: getBackgroundColor(colorsOrNull, $mapSettings);
-
-	onDestroy(() => {
-		map.$destroy();
-	});
+			: getBackgroundColor(colorsOrNull, $mapSettings),
+	);
 
 	const TOOLTIP_MAX_DISTANCE = 32;
 	const TOOLTIP_AUTOCLOSE_DISTANCE = TOOLTIP_MAX_DISTANCE * 2;
@@ -323,7 +316,7 @@
 		system: GalacticObject;
 		countryId: number | null;
 		hidden: boolean;
-	} | null = null;
+	} | null = $state(null);
 	function onMouseMoveInner(e: MouseEvent) {
 		if (dataOrNull != null && !resizing && !zooming) {
 			let viewBoxWidth = 1000;
@@ -385,14 +378,16 @@
 		onMouseMoveInnerDebounced(e);
 	}
 
-	let openedSystem: GalacticObject | undefined = undefined;
+	let openedSystem: GalacticObject | undefined = $state(undefined);
 	function closeSystemMap() {
 		openedSystem = undefined;
 	}
 	// always true, just triggering reactivity
-	$: if (typeof gameStateOrNull === 'object') {
-		closeSystemMap();
-	}
+	$effect(() => {
+		if (typeof gameStateOrNull === 'object') {
+			closeSystemMap();
+		}
+	});
 
 	function onMapClick(e: MouseEvent) {
 		if (e.shiftKey) {
@@ -430,17 +425,17 @@
 	{/if}
 	<div class="absolute right-3 top-3 flex gap-3">
 		{#if transform != null && !openedSystem}
-			<button type="button" class="variant-filled btn-icon" transition:fade on:click={resetZoom}>
+			<button type="button" class="variant-filled btn-icon" transition:fade onclick={resetZoom}>
 				<HeroiconArrowsPointingOut />
 			</button>
 		{/if}
 		{#if openedSystem}
-			<button type="button" class="variant-filled btn" on:click={closeSystemMap}>
+			<button type="button" class="variant-filled btn" onclick={closeSystemMap}>
 				{$t('generic.back_button')}
 			</button>
 		{/if}
 		{#if dataOrNull}
-			<button type="button" class="variant-filled btn" transition:fade on:click={openExportModal}>
+			<button type="button" class="variant-filled btn" transition:fade onclick={openExportModal}>
 				{$t('export.button')}
 			</button>
 		{/if}
@@ -457,7 +452,7 @@
 			/>
 		</div>
 	{/if}
-	{#if !$gameStatePromise}
+	{#if !$gameStatePromiseStore}
 		<div class="flex h-full w-full items-center" style:background={bg}>
 			<div class="h1 w-full text-center" style="lineHeight: 100%;">
 				{$t('map.select_save')}
@@ -501,18 +496,18 @@
 				}}
 			/>
 		{/if}
-		<!-- svelte-ignore a11y-mouse-events-have-key-events -->
+		<!-- svelte-ignore a11y_mouse_events_have_key_events -->
 		<svg
 			bind:this={svg}
 			width={outputWidth}
 			height={outputHeight}
 			viewBox="0 0 {outputWidth} {outputHeight}"
 			role="presentation"
-			on:mousemove={onMouseMove}
-			on:mouseout={() => {
+			onmousemove={onMouseMove}
+			onmouseout={() => {
 				tooltip = null;
 			}}
-			on:click={onMapClick}
+			onclick={onMapClick}
 			class:hidden={openedSystem != null}
 			class:cursor-pointer={(mapModes[$mapSettings.mapMode]?.hasPov &&
 				tooltip?.countryId != null) ??
@@ -529,6 +524,9 @@
 						href={unzoomedStarScapeDataUrl}
 					/>
 				{/if}
+				<g transform="translate({outputWidth / 2} {outputHeight / 2})">
+					<Map data={dataOrNull} colors={colorsOrNull} />
+				</g>
 			</g>
 			<g transform={transform?.toString()}>
 				{#if pngDataUrl}

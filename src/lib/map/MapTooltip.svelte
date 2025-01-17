@@ -13,12 +13,16 @@
 	import type { ProcessedSystem } from './data/processSystems';
 	import { resolveColor } from './mapUtils';
 
-	export let x: number;
-	export let y: number;
-	export let system: GalacticObject;
-	export let processedSystem: ProcessedSystem | null | undefined;
-	export let gameState: null | GameState;
-	export let colors: Record<string, string>;
+	interface Props {
+		x: number;
+		y: number;
+		system: GalacticObject;
+		processedSystem: ProcessedSystem | null | undefined;
+		gameState: null | GameState;
+		colors: Record<string, string>;
+	}
+
+	let { x, y, system, processedSystem, gameState, colors }: Props = $props();
 
 	let targetEl: HTMLDivElement;
 	let popupEl: HTMLDivElement;
@@ -57,10 +61,12 @@
 	});
 	onDestroy(() => cleanup?.());
 
-	$: planets = system.colonies
-		.map((planetId) => gameState?.planets.planet[planetId])
-		.filter(isDefined)
-		.sort((a, b) => (b.num_sapient_pops ?? 0) - (a.num_sapient_pops ?? 0));
+	let planets = $derived(
+		system.colonies
+			.map((planetId) => gameState?.planets.planet[planetId])
+			.filter(isDefined)
+			.sort((a, b) => (b.num_sapient_pops ?? 0) - (a.num_sapient_pops ?? 0)),
+	);
 
 	async function localizeValueLabel(
 		message: MessageID | LocalizedText,
@@ -87,7 +93,7 @@
 	class="pointer-events-none rounded border border-surface-500 bg-surface-600 px-2 py-1 shadow-sm"
 	bind:this={popupEl}
 >
-	<div class="arrow bg-surface-600" bind:this={arrowEl} />
+	<div class="arrow bg-surface-600" bind:this={arrowEl}></div>
 	<strong>
 		{#await localizeText(system.name)}
 			{$t('generic.loading')}

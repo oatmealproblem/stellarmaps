@@ -10,8 +10,12 @@
 		type SettingConfigColor,
 	} from '../settings';
 
-	export let adjustment: ColorSettingAdjustment;
-	export let config: SettingConfigColor<unknown, unknown>;
+	interface Props {
+		adjustment: ColorSettingAdjustment;
+		config: SettingConfigColor<unknown, unknown>;
+	}
+
+	let { adjustment, config }: Props = $props();
 
 	const dispatch = createEventDispatcher<{
 		typeChange: ColorSettingAdjustment['type'];
@@ -25,7 +29,7 @@
 </script>
 
 <div class="flex space-x-2" transition:fly>
-	<select class="select w-1/2 p-1 text-sm" value={adjustment.type ?? ''} on:change={onTypeChange}>
+	<select class="select w-1/2 p-1 text-sm" value={adjustment.type ?? ''} onchange={onTypeChange}>
 		<option value="">{$t('control.color.adjustment.placeholder')}</option>
 		{#each COLOR_SETTING_ADJUSTMENT_TYPES.filter((t) => !config.allowedAdjustments || config.allowedAdjustments.includes(t)) as type}
 			<option value={type}>{$t(`option.color_adjustment.${type}`)}</option>
@@ -38,9 +42,9 @@
 		max="1"
 		step="0.05"
 		value={adjustment.value}
-		on:input={(e) => dispatch('valueChange', parseFloat(e.currentTarget.value))}
+		oninput={(e) => dispatch('valueChange', parseFloat(e.currentTarget.value))}
 	/>
-	<button type="button" class="text-error-400" on:click={() => dispatch('delete')}>
+	<button type="button" class="text-error-400" onclick={() => dispatch('delete')}>
 		<HeroiconTrashMini />
 	</button>
 </div>

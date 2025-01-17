@@ -12,23 +12,29 @@
 	import { isDefined } from '../utils';
 	import ColorSettingAdjustmentControl from './ColorSettingAdjustmentControl.svelte';
 
-	export let value: ColorSetting;
-	export let config: SettingConfigColor<unknown, unknown>;
+	interface Props {
+		value: ColorSetting;
+		config: SettingConfigColor<unknown, unknown>;
+	}
 
-	$: options = [...colorOptions, ...$colorDynamicOptions];
-	$: groups = Array.from(
-		new Set(
-			options
-				.map((option) => option.group)
-				.filter(isDefined)
-				.filter(
-					// don't show dynamic colors group if no dynamic colors are allowed
-					(group) =>
-						!(group === 'option.color.group.dynamic' && config.allowedDynamicColors.length === 0),
-				),
+	let { value = $bindable(), config }: Props = $props();
+
+	let options = $derived([...colorOptions, ...$colorDynamicOptions]);
+	let groups = $derived(
+		Array.from(
+			new Set(
+				options
+					.map((option) => option.group)
+					.filter(isDefined)
+					.filter(
+						// don't show dynamic colors group if no dynamic colors are allowed
+						(group) =>
+							!(group === 'option.color.group.dynamic' && config.allowedDynamicColors.length === 0),
+					),
+			),
 		),
 	);
-	$: selectValue = options.find((option) => option.id === value.color)?.id;
+	let selectValue = $derived(options.find((option) => option.id === value.color)?.id);
 
 	function filterAllowedOption(option: SelectOption) {
 		if (option.group !== 'option.color.group.dynamic') return true;
@@ -43,7 +49,7 @@
 			<select
 				class="select"
 				value={selectValue}
-				on:change={(e) => {
+				onchange={(e) => {
 					value = { ...value, color: e.currentTarget.value };
 				}}
 			>
@@ -67,56 +73,58 @@
 		regionPanel="pt-0"
 	>
 		<AccordionItem>
-			<svelte:fragment slot="summary">
+			{#snippet summary()}
 				{$t('control.color.adjustment.header')}
 				<div class="relative inline-block">
 					<span class="variant-filled-secondary badge-icon absolute left-0 top-[-14px]">
 						{value.colorAdjustments.length}
 					</span>
 				</div>
-			</svelte:fragment>
-			<div slot="content" class="flex-col space-y-1">
-				{#each value.colorAdjustments as adjustment}
-					<ColorSettingAdjustmentControl
-						{config}
-						{adjustment}
-						on:typeChange={(e) => {
+			{/snippet}
+			{#snippet content()}
+				<div class="flex-col space-y-1">
+					{#each value.colorAdjustments as adjustment}
+						<ColorSettingAdjustmentControl
+							{config}
+							{adjustment}
+							on:typeChange={(e) => {
+								value = {
+									...value,
+									colorAdjustments: value.colorAdjustments.map((a) =>
+										a === adjustment ? { ...a, type: e.detail } : a,
+									),
+								};
+							}}
+							on:valueChange={(e) => {
+								value = {
+									...value,
+									colorAdjustments: value.colorAdjustments.map((a) =>
+										a === adjustment ? { ...a, value: e.detail } : a,
+									),
+								};
+							}}
+							on:delete={() => {
+								value = {
+									...value,
+									colorAdjustments: value.colorAdjustments.filter((a) => a !== adjustment),
+								};
+							}}
+						/>
+					{/each}
+					<button
+						type="button"
+						class="variant-filled-secondary btn btn-sm"
+						onclick={() => {
 							value = {
 								...value,
-								colorAdjustments: value.colorAdjustments.map((a) =>
-									a === adjustment ? { ...a, type: e.detail } : a,
-								),
+								colorAdjustments: [...value.colorAdjustments, { type: undefined, value: 0 }],
 							};
 						}}
-						on:valueChange={(e) => {
-							value = {
-								...value,
-								colorAdjustments: value.colorAdjustments.map((a) =>
-									a === adjustment ? { ...a, value: e.detail } : a,
-								),
-							};
-						}}
-						on:delete={() => {
-							value = {
-								...value,
-								colorAdjustments: value.colorAdjustments.filter((a) => a !== adjustment),
-							};
-						}}
-					/>
-				{/each}
-				<button
-					type="button"
-					class="variant-filled-secondary btn btn-sm"
-					on:click={() => {
-						value = {
-							...value,
-							colorAdjustments: [...value.colorAdjustments, { type: undefined, value: 0 }],
-						};
-					}}
-				>
-					{$t('control.color.adjustment.add_button')}
-				</button>
-			</div>
+					>
+						{$t('control.color.adjustment.add_button')}
+					</button>
+				</div>
+			{/snippet}
 		</AccordionItem>
 	</Accordion>
 </div>

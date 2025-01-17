@@ -10,23 +10,29 @@
 	} from './mapUtils';
 	import OccupationPatternDefs from './OccupationPatternDefs.svelte';
 
-	export let data: null | MapData;
-	export let colors: null | Record<string, string>;
+	interface Props {
+		data: null | MapData;
+		colors: null | Record<string, string>;
+	}
 
-	$: borderWidth = $mapSettings.legendBorderStroke.enabled
-		? $mapSettings.legendBorderStroke.width
-		: 0;
-	$: padding = $mapSettings.legendFontSize;
-	$: symbolSize = $mapSettings.legendFontSize * 1.25;
-	$: symbolLabelGap = $mapSettings.legendFontSize / 4;
-	$: rowGap = $mapSettings.legendFontSize / 2;
-	$: width =
-		(data?.legend.maxLabelWidth ?? 0) + symbolSize + symbolLabelGap + padding * 2 + borderWidth * 2;
-	$: height =
+	let { data, colors }: Props = $props();
+
+	let borderWidth = $derived(
+		$mapSettings.legendBorderStroke.enabled ? $mapSettings.legendBorderStroke.width : 0,
+	);
+	let padding = $derived($mapSettings.legendFontSize);
+	let symbolSize = $derived($mapSettings.legendFontSize * 1.25);
+	let symbolLabelGap = $derived($mapSettings.legendFontSize / 4);
+	let rowGap = $derived($mapSettings.legendFontSize / 2);
+	let width = $derived(
+		(data?.legend.maxLabelWidth ?? 0) + symbolSize + symbolLabelGap + padding * 2 + borderWidth * 2,
+	);
+	let height = $derived(
 		symbolSize * (data?.legend.items.length ?? 0) +
-		rowGap * ((data?.legend.items ?? [null]).length - 1) +
-		padding * 2 +
-		borderWidth * 2;
+			rowGap * ((data?.legend.items ?? [null]).length - 1) +
+			padding * 2 +
+			borderWidth * 2,
+	);
 </script>
 
 {#if (data?.legend.items.length ?? 0) > 0 && $mapSettings.legend}

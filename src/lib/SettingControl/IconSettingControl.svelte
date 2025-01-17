@@ -12,12 +12,18 @@
 	import { isDefined } from '../utils';
 	import ColorSettingControl from './ColorSettingControl.svelte';
 
-	export let value: IconSetting;
-	export let config: SettingConfigIcon<Record<string, any>, string>;
-	let color = value.color;
-	$: if (value.color !== color) {
-		value = { ...value, color };
+	interface Props {
+		value: IconSetting;
+		config: SettingConfigIcon<Record<string, any>, string>;
 	}
+
+	let { value = $bindable(), config }: Props = $props();
+	let color = $state.raw(value.color);
+	$effect(() => {
+		if (value.color !== color) {
+			value = { ...value, color };
+		}
+	});
 
 	let groups = Array.from(new Set(iconOptions.map((option) => option.group).filter(isDefined)));
 
@@ -39,7 +45,7 @@
 				<select
 					class="select"
 					value={value.icon}
-					on:change={(e) => {
+					onchange={(e) => {
 						value = { ...value, icon: e.currentTarget.value };
 					}}
 				>
@@ -59,7 +65,7 @@
 					type="number"
 					step="0.5"
 					value={value.size}
-					on:input={(e) => {
+					oninput={(e) => {
 						const parsed = parseFloat(e.currentTarget.value);
 						if (!Number.isNaN(parsed)) {
 							value = { ...value, size: parsed };
@@ -77,51 +83,53 @@
 				regionPanel="pt-0"
 			>
 				<AccordionItem>
-					<svelte:fragment slot="summary">
+					{#snippet summary()}
 						{$t('control.icon.advanced_options.header')}
-					</svelte:fragment>
-					<div slot="content" class="flex-col space-y-1">
-						<div class="flex items-baseline text-sm">
-							<label for="{config.id}-smoothing" class="ms-1 w-24 cursor-pointer">
-								{$t('control.icon.advanced_options.position')}
-							</label>
-							<select
-								id="{config.id}-position"
-								class="select p-1 text-sm"
-								value={value.position}
-								on:change={(e) => {
-									value = {
-										...value,
-										position: asIconPosition(e.currentTarget.value),
-									};
-								}}
-							>
-								{#each ICON_POSITIONS as position}
-									<option value={position}>{$t(`option.icon_position.${position}`)}</option>
-								{/each}
-							</select>
-						</div>
-						<div class="flex items-baseline text-sm">
-							<label for="{config.id}-smoothing" class="ms-1 w-24 cursor-pointer">
-								{$t('control.icon.advanced_options.priority')}
-							</label>
-							<input
-								id="{config.id}-priority"
-								class="input p-1 text-sm"
-								type="number"
-								value={value.priority}
-								on:change={(e) => {
-									const parsed = parseFloat(e.currentTarget.value);
-									if (Number.isNaN(parsed)) {
+					{/snippet}
+					{#snippet content()}
+						<div class="flex-col space-y-1">
+							<div class="flex items-baseline text-sm">
+								<label for="{config.id}-smoothing" class="ms-1 w-24 cursor-pointer">
+									{$t('control.icon.advanced_options.position')}
+								</label>
+								<select
+									id="{config.id}-position"
+									class="select p-1 text-sm"
+									value={value.position}
+									onchange={(e) => {
 										value = {
 											...value,
-											priority: parseInt(e.currentTarget.value),
+											position: asIconPosition(e.currentTarget.value),
 										};
-									}
-								}}
-							/>
+									}}
+								>
+									{#each ICON_POSITIONS as position}
+										<option value={position}>{$t(`option.icon_position.${position}`)}</option>
+									{/each}
+								</select>
+							</div>
+							<div class="flex items-baseline text-sm">
+								<label for="{config.id}-smoothing" class="ms-1 w-24 cursor-pointer">
+									{$t('control.icon.advanced_options.priority')}
+								</label>
+								<input
+									id="{config.id}-priority"
+									class="input p-1 text-sm"
+									type="number"
+									value={value.priority}
+									onchange={(e) => {
+										const parsed = parseFloat(e.currentTarget.value);
+										if (Number.isNaN(parsed)) {
+											value = {
+												...value,
+												priority: parseInt(e.currentTarget.value),
+											};
+										}
+									}}
+								/>
+							</div>
 						</div>
-					</div>
+					{/snippet}
 				</AccordionItem>
 			</Accordion>
 		{/if}

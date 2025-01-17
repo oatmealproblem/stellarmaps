@@ -1,8 +1,14 @@
 <script lang="ts">
 	import { mapSettings } from '../settings';
 	import type { MapData } from './data/processMapData';
-	export let data: MapData;
-	$: terraIncognitaColor = `rgb(${$mapSettings.terraIncognitaBrightness},${$mapSettings.terraIncognitaBrightness},${$mapSettings.terraIncognitaBrightness})`;
+	interface Props {
+		data: MapData;
+	}
+
+	let { data }: Props = $props();
+	let terraIncognitaColor = $derived(
+		`rgb(${$mapSettings.terraIncognitaBrightness},${$mapSettings.terraIncognitaBrightness},${$mapSettings.terraIncognitaBrightness})`,
+	);
 </script>
 
 {#if $mapSettings.terraIncognita}

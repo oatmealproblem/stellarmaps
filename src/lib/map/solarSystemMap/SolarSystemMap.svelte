@@ -42,14 +42,27 @@
 	} from './utils/planets';
 	import { getPathKitShadowPath } from './utils/shadows';
 
-	export let system: GalacticObject;
-	export let gameState: GameState;
-	export let mapData: MapData;
-	export let colors: Record<string, string>;
-	export let id: string;
-	export let exportMode = false;
-	export let previewMode = false;
-	export let onSystemSelected: null | ((system: GalacticObject) => void) = null;
+	interface Props {
+		system: GalacticObject;
+		gameState: GameState;
+		mapData: MapData;
+		colors: Record<string, string>;
+		id: string;
+		exportMode?: boolean;
+		previewMode?: boolean;
+		onSystemSelected?: null | ((system: GalacticObject) => void);
+	}
+
+	let {
+		system,
+		gameState,
+		mapData,
+		colors,
+		id,
+		exportMode = false,
+		previewMode = false,
+		onSystemSelected = null,
+	}: Props = $props();
 
 	let svg: SVGElement;
 	let g: SVGGElement;
@@ -63,39 +76,43 @@
 			// this is the default implementation
 			return (!event.ctrlKey || event.type === 'wheel') && !event.button;
 		});
-	$: if (!exportMode && !previewMode) {
-		select(svg).call(zoomHandler as any);
-	}
+	$effect(() => {
+		if (!exportMode && !previewMode) {
+			select(svg).call(zoomHandler as any);
+		}
+	});
 	function resetZoom() {
 		select(svg).call(zoomHandler.transform as any, zoomIdentity);
 	}
 
-	$: fleets = system.fleet_presence
-		.map((fleetId) => {
-			const fleet = gameState.fleet[fleetId];
-			const country = Object.values(gameState.country).find((country) =>
-				country.fleets_manager?.owned_fleets.some((f) => f.fleet === fleetId),
-			);
-			const countryBorder = mapData.borders.find((b) => b.countryId === country?.id);
-			if (!fleet || !country) return null;
-			return {
-				id: fleet.id,
-				name: fleet.name,
-				owner: country.id,
-				primaryColor: countryBorder?.primaryColor ?? 'black',
-				secondaryColor: countryBorder?.secondaryColor ?? 'black',
-				isMobile: Boolean(fleet.mobile),
-				isMilitary: fleet.military_power > 0,
-				rotation: fleet.mobile
-					? (-fleet.movement_manager.formation.angle / Math.PI) * 180 + 180
-					: 0,
-				coordinate: {
-					x: -fleet.movement_manager.coordinate.x,
-					y: fleet.movement_manager.coordinate.y,
-				},
-			};
-		})
-		.filter(isDefined);
+	let fleets = $derived(
+		system.fleet_presence
+			.map((fleetId) => {
+				const fleet = gameState.fleet[fleetId];
+				const country = Object.values(gameState.country).find((country) =>
+					country.fleets_manager?.owned_fleets.some((f) => f.fleet === fleetId),
+				);
+				const countryBorder = mapData.borders.find((b) => b.countryId === country?.id);
+				if (!fleet || !country) return null;
+				return {
+					id: fleet.id,
+					name: fleet.name,
+					owner: country.id,
+					primaryColor: countryBorder?.primaryColor ?? 'black',
+					secondaryColor: countryBorder?.secondaryColor ?? 'black',
+					isMobile: Boolean(fleet.mobile),
+					isMilitary: fleet.military_power > 0,
+					rotation: fleet.mobile
+						? (-fleet.movement_manager.formation.angle / Math.PI) * 180 + 180
+						: 0,
+					coordinate: {
+						x: -fleet.movement_manager.coordinate.x,
+						y: fleet.movement_manager.coordinate.y,
+					},
+				};
+			})
+			.filter(isDefined),
+	);
 
 	function getFleetIconSetting(fleet: (typeof fleets)[number], settings: MapSettings) {
 		return match(fleet)
@@ -106,64 +123,70 @@
 			.exhaustive();
 	}
 
-	$: ships = system.fleet_presence
-		.flatMap((fleetId) => {
-			const fleet = gameState.fleet[fleetId];
-			const country = Object.values(gameState.country).find((country) =>
-				country.fleets_manager?.owned_fleets.some((f) => f.fleet === fleetId),
-			);
-			const countryBorder = mapData.borders.find((b) => b.countryId === country?.id);
-			if (!fleet || !country) return [];
-			return fleet.ships.map((shipId) => {
-				const ship = gameState.ships[shipId];
-				if (!ship) return null;
-				return {
-					...ship,
-					owner: country.id,
-					primaryColor: countryBorder?.primaryColor ?? 'black',
-					secondaryColor: countryBorder?.secondaryColor ?? 'black',
-				};
-			});
-		})
-		.filter(isDefined);
+	let ships = $derived(
+		system.fleet_presence
+			.flatMap((fleetId) => {
+				const fleet = gameState.fleet[fleetId];
+				const country = Object.values(gameState.country).find((country) =>
+					country.fleets_manager?.owned_fleets.some((f) => f.fleet === fleetId),
+				);
+				const countryBorder = mapData.borders.find((b) => b.countryId === country?.id);
+				if (!fleet || !country) return [];
+				return fleet.ships.map((shipId) => {
+					const ship = gameState.ships[shipId];
+					if (!ship) return null;
+					return {
+						...ship,
+						owner: country.id,
+						primaryColor: countryBorder?.primaryColor ?? 'black',
+						secondaryColor: countryBorder?.secondaryColor ?? 'black',
+					};
+				});
+			})
+			.filter(isDefined),
+	);
 
-	$: planets = system.planet
-		.map((planetId) => gameState.planets.planet[planetId])
-		.filter(isDefined)
-		.filter((planet) => !isFakePlanet(planet));
+	let planets = $derived(
+		system.planet
+			.map((planetId) => gameState.planets.planet[planetId])
+			.filter(isDefined)
+			.filter((planet) => !isFakePlanet(planet)),
+	);
 
-	$: systemConnections = system.hyperlane
-		.map((h) => {
-			const toSystem = gameState.galactic_object[h.to];
-			if (!toSystem) return null;
-			const theta = Math.atan2(
-				toSystem.coordinate.y - system.coordinate.y,
-				// note: inverted x value
-				system.coordinate.x - toSystem.coordinate.x,
-			);
-			const x = 400 * Math.cos(theta);
-			const y = 400 * Math.sin(theta);
-			const trianglePath = `
+	let systemConnections = $derived(
+		system.hyperlane
+			.map((h) => {
+				const toSystem = gameState.galactic_object[h.to];
+				if (!toSystem) return null;
+				const theta = Math.atan2(
+					toSystem.coordinate.y - system.coordinate.y,
+					// note: inverted x value
+					system.coordinate.x - toSystem.coordinate.x,
+				);
+				const x = 400 * Math.cos(theta);
+				const y = 400 * Math.sin(theta);
+				const trianglePath = `
 				M ${x + Math.cos(theta + Math.PI / 2) * 30} ${y + Math.sin(theta + Math.PI / 2) * 30}
 				L ${x - Math.cos(theta + Math.PI / 2) * 30} ${y - Math.sin(theta + Math.PI / 2) * 30}
 				L ${x + Math.cos(theta) * 20} ${y + Math.sin(theta) * 20}
 				Z
 			`;
-			const textPathPoints: [[number, number], [number, number]] = [
-				[
-					x - Math.cos(theta) * 5 + Math.cos(theta + Math.PI / 2) * 500,
-					y - Math.sin(theta) * 5 + Math.sin(theta + Math.PI / 2) * 500,
-				],
-				[
-					x - Math.cos(theta) * 5 - Math.cos(theta + Math.PI / 2) * 500,
-					y - Math.sin(theta) * 5 - Math.sin(theta + Math.PI / 2) * 500,
-				],
-			];
-			if (y < 0) textPathPoints.reverse();
-			const textPath = `M ${textPathPoints[0][0]} ${textPathPoints[0][1]} L ${textPathPoints[1][0]} ${textPathPoints[1][1]}`;
-			return { x, y, system: toSystem, trianglePath, textPath };
-		})
-		.filter(isDefined);
+				const textPathPoints: [[number, number], [number, number]] = [
+					[
+						x - Math.cos(theta) * 5 + Math.cos(theta + Math.PI / 2) * 500,
+						y - Math.sin(theta) * 5 + Math.sin(theta + Math.PI / 2) * 500,
+					],
+					[
+						x - Math.cos(theta) * 5 - Math.cos(theta + Math.PI / 2) * 500,
+						y - Math.sin(theta) * 5 - Math.sin(theta + Math.PI / 2) * 500,
+					],
+				];
+				if (y < 0) textPathPoints.reverse();
+				const textPath = `M ${textPathPoints[0][0]} ${textPathPoints[0][1]} L ${textPathPoints[1][0]} ${textPathPoints[1][1]}`;
+				return { x, y, system: toSystem, trianglePath, textPath };
+			})
+			.filter(isDefined),
+	);
 </script>
 
 <svg
@@ -407,12 +430,12 @@
 		{/each}
 		{#if $mapSettings.systemMapHyperlanesEnabled}
 			{#each systemConnections as connection}
-				<!-- svelte-ignore a11y-click-events-have-key-events -->
-				<!-- svelte-ignore a11y-no-static-element-interactions -->
+				<!-- svelte-ignore a11y_click_events_have_key_events -->
+				<!-- svelte-ignore a11y_no_static_element_interactions -->
 				<g
 					style={!previewMode && !exportMode ? 'cursor: pointer;' : undefined}
 					fill={colors.dark_teal}
-					on:click={() => {
+					onclick={() => {
 						if (previewMode || exportMode) return;
 						resetZoom();
 						onSystemSelected?.(connection.system);

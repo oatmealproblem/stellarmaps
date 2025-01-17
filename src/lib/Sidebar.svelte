@@ -40,15 +40,18 @@
 	const modalStore = getModalStore();
 	const toastStore = getToastStore();
 
-	let selectedSaveGroup: [StellarisSaveMetadata, ...StellarisSaveMetadata[]] | null = null;
-	let selectedSave: StellarisSaveMetadata | null = null;
-	$: if (
-		selectedSaveGroup != null &&
-		(selectedSave == null || !selectedSaveGroup.includes(selectedSave))
-	) {
-		selectedSave = selectedSaveGroup[0];
-	}
-	let loadedSave: StellarisSaveMetadata | null = null;
+	let selectedSaveGroup: [StellarisSaveMetadata, ...StellarisSaveMetadata[]] | null = $state(null);
+	let selectedSave: StellarisSaveMetadata | null = $state(null);
+	// TODO
+	// $effect(() => {
+	// 	if (
+	// 		selectedSaveGroup != null &&
+	// 		(selectedSave == null || !selectedSaveGroup.includes(selectedSave))
+	// 	) {
+	// 		selectedSave = selectedSaveGroup[0];
+	// 	}
+	// });
+	let loadedSave: StellarisSaveMetadata | null = $state(null);
 
 	function loadSaves() {
 		return stellarMapsApi.loadSaveMetadata().catch(
@@ -59,7 +62,7 @@
 			}),
 		);
 	}
-	let savesPromise = loadSaves();
+	let savesPromise = $state(loadSaves());
 
 	function refreshSaves() {
 		selectedSaveGroup = null;
@@ -223,15 +226,11 @@
 	}
 </script>
 
-<form
-	id="sidebar-left"
-	class="flex h-full w-96 flex-col"
-	on:submit|preventDefault={applyMapSettings}
-	novalidate
->
+<div id="sidebar-left" class="flex h-full w-96 flex-col">
 	<form
 		class="p-4"
-		on:submit|preventDefault={() => {
+		onsubmit={(e) => {
+			e.preventDefault();
 			loadedSave = selectedSave;
 			if (selectedSave != null) {
 				loadSave(selectedSave.path);
@@ -240,11 +239,11 @@
 	>
 		<div class="flex">
 			<h2 class="label flex-1">{$t('side_bar.save_game')}</h2>
-			<button type="button" class="text-sm text-surface-300" on:click={manuallySelectSave}>
+			<button type="button" class="text-sm text-surface-300" onclick={manuallySelectSave}>
 				{$t('side_bar.select_manually_button')}
 			</button>
 			<span class="px-2 text-surface-600">|</span>
-			<button type="button" class="text-sm text-surface-300" on:click={refreshSaves}>
+			<button type="button" class="text-sm text-surface-300" onclick={refreshSaves}>
 				{$t('side_bar.refresh_saves_button')}
 			</button>
 		</div>
@@ -260,7 +259,7 @@
 		</select>
 		<select class="select mb-1" bind:value={selectedSave} disabled={selectedSaveGroup == null}>
 			{#if selectedSave == null}
-				<option value={null} disabled hidden />
+				<option value={null} disabled hidden></option>
 			{/if}
 			{#await savesPromise then _saves}
 				{#if selectedSaveGroup}
@@ -283,118 +282,127 @@
 		</button>
 	</form>
 
-	<div class="flex-column my-3 flex-col space-y-2 px-4">
-		{#each mapSettingsConfig[0]?.settings ?? [] as config (config.id)}
-			<SettingControl
-				config={asUnknownSettingConfig(config)}
-				settings={editedMapSettings}
-				writeToSettings={[mapSettings, lastProcessedMapSettings]}
-			/>
-		{/each}
-	</div>
+	<form
+		class="flex flex grow flex-col overflow-y-auto"
+		onsubmit={(e) => {
+			e.preventDefault();
+			applyMapSettings();
+		}}
+		novalidate
+	>
+		<div class="flex-column my-3 flex-col space-y-2 px-4">
+			{#each mapSettingsConfig[0]?.settings ?? [] as config (config.id)}
+				<SettingControl
+					config={asUnknownSettingConfig(config)}
+					settings={editedMapSettings}
+					writeToSettings={[mapSettings, lastProcessedMapSettings]}
+				/>
+			{/each}
+		</div>
 
-	<div class="flex items-baseline p-4 pb-1" style="transition-duration: 50ms;">
-		<h2 class="h3 flex-1">{$t('side_bar.map_settings')}</h2>
-		<button type="button" class="mx-2 text-primary-500" on:click={saveSettings}>
-			{$t('side_bar.save_settings_button')}
-		</button>
-		<button
-			type="button"
-			class="text-primary-500"
-			use:popup={{
-				event: 'focus-click',
-				target: 'popupCombobox',
-				placement: 'bottom',
-				closeQuery: '.listbox-item',
-			}}
-		>
-			{$t('side_bar.load_settings_button')}
-		</button>
-		<div class="card z-10 w-64 py-2 shadow-xl" data-popup="popupCombobox">
-			<ListBox rounded="rounded-none" active="variant-filled-primary">
-				{#if $customSavedSettings.length > 0}
+		<div class="flex items-baseline p-4 pb-1" style="transition-duration: 50ms;">
+			<h2 class="h3 flex-1">{$t('side_bar.map_settings')}</h2>
+			<button type="button" class="mx-2 text-primary-500" onclick={saveSettings}>
+				{$t('side_bar.save_settings_button')}
+			</button>
+			<button
+				type="button"
+				class="text-primary-500"
+				use:popup={{
+					event: 'focus-click',
+					target: 'popupCombobox',
+					placement: 'bottom',
+					closeQuery: '.listbox-item',
+				}}
+			>
+				{$t('side_bar.load_settings_button')}
+			</button>
+			<div class="card z-10 w-64 py-2 shadow-xl" data-popup="popupCombobox">
+				<ListBox rounded="rounded-none" active="variant-filled-primary">
+					{#if $customSavedSettings.length > 0}
+						<div class="px-4 pt-2 text-secondary-300" style="font-variant-caps: small-caps;">
+							{$t('side_bar.custom_setting_profiles')}
+						</div>
+						{#each $customSavedSettings as saved}
+							<ListBoxItem
+								group={$loadedSettingsKey}
+								name="loadSettings"
+								value="CUSTOM|{saved.name}"
+								on:click={(e) => {
+									e.preventDefault();
+									loadSettings('CUSTOM', saved);
+								}}
+							>
+								{saved.name}
+								<svelte:fragment slot="trail">
+									<button
+										type="button"
+										class="relative top-1 text-error-400 hover:text-error-300 focus:text-error-300"
+										onclick={() => {
+											modalStore.trigger({
+												type: 'confirm',
+												title: $t('generic.confirmation'),
+												body: $t('confirmation.delete_setting_profile', { name: saved.name }),
+												buttonTextConfirm: 'Delete',
+												response: (response) => {
+													// eslint-disable-next-line @typescript-eslint/strict-boolean-expressions -- this is a boolean, but TS thinks any
+													if (response) {
+														customSavedSettings.update((prev) =>
+															prev.filter((other) => !(other.name === saved.name)),
+														);
+													}
+												},
+											});
+										}}
+									>
+										<HeroiconTrashMini class="h-4 w-4" />
+									</button>
+								</svelte:fragment>
+							</ListBoxItem>
+						{/each}
+					{/if}
 					<div class="px-4 pt-2 text-secondary-300" style="font-variant-caps: small-caps;">
-						{$t('side_bar.custom_setting_profiles')}
+						{$t('side_bar.preset_setting_profiles')}
 					</div>
-					{#each $customSavedSettings as saved}
+					{#each presetMapSettings as preset}
 						<ListBoxItem
 							group={$loadedSettingsKey}
 							name="loadSettings"
-							value="CUSTOM|{saved.name}"
+							value="PRESET|{preset.name}"
 							on:click={(e) => {
 								e.preventDefault();
-								loadSettings('CUSTOM', saved);
+								loadSettings('PRESET', preset);
 							}}
 						>
-							{saved.name}
-							<svelte:fragment slot="trail">
-								<button
-									type="button"
-									class="relative top-1 text-error-400 hover:text-error-300 focus:text-error-300"
-									on:click={() => {
-										modalStore.trigger({
-											type: 'confirm',
-											title: $t('generic.confirmation'),
-											body: $t('confirmation.delete_setting_profile', { name: saved.name }),
-											buttonTextConfirm: 'Delete',
-											response: (response) => {
-												// eslint-disable-next-line @typescript-eslint/strict-boolean-expressions -- this is a boolean, but TS thinks any
-												if (response) {
-													customSavedSettings.update((prev) =>
-														prev.filter((other) => !(other.name === saved.name)),
-													);
-												}
-											},
-										});
-									}}
-								>
-									<HeroiconTrashMini class="h-4 w-4" />
-								</button>
-							</svelte:fragment>
+							{preset.name}
 						</ListBoxItem>
 					{/each}
-				{/if}
-				<div class="px-4 pt-2 text-secondary-300" style="font-variant-caps: small-caps;">
-					{$t('side_bar.preset_setting_profiles')}
-				</div>
-				{#each presetMapSettings as preset}
-					<ListBoxItem
-						group={$loadedSettingsKey}
-						name="loadSettings"
-						value="PRESET|{preset.name}"
-						on:click={(e) => {
-							e.preventDefault();
-							loadSettings('PRESET', preset);
-						}}
-					>
-						{preset.name}
-					</ListBoxItem>
-				{/each}
-			</ListBox>
-			<div class="bg-surface-100-800-token arrow" />
+				</ListBox>
+				<div class="bg-surface-100-800-token arrow"></div>
+			</div>
 		</div>
-	</div>
 
-	<div class="flex-shrink flex-grow overflow-y-auto">
-		<Accordion spacing="space-y-2">
-			{#each mapSettingsConfig.slice(1) as settingGroup (settingGroup.id)}
-				<AccordionItem regionPanel="space-y-6">
-					<svelte:fragment slot="summary">
-						<h3 class="h4 font-bold">
-							{$t(settingGroup.name)}
-						</h3>
-					</svelte:fragment>
-					<svelte:fragment slot="content">
-						{#each settingGroup.settings as config (config.id)}
-							<SettingControl
-								config={asUnknownSettingConfig(config)}
-								settings={editedMapSettings}
-							/>
-						{/each}
-					</svelte:fragment>
-				</AccordionItem>
-			{/each}
-		</Accordion>
-	</div>
-	<ApplyChangesButton />
-</form>
+		<div class="flex-shrink flex-grow overflow-y-auto">
+			<Accordion spacing="space-y-2">
+				{#each mapSettingsConfig.slice(1) as settingGroup (settingGroup.id)}
+					<AccordionItem regionPanel="space-y-6">
+						<svelte:fragment slot="summary">
+							<h3 class="h4 font-bold">
+								{$t(settingGroup.name)}
+							</h3>
+						</svelte:fragment>
+						<svelte:fragment slot="content">
+							{#each settingGroup.settings as config (config.id)}
+								<SettingControl
+									config={asUnknownSettingConfig(config)}
+									settings={editedMapSettings}
+								/>
+							{/each}
+						</svelte:fragment>
+					</AccordionItem>
+				{/each}
+			</Accordion>
+		</div>
+		<ApplyChangesButton />
+	</form>
+</div>

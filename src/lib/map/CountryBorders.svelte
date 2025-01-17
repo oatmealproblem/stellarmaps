@@ -11,8 +11,12 @@
 		getStrokeColorAttributes,
 	} from './mapUtils';
 
-	export let data: MapData;
-	export let colors: Record<string, string>;
+	interface Props {
+		data: MapData;
+		colors: Record<string, string>;
+	}
+
+	let { data, colors }: Props = $props();
 
 	function getSectorBorderColorSetting(sectorBorder: SectorBorderPath) {
 		return match(sectorBorder)
@@ -87,35 +91,39 @@
 			/>
 		{/if}
 		{#each border.sectorBorders.filter(filterSectorBorders).sort(sortSectorBorders) as sectorBorder}
-			<Glow enabled={getSectorBorderStrokeSetting(sectorBorder).glow} let:filter>
-				<path
-					d={sectorBorder.path}
-					{...getStrokeAttributes(getSectorBorderStrokeSetting(sectorBorder))}
-					{filter}
-					clip-path={`url(#border-${border.countryId}-outer-clip-path)`}
-					{...getStrokeColorAttributes({
-						mapSettings: $mapSettings,
-						colors,
-						countryColors: border,
-						colorStack: [getSectorBorderColorSetting(sectorBorder), $mapSettings.borderFillColor],
-					})}
-					fill="none"
-				/>
+			<Glow enabled={getSectorBorderStrokeSetting(sectorBorder).glow}>
+				{#snippet children({ filter })}
+					<path
+						d={sectorBorder.path}
+						{...getStrokeAttributes(getSectorBorderStrokeSetting(sectorBorder))}
+						{filter}
+						clip-path={`url(#border-${border.countryId}-outer-clip-path)`}
+						{...getStrokeColorAttributes({
+							mapSettings: $mapSettings,
+							colors,
+							countryColors: border,
+							colorStack: [getSectorBorderColorSetting(sectorBorder), $mapSettings.borderFillColor],
+						})}
+						fill="none"
+					/>
+				{/snippet}
 			</Glow>
 		{/each}
 
-		<Glow enabled={$mapSettings.borderStroke.glow} let:filter>
-			<path
-				id="border-{border.countryId}-border-only"
-				d={`${border.borderPath}`}
-				{...getFillColorAttributes({
-					mapSettings: $mapSettings,
-					colors,
-					countryColors: border,
-					colorStack: [$mapSettings.borderColor, $mapSettings.borderFillColor],
-				})}
-				{filter}
-			/>
+		<Glow enabled={$mapSettings.borderStroke.glow}>
+			{#snippet children({ filter })}
+				<path
+					id="border-{border.countryId}-border-only"
+					d={`${border.borderPath}`}
+					{...getFillColorAttributes({
+						mapSettings: $mapSettings,
+						colors,
+						countryColors: border,
+						colorStack: [$mapSettings.borderColor, $mapSettings.borderFillColor],
+					})}
+					{filter}
+				/>
+			{/snippet}
 		</Glow>
 
 		{#if $mapSettings.occupation}

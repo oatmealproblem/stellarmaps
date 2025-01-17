@@ -10,12 +10,15 @@
 		validateSetting,
 	} from './settings';
 
-	$: shouldShow = settingsAreDifferent($editedMapSettings, $mapSettings);
-	$: valid = mapSettingsConfig
-		.flatMap((category) => category.settings)
-		.every(
-			(config) => validateSetting($editedMapSettings[config.id], asUnknownSettingConfig(config))[0],
-		);
+	let shouldShow = $derived(settingsAreDifferent($editedMapSettings, $mapSettings));
+	let valid = $derived(
+		mapSettingsConfig
+			.flatMap((category) => category.settings)
+			.every(
+				(config) =>
+					validateSetting($editedMapSettings[config.id], asUnknownSettingConfig(config))[0],
+			),
+	);
 </script>
 
 {#if shouldShow}

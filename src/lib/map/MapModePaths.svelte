@@ -4,8 +4,12 @@
 	import type { MapData } from './data/processMapData';
 	import { getFillColorAttributes, getStrokeColorAttributes } from './mapUtils';
 
-	export let data: MapData;
-	export let colors: Record<string, string>;
+	interface Props {
+		data: MapData;
+		colors: Record<string, string>;
+	}
+
+	let { data, colors }: Props = $props();
 
 	function getMapModePaths(systems: MapData['systems']) {
 		const max = Math.max(...systems.map((s) => s.mapModeTotalValue ?? 0));

@@ -19,15 +19,19 @@
 	import IconSettingControl from './IconSettingControl.svelte';
 	import StrokeSettingControl from './StrokeSettingControl.svelte';
 
-	export let settings: Writable<Record<string, any>>;
-	export let writeToSettings: Writable<Record<string, any>>[] = [];
-	export let config: UnknownSettingConfig;
+	interface Props {
+		settings: Writable<Record<string, any>>;
+		writeToSettings?: Writable<Record<string, any>>[];
+		config: UnknownSettingConfig;
+	}
 
-	let value: any = get(settings)[config.id];
+	let { settings, writeToSettings = [], config }: Props = $props();
+
+	let value: any = $state.raw(get(settings)[config.id]);
 	let unsubscribe = settings.subscribe((values) => {
 		value = values[config.id];
 	});
-	$: {
+	$effect(() => {
 		if (value !== $settings[config.id]) {
 			settings.update((prev) => ({
 				...prev,
@@ -40,7 +44,7 @@
 				}));
 			}
 		}
-	}
+	});
 
 	const handleNumberInput: FormEventHandler<HTMLInputElement> = (e) => {
 		const newValue = parseFloat(e.currentTarget.value);
@@ -51,21 +55,23 @@
 		}
 	};
 
-	$: hidden = config.hideIf?.($settings as any);
+	let hidden = $derived(config.hideIf?.($settings as any));
 
 	const dynamicOptions: Readable<SelectOption[]> =
 		config.type === 'select' && config.dynamicOptions != null
 			? config.dynamicOptions
 			: emptyOptions;
 
-	$: options = config.type === 'select' ? [...config.options, ...$dynamicOptions] : [];
-	$: groups = Array.from(new Set(options.map((option) => option.group).filter(isDefined)));
+	let options = $derived(config.type === 'select' ? [...config.options, ...$dynamicOptions] : []);
+	let groups = $derived(
+		Array.from(new Set(options.map((option) => option.group).filter(isDefined))),
+	);
 
 	function handleStrokeToggle(e: Event) {
 		value = { ...value, enabled: (e.currentTarget as HTMLInputElement).checked };
 	}
 
-	$: [valid, invalidMessage, invalidMessageValues] = validateSetting(value, config);
+	let [valid, invalidMessage, invalidMessageValues] = $derived(validateSetting(value, config));
 
 	const richTextHandlers = {
 		ul: (s: string[]) => `<ul class="list-disc ps-4">${s.join()}</ul>`,
@@ -96,10 +102,10 @@
 				>
 					<!-- eslint-disable-next-line svelte/no-at-html-tags -- this is safe, all tooltip text is provided by the app -->
 					{@html $t(config.tooltip, richTextHandlers)}
-					<div class="variant-filled-secondary arrow" />
+					<div class="variant-filled-secondary arrow"></div>
 				</div>
 			{/if}
-			<div class="grow" />
+			<div class="grow"></div>
 			{#if (config.type === 'stroke' && !config.noDisable) || config.type === 'icon'}
 				<div class="relative top-1 inline-block">
 					<SlideToggle
@@ -119,7 +125,7 @@
 				class:input-error={!valid}
 				type="number"
 				value={value ?? ''}
-				on:input={handleNumberInput}
+				oninput={handleNumberInput}
 				min={config.min}
 				max={config.max}
 				step={config.step}

@@ -1,13 +1,18 @@
-<script>
+<script lang="ts">
 	import { getModalStore, getToastStore } from '@skeletonlabs/skeleton';
 
 	import { t, translatorModeExtraMessageIDs, translatorModeUntranslatedMessageIDs } from '../intl';
 	import SettingControl from './SettingControl/index.svelte';
 	import { appSettings, appSettingsConfig, asUnknownSettingConfig } from './settings';
 	import { selectTranslatorModeFile, translatorModeFilePath } from './translatorMode';
+	interface Props {
+		[key: string]: any;
+	}
+
+	let { ...props }: Props = $props();
 
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars -- this suppresses warning about unknown prop 'parent'
-	const _props = $$props;
+	const _props = props;
 
 	const modalStore = getModalStore();
 	const toastStore = getToastStore();
@@ -29,7 +34,7 @@
 			<button
 				class="variant-ghost-primary btn -my-3"
 				type="button"
-				on:click={() => selectTranslatorModeFile(toastStore)}
+				onclick={() => selectTranslatorModeFile(toastStore)}
 			>
 				{$t('app_settings.select_translator_mode_file')}
 			</button>
@@ -69,7 +74,7 @@
 		{/if}
 	</div>
 	<footer class="modal-footer flex justify-end space-x-2">
-		<button class="variant-ghost-surface btn" type="button" on:click={() => modalStore.close()}>
+		<button class="variant-ghost-surface btn" type="button" onclick={() => modalStore.close()}>
 			{$t('generic.close_button')}
 		</button>
 	</footer>

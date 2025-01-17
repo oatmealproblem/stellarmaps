@@ -3,8 +3,12 @@
 	import type { MapData } from './data/processMapData';
 	import { getFillColorAttributes } from './mapUtils';
 
-	export let data: MapData;
-	export let colors: Record<string, string>;
+	interface Props {
+		data: MapData;
+		colors: Record<string, string>;
+	}
+
+	let { data, colors }: Props = $props();
 </script>
 
 <pattern
