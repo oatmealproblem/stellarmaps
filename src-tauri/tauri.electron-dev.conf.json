@@ -7,10 +7,5 @@
 		"devUrl": "http://localhost:8000",
 		"frontendDist": "electron-frontend",
 		"features": ["electron"]
-	},
-	"bundle": {
-		"resources": {
-			"../out/games.michaelmakes.stellarmaps-electron-linux-x64/": "electron/"
-		}
 	}
 }

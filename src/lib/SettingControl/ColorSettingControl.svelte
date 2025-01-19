@@ -87,23 +87,23 @@
 						<ColorSettingAdjustmentControl
 							{config}
 							{adjustment}
-							on:typeChange={(e) => {
+							onTypeChange={(e) => {
 								value = {
 									...value,
 									colorAdjustments: value.colorAdjustments.map((a) =>
-										a === adjustment ? { ...a, type: e.detail } : a,
+										a === adjustment ? { ...a, type: e } : a,
 									),
 								};
 							}}
-							on:valueChange={(e) => {
+							onValueChange={(e) => {
 								value = {
 									...value,
 									colorAdjustments: value.colorAdjustments.map((a) =>
-										a === adjustment ? { ...a, value: e.detail } : a,
+										a === adjustment ? { ...a, value: e } : a,
 									),
 								};
 							}}
-							on:delete={() => {
+							onDelete={() => {
 								value = {
 									...value,
 									colorAdjustments: value.colorAdjustments.filter((a) => a !== adjustment),

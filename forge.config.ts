@@ -4,7 +4,7 @@ import { VitePlugin } from '@electron-forge/plugin-vite';
 import type { ForgeConfig } from '@electron-forge/shared-types';
 
 const config: ForgeConfig = {
-	rebuildConfig: {},
+	outDir: 'electron-build',
 	plugins: [
 		new VitePlugin({
 			// `build` can specify multiple entry builds, which can be Main process, Preload scripts, Worker process, etc.
@@ -24,7 +24,7 @@ const config: ForgeConfig = {
 			renderer: [
 				{
 					name: 'main_window',
-					config: 'vite.electron-renderer.config.ts',
+					config: 'vite.config.ts',
 				},
 			],
 		}),

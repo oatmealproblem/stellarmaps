@@ -1,6 +1,4 @@
 <script lang="ts">
-	import './app.postcss';
-
 	import { arrow, autoUpdate, computePosition, flip, offset, shift } from '@floating-ui/dom';
 	import {
 		AppBar,
@@ -12,15 +10,16 @@
 		Toast,
 	} from '@skeletonlabs/skeleton';
 
-	import { t } from './intl';
-	import AppSettingsModal from './lib/AppSettingsModal.svelte';
-	import ExportModal from './lib/ExportModal.svelte';
-	import Discord from './lib/icons/Discord.svelte';
-	import GitHub from './lib/icons/GitHub.svelte';
-	import HeroiconCog6ToothSolid from './lib/icons/HeroiconCog6ToothSolid.svelte';
-	import MapContainer from './lib/map/MapContainer.svelte';
-	import Sidebar from './lib/Sidebar.svelte';
-	import VersionInfo from './lib/VersionInfo.svelte';
+	import AppSettingsModal from '$lib/AppSettingsModal.svelte';
+	import ExportModal from '$lib/ExportModal.svelte';
+	import Discord from '$lib/icons/Discord.svelte';
+	import GitHub from '$lib/icons/GitHub.svelte';
+	import HeroiconCog6ToothSolid from '$lib/icons/HeroiconCog6ToothSolid.svelte';
+	import MapContainer from '$lib/map/MapContainer.svelte';
+	import Sidebar from '$lib/Sidebar.svelte';
+	import VersionInfo from '$lib/VersionInfo.svelte';
+
+	import { t } from '../intl';
 
 	initializeStores();
 	storePopup.set({ computePosition, autoUpdate, offset, shift, flip, arrow });

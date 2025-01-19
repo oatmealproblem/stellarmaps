@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en" class="dark h-full overflow-hidden">
+	<head>
+		<meta charset="utf-8" />
+		<title>StellarMaps</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<!-- TODO use sveltekit csp https://svelte.dev/docs/kit/configuration#csp -->
+		<!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
+		<!-- <meta
+			http-equiv="Content-Security-Policy"
+			content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://*.github.com https://discord.gg ipc://* http://localhost:*"
+		/> -->
+		%sveltekit.head%
+	</head>
+	<body
+		data-sveltekit-preload-data="hover"
+		data-theme="skeleton"
+		class="dark h-full overflow-hidden"
+	>
+		<div style="display: contents">%sveltekit.body%</div>
+	</body>
+</html>

@@ -1,7 +1,8 @@
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 
-import { app, BrowserWindow, ipcMain, nativeImage, session, shell } from 'electron';
+import { app, BrowserWindow, ipcMain, nativeImage, net, protocol, session, shell } from 'electron';
 import { z } from 'zod';
 
 import icon from '../../resources/icon.png?inline';
@@ -45,9 +46,7 @@ const createWindow = () => {
 	if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
 		mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
 	} else {
-		mainWindow.loadFile(
-			path.join(import.meta.dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
-		);
+		mainWindow.loadURL('app://bundle/');
 	}
 
 	// open _blank links in system default browser
@@ -74,10 +73,52 @@ const createWindow = () => {
 	}
 };
 
+// this needs to happen before ready
+protocol.registerSchemesAsPrivileged([
+	{
+		scheme: 'app',
+		privileges: {
+			standard: true,
+			secure: true,
+			supportFetchAPI: true,
+		},
+	},
+]);
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.on('ready', () => {
+	// handle custom URL scheme for frontend bundle
+	const bundlePath = path.resolve(import.meta.dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}`);
+	protocol.handle('app', (req) => {
+		const { host, pathname } = new URL(req.url);
+		if (host === 'bundle') {
+			if (pathname === '/') {
+				return net.fetch(pathToFileURL(path.join(bundlePath, 'index.html')).toString());
+			}
+
+			// check for paths that escape the bundle, e.g. app://bundle/../../secret_file.txt
+			const pathToServe = path.join(bundlePath, pathname);
+			const relativePath = path.relative(bundlePath, pathToServe);
+			const isSafe =
+				relativePath != '' && !relativePath.startsWith('..') && !path.isAbsolute(relativePath);
+			if (!isSafe) {
+				return new Response(`forbidden path: ${pathname}`, {
+					status: 403,
+					headers: { 'content-type': 'text/html' },
+				});
+			}
+
+			return net.fetch(pathToFileURL(pathToServe).toString());
+		} else {
+			return new Response(`bad host: ${host}`, {
+				status: 400,
+				headers: { 'content-type': 'text/html' },
+			});
+		}
+	});
+
 	// set up get-args ipc, which is used by preload script
 	ipcMain.handle('get-args', () => args);
 
