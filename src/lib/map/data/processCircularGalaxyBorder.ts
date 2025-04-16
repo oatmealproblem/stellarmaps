@@ -1,7 +1,7 @@
 import * as turf from '@turf/turf';
 import { interpolateBasis } from 'd3-interpolate';
 
-import type { GameState } from '../../GameState';
+import type { GameState } from '../../GameState.svelte';
 import type { MapSettings } from '../../settings';
 import type { NonEmptyArray } from '../../utils';
 import {

@@ -1,7 +1,7 @@
 import { get } from 'svelte/store';
 
 import { type MessageID, t } from '../../../intl';
-import type { GameState } from '../../GameState';
+import type { GameState } from '../../GameState.svelte';
 import type { ColorSetting, IconSetting, MapSettings } from '../../settings';
 import { localizeText } from './locUtils';
 import { mapModes, type MapModeSystemValue } from './mapModes';

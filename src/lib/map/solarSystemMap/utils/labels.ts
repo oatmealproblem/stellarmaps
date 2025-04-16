@@ -1,4 +1,4 @@
-import type { Planet } from '../../../GameState';
+import type { Planet } from '../../../GameState.svelte';
 import type { MapSettings } from '../../../settings';
 import { getPlanetCoordinate, getPlanetOrbitDistance } from './coordinates';
 import { getPlanetRadius, getPrimaryBodies, isAsteroid, isColony, isMoon, isStar } from './planets';

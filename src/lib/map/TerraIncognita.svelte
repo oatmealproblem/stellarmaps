@@ -7,20 +7,22 @@
 
 	let { data }: Props = $props();
 	let terraIncognitaColor = $derived(
-		`rgb(${$mapSettings.terraIncognitaBrightness},${$mapSettings.terraIncognitaBrightness},${$mapSettings.terraIncognitaBrightness})`,
+		`rgb(${mapSettings.current.terraIncognitaBrightness},${mapSettings.current.terraIncognitaBrightness},${mapSettings.current.terraIncognitaBrightness})`,
 	);
 </script>
 
-{#if $mapSettings.terraIncognita}
+{#if mapSettings.current.terraIncognita}
 	<!-- filtered and patterned path disappears at some zoom levels -->
 	<!-- always draw a flat terra incognita underneath as a fallback -->
 	<path id="terra-incognita-fallback" d={data.terraIncognitaPath} fill={terraIncognitaColor} />
 	<path
 		id="terra-incognita"
 		d={data.terraIncognitaPath}
-		fill={$mapSettings.terraIncognitaStyle === 'striped'
+		fill={mapSettings.current.terraIncognitaStyle === 'striped'
 			? 'url(#dark-stripes)'
 			: terraIncognitaColor}
-		filter={$mapSettings.terraIncognitaStyle === 'cloudy' ? 'url(#terra-incognita-filter)' : ''}
+		filter={mapSettings.current.terraIncognitaStyle === 'cloudy'
+			? 'url(#terra-incognita-filter)'
+			: ''}
 	/>
 {/if}

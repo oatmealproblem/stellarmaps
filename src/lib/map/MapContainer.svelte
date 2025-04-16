@@ -3,7 +3,6 @@
 	import * as dialog from '@tauri-apps/plugin-dialog';
 	import { select } from 'd3-selection';
 	import { zoom, zoomIdentity, ZoomTransform } from 'd3-zoom';
-	import { get } from 'svelte/store';
 	import { fade } from 'svelte/transition';
 
 	import { t } from '../../intl';
@@ -12,19 +11,15 @@
 	import convertBlobToDataUrl from '../convertBlobToDataUrl';
 	import convertSvgToPng from '../convertSvgToPng';
 	import debug from '../debug';
-	import {
-		type GalacticObject,
-		type GameState,
-		gameStatePromise as gameStatePromiseStore,
-	} from '../GameState';
+	import { type GalacticObject, type GameState, gameStatePromise } from '../GameState.svelte';
 	import HeroiconArrowsPointingOut from '../icons/HeroiconArrowsPointingOut.svelte';
 	import {
 		loadStellarisData,
-		stellarisDataPromiseStore,
-		stellarisPathStore,
-	} from '../loadStellarisData';
+		stellarisDataPromise,
+		stellarisPath,
+	} from '../loadStellarisData.svelte';
 	import {
-		appStellarisLanguage,
+		appSettings,
 		editedMapSettings,
 		lastProcessedMapSettings,
 		mapSettings,
@@ -41,32 +36,20 @@
 
 	const modalStore = getModalStore();
 
-	let stellarisDataPromise = $state<ReturnType<typeof loadStellarisData>>(new Promise(() => {}));
-	$effect(() => {
-		const unsubscribe = stellarisDataPromiseStore.subscribe((value) => {
-			stellarisDataPromise = value;
-		});
-		return unsubscribe;
+	let mapDataPromise = $derived.by(() => {
+		if (gameStatePromise.current) {
+			const settings = lastProcessedMapSettings.current;
+			const language = appSettings.current.appStellarisLanguage;
+			return gameStatePromise.current.then((gs) => processMapData(gs, settings, language));
+		} else {
+			return new Promise<Awaited<ReturnType<typeof processMapData>>>(() => {});
+		}
 	});
-
-	let gameStatePromise = $state<Promise<GameState> | null>(null);
-	$effect(() => {
-		const unsubscribe = gameStatePromiseStore.subscribe((value) => {
-			gameStatePromise = value;
-		});
-		return unsubscribe;
-	});
-
-	let mapDataPromise = $derived(
-		gameStatePromise?.then((gs) =>
-			processMapData(gs, $lastProcessedMapSettings, $appStellarisLanguage),
-		) ?? new Promise<Awaited<ReturnType<typeof processMapData>>>(() => {}),
-	);
 
 	loadStellarisData();
 	const toastStore = getToastStore();
 	$effect(() => {
-		stellarisDataPromise.catch(
+		stellarisDataPromise.current.catch(
 			toastError({
 				title: $t('notification.failed_to_load_stellaris_data.title'),
 				description: $t('notification.failed_to_load_stellaris_data.description'),
@@ -83,7 +66,7 @@
 							})
 							.then((result) => {
 								if (typeof result === 'string') {
-									stellarisPathStore.set(result);
+									stellarisPath.current = result;
 									loadStellarisData();
 								}
 							}),
@@ -91,10 +74,10 @@
 			}),
 		);
 	});
-	let colorsPromise = $derived(stellarisDataPromise.then(({ colors }) => colors));
+	let colorsPromise = $derived(stellarisDataPromise.current.then(({ colors }) => colors));
 
 	async function openExportModal() {
-		Promise.all([stellarisDataPromise, mapDataPromise]).then(([{ colors }, mapData]) => {
+		Promise.all([stellarisDataPromise.current, mapDataPromise]).then(([{ colors }, mapData]) => {
 			modalStore.trigger({
 				type: 'component',
 				component: 'export',
@@ -110,7 +93,7 @@
 	}
 
 	let allAsyncDataPromise = $derived(
-		Promise.all([colorsPromise, $gameStatePromiseStore, mapDataPromise]),
+		Promise.all([colorsPromise, gameStatePromise.current, mapDataPromise]),
 	);
 	let colorsOrNull: null | Awaited<typeof colorsPromise> = $state(null);
 	let gameStateOrNull: null | GameState = $state(null);
@@ -248,7 +231,7 @@
 			gameStateOrNull && colorsOrNull
 				? processStarScape(
 						gameStateOrNull,
-						$mapSettings,
+						mapSettings.current,
 						colorsOrNull,
 						{
 							left,
@@ -284,7 +267,7 @@
 				}
 			}
 		}
-		if ($debug) {
+		if (debug.current) {
 			timeItAsync(
 				`render map ${newPngDataUrlRequestId}-${newZoomedPngDataUrlRequestId}`,
 				finalizeRender,
@@ -305,7 +288,7 @@
 	let bg = $derived(
 		dataOrNull == null
 			? ADDITIONAL_COLORS.very_black
-			: getBackgroundColor(colorsOrNull, $mapSettings),
+			: getBackgroundColor(colorsOrNull, mapSettings.current),
 	);
 
 	const TOOLTIP_MAX_DISTANCE = 32;
@@ -335,7 +318,7 @@
 			const system = dataOrNull.findClosestSystem(-svgPoint[0], svgPoint[1]);
 			if (system) {
 				const countryId = dataOrNull.systemIdToCountry[system.id] ?? null;
-				const settings = get(mapSettings);
+				const settings = mapSettings.current;
 				const processedSystem = dataOrNull.systems.find((s) => s.id === system.id);
 				if (processedSystem == null) {
 					tooltip = null;
@@ -392,18 +375,18 @@
 	function onMapClick(e: MouseEvent) {
 		if (e.shiftKey) {
 			document.getSelection()?.removeAllRanges();
-			if (!mapModes[$mapSettings.mapMode]?.hasPov) return;
+			if (!mapModes[mapSettings.current.mapMode]?.hasPov) return;
 			const countryId = tooltip?.countryId;
 			if (countryId != null) {
-				editedMapSettings.update((value) => ({
-					...value,
+				editedMapSettings.current = {
+					...editedMapSettings.current,
 					mapModePointOfView: countryId.toString(),
-				}));
-				mapSettings.update((value) => ({ ...value, mapModePointOfView: countryId.toString() }));
-				lastProcessedMapSettings.update((value) => ({
-					...value,
+				};
+				mapSettings.current = { ...mapSettings.current, mapModePointOfView: countryId.toString() };
+				lastProcessedMapSettings.current = {
+					...lastProcessedMapSettings.current,
 					mapModePointOfView: countryId.toString(),
-				}));
+				};
 			}
 		} else {
 			if (tooltip?.hidden) return;
@@ -452,7 +435,7 @@
 			/>
 		</div>
 	{/if}
-	{#if !$gameStatePromiseStore}
+	{#if !gameStatePromise.current}
 		<div class="flex h-full w-full items-center" style:background={bg}>
 			<div class="h1 w-full text-center" style="lineHeight: 100%;">
 				{$t('map.select_save')}
@@ -509,7 +492,7 @@
 			}}
 			onclick={onMapClick}
 			class:hidden={openedSystem != null}
-			class:cursor-pointer={(mapModes[$mapSettings.mapMode]?.hasPov &&
+			class:cursor-pointer={(mapModes[mapSettings.current.mapMode]?.hasPov &&
 				tooltip?.countryId != null) ??
 				(tooltip != null && !tooltip.hidden)}
 			class="h-full w-full"
@@ -539,7 +522,7 @@
 					y="0"
 					width={outputWidth}
 					height={outputHeight}
-					fill={getBackgroundColor(colorsOrNull, $mapSettings)}
+					fill={getBackgroundColor(colorsOrNull, mapSettings.current)}
 				/>
 				<image x="0" y="0" width={outputWidth} height={outputHeight} href={starScapeDataUrl} />
 			{:else if lastRenderedTransformStarScapePngDataUrl}
@@ -549,7 +532,7 @@
 						y="0"
 						width={outputWidth}
 						height={outputHeight}
-						fill={getBackgroundColor(colorsOrNull, $mapSettings)}
+						fill={getBackgroundColor(colorsOrNull, mapSettings.current)}
 						transform={lastRenderedTransformStarScape
 							? `scale(${
 									1 / lastRenderedTransformStarScape.k

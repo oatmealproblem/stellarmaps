@@ -11,37 +11,41 @@
 
 	let { data, colors }: Props = $props();
 
-	let hyperRelaysDisabled = $derived(!$mapSettings.hyperRelayStroke.enabled);
+	let hyperRelaysDisabled = $derived(!mapSettings.current.hyperRelayStroke.enabled);
 	let hyperRelayIsDynamic = $derived(
-		isColorDynamic($mapSettings.hyperRelayColor.color, $mapSettings),
+		isColorDynamic(mapSettings.current.hyperRelayColor.color, mapSettings.current),
 	);
 	let unownedHyperRelayColor = $derived(
-		hyperRelayIsDynamic ? $mapSettings.unownedHyperRelayColor : $mapSettings.hyperRelayColor,
+		hyperRelayIsDynamic
+			? mapSettings.current.unownedHyperRelayColor
+			: mapSettings.current.hyperRelayColor,
 	);
 	let unownedHyperRelayPath = $derived(
 		[
 			data.unownedRelayHyperlanesPath,
 			...data.borders
 				.filter((border) =>
-					hyperRelayIsDynamic ? !border.isKnown && $mapSettings.terraIncognita : true,
+					hyperRelayIsDynamic ? !border.isKnown && mapSettings.current.terraIncognita : true,
 				)
 				.map((border) => border.relayHyperlanesPath),
 		].join(' '),
 	);
 
-	let hyperlanesDisabled = $derived(!$mapSettings.hyperlaneStroke.enabled);
+	let hyperlanesDisabled = $derived(!mapSettings.current.hyperlaneStroke.enabled);
 	let hyperlaneIsDynamic = $derived(
-		isColorDynamic($mapSettings.hyperlaneColor.color, $mapSettings),
+		isColorDynamic(mapSettings.current.hyperlaneColor.color, mapSettings.current),
 	);
 	let unownedHyperlaneColor = $derived(
-		hyperlaneIsDynamic ? $mapSettings.unownedHyperlaneColor : $mapSettings.hyperlaneColor,
+		hyperlaneIsDynamic
+			? mapSettings.current.unownedHyperlaneColor
+			: mapSettings.current.hyperlaneColor,
 	);
 	let unownedHyperlanePath = $derived(
 		[
 			data.unownedHyperlanesPath,
 			...data.borders
 				.filter((border) =>
-					hyperlaneIsDynamic ? !border.isKnown && $mapSettings.terraIncognita : true,
+					hyperlaneIsDynamic ? !border.isKnown && mapSettings.current.terraIncognita : true,
 				)
 				.map((border) => border.hyperlanesPath),
 		].join(' ') + (hyperRelaysDisabled ? ` ${unownedHyperRelayPath}` : ''),
@@ -49,16 +53,16 @@
 </script>
 
 {#if !hyperlanesDisabled}
-	<Glow enabled={$mapSettings.hyperlaneStroke.glow}>
+	<Glow enabled={mapSettings.current.hyperlaneStroke.glow}>
 		{#snippet children({ filter })}
 			<path
 				d={unownedHyperlanePath}
 				{...getStrokeColorAttributes({
-					mapSettings: $mapSettings,
+					mapSettings: mapSettings.current,
 					colors,
 					colorStack: [unownedHyperlaneColor],
 				})}
-				{...getStrokeAttributes($mapSettings.hyperlaneStroke)}
+				{...getStrokeAttributes(mapSettings.current.hyperlaneStroke)}
 				{filter}
 				fill="none"
 			/>
@@ -66,16 +70,16 @@
 	</Glow>
 {/if}
 {#if !hyperRelaysDisabled}
-	<Glow enabled={$mapSettings.hyperRelayStroke.glow}>
+	<Glow enabled={mapSettings.current.hyperRelayStroke.glow}>
 		{#snippet children({ filter })}
 			<path
 				d={unownedHyperRelayPath}
 				{...getStrokeColorAttributes({
-					mapSettings: $mapSettings,
+					mapSettings: mapSettings.current,
 					colors,
 					colorStack: [unownedHyperRelayColor],
 				})}
-				{...getStrokeAttributes($mapSettings.hyperRelayStroke)}
+				{...getStrokeAttributes(mapSettings.current.hyperRelayStroke)}
 				{filter}
 				fill="none"
 			/>
@@ -83,21 +87,21 @@
 	</Glow>
 {/if}
 
-{#each data.borders.filter((border) => border.isKnown || !$mapSettings.terraIncognita) as border}
+{#each data.borders.filter((border) => border.isKnown || !mapSettings.current.terraIncognita) as border}
 	{#if !hyperlanesDisabled && hyperlaneIsDynamic}
-		<Glow enabled={$mapSettings.hyperlaneStroke.glow}>
+		<Glow enabled={mapSettings.current.hyperlaneStroke.glow}>
 			{#snippet children({ filter })}
 				<path
 					d={hyperRelaysDisabled
 						? `${border.hyperlanesPath} ${border.relayHyperlanesPath}`
 						: border.hyperlanesPath}
 					{...getStrokeColorAttributes({
-						mapSettings: $mapSettings,
+						mapSettings: mapSettings.current,
 						colors,
 						countryColors: border,
-						colorStack: [$mapSettings.hyperlaneColor, $mapSettings.borderFillColor],
+						colorStack: [mapSettings.current.hyperlaneColor, mapSettings.current.borderFillColor],
 					})}
-					{...getStrokeAttributes($mapSettings.hyperlaneStroke)}
+					{...getStrokeAttributes(mapSettings.current.hyperlaneStroke)}
 					{filter}
 					fill="none"
 				/>
@@ -105,17 +109,17 @@
 		</Glow>
 	{/if}
 	{#if !hyperRelaysDisabled && hyperRelayIsDynamic}
-		<Glow enabled={$mapSettings.hyperRelayStroke.glow}>
+		<Glow enabled={mapSettings.current.hyperRelayStroke.glow}>
 			{#snippet children({ filter })}
 				<path
 					d={border.relayHyperlanesPath}
 					{...getStrokeColorAttributes({
-						mapSettings: $mapSettings,
+						mapSettings: mapSettings.current,
 						colors,
 						countryColors: border,
-						colorStack: [$mapSettings.hyperRelayColor, $mapSettings.borderFillColor],
+						colorStack: [mapSettings.current.hyperRelayColor, mapSettings.current.borderFillColor],
 					})}
-					{...getStrokeAttributes($mapSettings.hyperRelayStroke)}
+					{...getStrokeAttributes(mapSettings.current.hyperRelayStroke)}
 					{filter}
 					fill="none"
 				/>

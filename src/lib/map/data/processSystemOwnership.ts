@@ -1,6 +1,6 @@
 import * as turf from '@turf/turf';
 
-import type { GameState } from '../../GameState';
+import type { GameState } from '../../GameState.svelte';
 import type { MapSettings } from '../../settings';
 import { getOrDefault, getOrSetDefault, parseNumberEntry } from '../../utils';
 import { getFrontierSectorPseudoId, getUnionLeaderId, pointToGeoJSON } from './utils';

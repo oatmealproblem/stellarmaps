@@ -10,21 +10,21 @@
 
 	let { data, colors }: Props = $props();
 	let knownBypassLinks = $derived(
-		data.bypassLinks.filter((w) => !$mapSettings.terraIncognita || w.isKnown),
+		data.bypassLinks.filter((w) => !mapSettings.current.terraIncognita || w.isKnown),
 	);
 </script>
 
-{#if $mapSettings.wormholeStroke.enabled}
+{#if mapSettings.current.wormholeStroke.enabled}
 	{#each knownBypassLinks.filter((b) => b.type === 'wormhole') as bypassLink}
-		<Glow enabled={$mapSettings.wormholeStroke.glow}>
+		<Glow enabled={mapSettings.current.wormholeStroke.glow}>
 			{#snippet children({ filter })}
 				<path
 					d="M {bypassLink.from.x} {bypassLink.from.y} L {bypassLink.to.x} {bypassLink.to.y}"
 					{filter}
-					{...getStrokeAttributes($mapSettings.wormholeStroke)}
+					{...getStrokeAttributes(mapSettings.current.wormholeStroke)}
 					{...getStrokeColorAttributes({
-						mapSettings: $mapSettings,
-						colorStack: [$mapSettings.wormholeStrokeColor],
+						mapSettings: mapSettings.current,
+						colorStack: [mapSettings.current.wormholeStrokeColor],
 						colors,
 					})}
 				/>
@@ -33,17 +33,17 @@
 	{/each}
 {/if}
 
-{#if $mapSettings.lGateStroke.enabled}
+{#if mapSettings.current.lGateStroke.enabled}
 	{#each knownBypassLinks.filter((b) => b.type === 'lgate') as bypassLink}
-		<Glow enabled={$mapSettings.lGateStroke.glow}>
+		<Glow enabled={mapSettings.current.lGateStroke.glow}>
 			{#snippet children({ filter })}
 				<path
 					d="M {bypassLink.from.x} {bypassLink.from.y} L {bypassLink.to.x} {bypassLink.to.y}"
 					{filter}
-					{...getStrokeAttributes($mapSettings.lGateStroke)}
+					{...getStrokeAttributes(mapSettings.current.lGateStroke)}
 					{...getStrokeColorAttributes({
-						mapSettings: $mapSettings,
-						colorStack: [$mapSettings.lGateStrokeColor],
+						mapSettings: mapSettings.current,
+						colorStack: [mapSettings.current.lGateStrokeColor],
 						colors,
 					})}
 				/>
@@ -52,17 +52,17 @@
 	{/each}
 {/if}
 
-{#if $mapSettings.shroudTunnelStroke.enabled}
+{#if mapSettings.current.shroudTunnelStroke.enabled}
 	{#each knownBypassLinks.filter((b) => b.type === 'shroud_tunnel') as bypassLink}
-		<Glow enabled={$mapSettings.shroudTunnelStroke.glow}>
+		<Glow enabled={mapSettings.current.shroudTunnelStroke.glow}>
 			{#snippet children({ filter })}
 				<path
 					d="M {bypassLink.from.x} {bypassLink.from.y} L {bypassLink.to.x} {bypassLink.to.y}"
 					{filter}
-					{...getStrokeAttributes($mapSettings.shroudTunnelStroke)}
+					{...getStrokeAttributes(mapSettings.current.shroudTunnelStroke)}
 					{...getStrokeColorAttributes({
-						mapSettings: $mapSettings,
-						colorStack: [$mapSettings.shroudTunnelStrokeColor],
+						mapSettings: mapSettings.current,
+						colorStack: [mapSettings.current.shroudTunnelStrokeColor],
 						colors,
 					})}
 				/>

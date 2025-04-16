@@ -1,8 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
-import { get } from 'svelte/store';
 
 import debug from './debug';
-import { gameStateFilter } from './GameState';
+import { gameStateFilter } from './GameState.svelte';
 
 const stellarMapsApi = {
 	async loadSaveMetadata(): Promise<[StellarisSaveMetadata, ...StellarisSaveMetadata[]][]> {
@@ -17,7 +16,7 @@ const stellarMapsApi = {
 	loadSave(path: string): Promise<unknown> {
 		return invoke('get_stellaris_save_cmd', {
 			path,
-			filter: get(debug) ? true : gameStateFilter,
+			filter: debug.current ? true : gameStateFilter,
 		});
 	},
 	loadFonts(): Promise<string[]> {

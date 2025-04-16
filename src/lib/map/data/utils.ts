@@ -2,7 +2,7 @@ import * as turf from '@turf/turf';
 import { pathRound } from 'd3-path';
 import { curveBasis, curveBasisClosed, curveLinear, curveLinearClosed } from 'd3-shape';
 
-import type { GameState } from '../../GameState';
+import type { GameState } from '../../GameState.svelte';
 import type { MapSettings } from '../../settings';
 import type { BorderCircle } from './processCircularGalaxyBorder';
 

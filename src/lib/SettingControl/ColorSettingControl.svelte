@@ -19,7 +19,7 @@
 
 	let { value = $bindable(), config }: Props = $props();
 
-	let options = $derived([...colorOptions, ...$colorDynamicOptions]);
+	let options = $derived([...colorOptions, ...colorDynamicOptions.current]);
 	let groups = $derived(
 		Array.from(
 			new Set(

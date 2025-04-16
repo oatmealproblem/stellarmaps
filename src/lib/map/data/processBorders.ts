@@ -1,6 +1,6 @@
 import * as turf from '@turf/turf';
 
-import type { GameState, Sector } from '../../GameState';
+import type { GameState, Sector } from '../../GameState.svelte';
 import type { MapSettings } from '../../settings';
 import { getOrDefault, getOrSetDefault, isDefined, parseNumberEntry } from '../../utils';
 import { getCountryMapModeInfo } from './mapModes';

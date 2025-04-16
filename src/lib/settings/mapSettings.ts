@@ -1,10 +1,11 @@
-import { localStorageStore } from '@skeletonlabs/skeleton';
-import { get } from 'svelte/store';
+import { z } from 'zod';
 
-import { type ColorSetting } from './ColorSetting';
-import { type IconSetting } from './IconSetting';
-import { type StrokeSetting } from './StrokeSetting';
-import { settingsAreDifferent, validateAndResetMapSettings } from './utils';
+import { PersistedRawState } from '$lib/stateUtils.svelte';
+
+import { type ColorSetting, zColorSetting } from './ColorSetting';
+import { type IconSetting, zIconSetting } from './IconSetting';
+import { type StrokeSetting, zStrokeSetting } from './StrokeSetting';
+import { settingsAreDifferent } from './utils';
 
 export type NumberMapSettings =
 	| 'borderFillFade'
@@ -145,109 +146,109 @@ export type MapSettings = Record<NumberMapSettings, number> &
 	Record<StrokeMapSettings, StrokeSetting> &
 	Record<IconMapSettings, IconSetting>;
 
-export const defaultMapSettings: MapSettings = {
-	mapMode: 'default',
-	mapModePointOfView: 'player',
-	mapModeSpecies: 'player',
-	backgroundColor: { color: 'very_black', colorAdjustments: [] },
-	borderFillColor: {
+export const zMapSettings: z.Schema<MapSettings, z.ZodTypeDef, unknown> = z.object({
+	mapMode: z.string().catch('default'),
+	mapModePointOfView: z.string().catch('player'),
+	mapModeSpecies: z.string().catch('player'),
+	backgroundColor: zColorSetting.catch({ color: 'very_black', colorAdjustments: [] }),
+	borderFillColor: zColorSetting.catch({
 		color: 'secondary',
 		colorAdjustments: [{ type: 'OPACITY', value: 0.5 }],
-	},
-	borderFillFade: 0,
-	borderColor: { color: 'primary', colorAdjustments: [] },
-	borderStroke: {
+	}),
+	borderFillFade: z.number().catch(0),
+	borderColor: zColorSetting.catch({ color: 'primary', colorAdjustments: [] }),
+	borderStroke: zStrokeSetting.catch({
 		enabled: true,
 		width: 2,
 		smoothing: true,
 		glow: false,
 		dashed: false,
 		dashArray: '3 3',
-	},
-	hyperlaneStroke: {
+	}),
+	hyperlaneStroke: zStrokeSetting.catch({
 		enabled: true,
 		width: 0.5,
 		smoothing: false,
 		glow: false,
 		dashed: false,
 		dashArray: '3 3',
-	},
-	hyperlaneColor: {
+	}),
+	hyperlaneColor: zColorSetting.catch({
 		color: 'white',
 		colorAdjustments: [{ type: 'OPACITY', value: 0.15 }],
-	},
-	unownedHyperlaneColor: {
+	}),
+	unownedHyperlaneColor: zColorSetting.catch({
 		color: 'white',
 		colorAdjustments: [{ type: 'OPACITY', value: 0.15 }],
-	},
-	hyperRelayStroke: {
+	}),
+	hyperRelayStroke: zStrokeSetting.catch({
 		enabled: true,
 		width: 0.5,
 		smoothing: false,
 		glow: false,
 		dashed: false,
 		dashArray: '3 3',
-	},
-	hyperRelayColor: {
+	}),
+	hyperRelayColor: zColorSetting.catch({
 		color: 'white',
 		colorAdjustments: [{ type: 'OPACITY', value: 0.15 }],
-	},
-	unownedHyperRelayColor: {
+	}),
+	unownedHyperRelayColor: zColorSetting.catch({
 		color: 'white',
 		colorAdjustments: [{ type: 'OPACITY', value: 0.15 }],
-	},
-	countryNames: true,
-	countryNamesType: 'countryOnly',
-	countryNamesMinSize: 5,
-	countryNamesMaxSize: null,
-	countryNamesSecondaryRelativeSize: 0.75,
-	countryNamesFont: 'Orbitron',
-	countryEmblems: true,
-	countryEmblemsMinSize: null,
-	countryEmblemsMaxSize: 75,
-	labelsAvoidHoles: 'owned',
-	systemNames: 'none',
-	systemNamesFont: 'Orbitron',
-	systemNamesFontSize: 3,
-	sectorBorderStroke: {
+	}),
+	countryNames: z.boolean().catch(true),
+	countryNamesType: z.string().catch('countryOnly'),
+	countryNamesMinSize: z.number().nullable().catch(5),
+	countryNamesMaxSize: z.number().nullable().catch(null),
+	countryNamesSecondaryRelativeSize: z.number().catch(0.75),
+	countryNamesFont: z.string().catch('Orbitron'),
+	countryEmblems: z.boolean().catch(true),
+	countryEmblemsMinSize: z.number().nullable().catch(null),
+	countryEmblemsMaxSize: z.number().nullable().catch(75),
+	labelsAvoidHoles: z.string().catch('owned'),
+	systemNames: z.string().catch('none'),
+	systemNamesFont: z.string().catch('Orbitron'),
+	systemNamesFontSize: z.number().catch(3),
+	sectorBorderStroke: zStrokeSetting.catch({
 		enabled: true,
 		width: 1,
 		smoothing: true,
 		glow: false,
 		dashed: true,
 		dashArray: '3 3',
-	},
-	sectorBorderColor: {
+	}),
+	sectorBorderColor: zColorSetting.catch({
 		color: 'border',
 		colorAdjustments: [{ type: 'MIN_CONTRAST', value: 0.25 }],
-	},
-	frontierBubbleThreshold: null,
-	sectorTypeBorderStyles: false,
-	sectorCoreBorderStroke: {
+	}),
+	frontierBubbleThreshold: z.number().nullable().catch(null),
+	sectorTypeBorderStyles: z.boolean().catch(false),
+	sectorCoreBorderStroke: zStrokeSetting.catch({
 		enabled: true,
 		width: 1,
 		smoothing: true,
 		glow: false,
 		dashed: false,
 		dashArray: '3 3',
-	},
-	sectorCoreBorderColor: {
+	}),
+	sectorCoreBorderColor: zColorSetting.catch({
 		color: 'border',
 		colorAdjustments: [{ type: 'MIN_CONTRAST', value: 0.25 }],
-	},
-	sectorFrontierBorderStroke: {
+	}),
+	sectorFrontierBorderStroke: zStrokeSetting.catch({
 		enabled: true,
 		width: 1,
 		smoothing: true,
 		glow: false,
 		dashed: true,
 		dashArray: '1 3',
-	},
-	sectorFrontierBorderColor: {
+	}),
+	sectorFrontierBorderColor: zColorSetting.catch({
 		color: 'border',
 		colorAdjustments: [{ type: 'MIN_CONTRAST', value: 0.25 }],
-	},
-	countryCapitalIcon: {
+	}),
+	countryCapitalIcon: zIconSetting.catch({
 		enabled: true,
 		icon: 'icon-diamond',
 		size: 8,
@@ -257,8 +258,8 @@ export const defaultMapSettings: MapSettings = {
 			color: 'border',
 			colorAdjustments: [{ type: 'MIN_CONTRAST', value: 0.5 }],
 		},
-	},
-	sectorCapitalIcon: {
+	}),
+	sectorCapitalIcon: zIconSetting.catch({
 		enabled: true,
 		icon: 'icon-triangle',
 		size: 6,
@@ -268,8 +269,8 @@ export const defaultMapSettings: MapSettings = {
 			color: 'border',
 			colorAdjustments: [{ type: 'MIN_CONTRAST', value: 0.5 }],
 		},
-	},
-	populatedSystemIcon: {
+	}),
+	populatedSystemIcon: zIconSetting.catch({
 		enabled: true,
 		icon: 'icon-square',
 		size: 2,
@@ -279,257 +280,266 @@ export const defaultMapSettings: MapSettings = {
 			color: 'border',
 			colorAdjustments: [{ type: 'MIN_CONTRAST', value: 0.5 }],
 		},
-	},
-	unpopulatedSystemIcon: {
+	}),
+	unpopulatedSystemIcon: zIconSetting.catch({
 		enabled: true,
 		icon: 'icon-circle',
 		size: 1,
 		position: 'center',
 		priority: 10,
 		color: { color: 'white', colorAdjustments: [] },
-	},
-	wormholeIcon: {
+	}),
+	wormholeIcon: zIconSetting.catch({
 		enabled: false,
 		icon: 'icon-wormhole',
 		size: 8,
 		position: 'right',
 		priority: 40,
 		color: { color: 'white', colorAdjustments: [] },
-	},
-	gatewayIcon: {
+	}),
+	gatewayIcon: zIconSetting.catch({
 		enabled: false,
 		icon: 'icon-gateway',
 		size: 8,
 		position: 'right',
 		priority: 30,
 		color: { color: 'white', colorAdjustments: [] },
-	},
-	lGateIcon: {
+	}),
+	lGateIcon: zIconSetting.catch({
 		enabled: false,
 		icon: 'icon-l-gate',
 		size: 8,
 		position: 'right',
 		priority: 20,
 		color: { color: 'white', colorAdjustments: [] },
-	},
-	shroudTunnelIcon: {
+	}),
+	shroudTunnelIcon: zIconSetting.catch({
 		enabled: false,
 		icon: 'icon-shroud-tunnel',
 		size: 8,
 		position: 'right',
 		priority: 10,
 		color: { color: 'white', colorAdjustments: [] },
-	},
-	unionMode: false,
-	unionHegemonies: 'joinedBorders',
-	unionFederations: 'joinedBorders',
-	unionFederationsColor: 'founder',
-	unionSubjects: 'joinedBorders',
-	unionLeaderSymbol: '✶',
-	unionLeaderSymbolSize: 0.3,
-	unionLeaderUnderline: true,
-	unionBorderStroke: {
+	}),
+	unionMode: z.boolean().catch(false),
+	unionHegemonies: z.string().catch('joinedBorders'),
+	unionFederations: z.string().catch(')joinedBorders'),
+	unionFederationsColor: z.string().catch('founder'),
+	unionSubjects: z.string().catch('joinedBorders'),
+	unionLeaderSymbol: z.string().catch('✶'),
+	unionLeaderSymbolSize: z.number().catch(0.3),
+	unionLeaderUnderline: z.boolean().catch(true),
+	unionBorderStroke: zStrokeSetting.catch({
 		enabled: true,
 		width: 2,
 		smoothing: true,
 		glow: false,
 		dashed: false,
 		dashArray: '3 3',
-	},
-	unionBorderColor: {
+	}),
+	unionBorderColor: zColorSetting.catch({
 		color: 'border',
 		colorAdjustments: [{ type: 'MIN_CONTRAST', value: 0.25 }],
-	},
-	terraIncognita: true,
-	terraIncognitaPerspectiveCountry: 'player',
-	terraIncognitaStyle: 'striped',
-	terraIncognitaBrightness: 50,
-	circularGalaxyBorders: false,
-	alignStarsToGrid: false,
-	hyperlaneMetroStyle: false,
-	wormholeStroke: {
+	}),
+	terraIncognita: z.boolean().catch(true),
+	terraIncognitaPerspectiveCountry: z.string().catch('player'),
+	terraIncognitaStyle: z.string().catch('striped'),
+	terraIncognitaBrightness: z.number().catch(50),
+	circularGalaxyBorders: z.boolean().catch(false),
+	alignStarsToGrid: z.boolean().catch(false),
+	hyperlaneMetroStyle: z.boolean().catch(false),
+	wormholeStroke: zStrokeSetting.catch({
 		enabled: false,
 		width: 1,
 		smoothing: false,
 		glow: false,
 		dashed: false,
 		dashArray: '3 3',
-	},
-	wormholeStrokeColor: {
+	}),
+	wormholeStrokeColor: zColorSetting.catch({
 		color: 'intense_purple',
 		colorAdjustments: [],
-	},
-	lGateStroke: {
+	}),
+	lGateStroke: zStrokeSetting.catch({
 		enabled: false,
 		width: 1,
 		smoothing: false,
 		glow: false,
 		dashed: false,
 		dashArray: '3 3',
-	},
-	lGateStrokeColor: {
+	}),
+	lGateStrokeColor: zColorSetting.catch({
 		color: 'intense_purple',
 		colorAdjustments: [],
-	},
-	shroudTunnelStroke: {
+	}),
+	shroudTunnelStroke: zStrokeSetting.catch({
 		enabled: false,
 		width: 1,
 		smoothing: false,
 		glow: false,
 		dashed: false,
 		dashArray: '3 3',
-	},
-	shroudTunnelStrokeColor: {
+	}),
+	shroudTunnelStrokeColor: zColorSetting.catch({
 		color: 'intense_purple',
 		colorAdjustments: [],
-	},
-	voronoiGridSize: 30,
-	borderGap: 2,
-	hyperlaneSensitiveBorders: true,
-	claimVoidBorderThreshold: 0.6,
-	claimVoidMaxSize: 1000,
-	starScapeDust: false,
-	starScapeDustColor: {
+	}),
+	voronoiGridSize: z.number().catch(30),
+	borderGap: z.number().catch(2),
+	hyperlaneSensitiveBorders: z.boolean().catch(true),
+	claimVoidBorderThreshold: z.number().catch(0.6),
+	claimVoidMaxSize: z.number().catch(1000),
+	starScapeDust: z.boolean().catch(false),
+	starScapeDustColor: zColorSetting.catch({
 		color: 'ochre_brown',
 		colorAdjustments: [{ type: 'OPACITY', value: 0.5 }],
-	},
-	starScapeNebula: false,
-	starScapeNebulaColor: {
+	}),
+	starScapeNebula: z.boolean().catch(false),
+	starScapeNebulaColor: zColorSetting.catch({
 		color: 'bright_purple',
 		colorAdjustments: [{ type: 'OPACITY', value: 1 }],
-	},
-	starScapeNebulaAccentColor: {
+	}),
+	starScapeNebulaAccentColor: zColorSetting.catch({
 		color: 'intense_purple',
 		colorAdjustments: [{ type: 'OPACITY', value: 1 }],
-	},
-	starScapeCore: false,
-	starScapeCoreColor: {
+	}),
+	starScapeCore: z.boolean().catch(false),
+	starScapeCoreColor: zColorSetting.catch({
 		color: 'ochre_brown',
 		colorAdjustments: [
 			{ type: 'OPACITY', value: 1 },
 			{ type: 'LIGHTEN', value: 1 },
 		],
-	},
-	starScapeCoreAccentColor: {
+	}),
+	starScapeCoreAccentColor: zColorSetting.catch({
 		color: 'off_white',
 		colorAdjustments: [{ type: 'OPACITY', value: 1 }],
-	},
-	starScapeStars: false,
-	starScapeStarsColor: {
+	}),
+	starScapeStars: z.boolean().catch(false),
+	starScapeStarsColor: zColorSetting.catch({
 		color: 'desert_yellow',
 		colorAdjustments: [
 			{ type: 'OPACITY', value: 0.75 },
 			{ type: 'LIGHTEN', value: 1 },
 		],
-	},
-	starScapeStarsCount: 5000,
-	legend: true,
-	legendFontSize: 16,
-	legendBorderStroke: {
+	}),
+	starScapeStarsCount: z.number().catch(5000),
+	legend: z.boolean().catch(true),
+	legendFontSize: z.number().catch(16),
+	legendBorderStroke: zStrokeSetting.catch({
 		width: 1,
 		dashed: false,
 		smoothing: false,
 		glow: false,
 		enabled: true,
 		dashArray: '3 3',
-	},
-	legendBorderColor: {
+	}),
+	legendBorderColor: zColorSetting.catch({
 		color: 'grey',
 		colorAdjustments: [],
-	},
-	legendBackgroundColor: {
+	}),
+	legendBackgroundColor: zColorSetting.catch({
 		color: 'black',
 		colorAdjustments: [{ type: 'OPACITY', value: 0.75 }],
-	},
-	occupation: false,
-	occupationColor: {
+	}),
+	occupation: z.boolean().catch(false),
+	occupationColor: zColorSetting.catch({
 		color: 'border',
 		colorAdjustments: [{ type: 'MIN_CONTRAST', value: 0.25 }],
-	},
-	systemMapOrbitColor: { color: 'dark_grey', colorAdjustments: [] },
-	systemMapOrbitStroke: {
+	}),
+	systemMapOrbitColor: zColorSetting.catch({ color: 'dark_grey', colorAdjustments: [] }),
+	systemMapOrbitStroke: zStrokeSetting.catch({
 		dashArray: '3 3',
 		dashed: false,
 		enabled: true,
 		glow: false,
 		smoothing: false,
 		width: 0.5,
-	},
-	systemMapStarScale: 2,
-	systemMapPlanetScale: 1,
-	systemMapMoonScale: 0.5,
-	systemMapLabelPlanetsFont: 'Orbitron',
-	systemMapLabelPlanetsFontSize: 10,
-	systemMapLabelPlanetsPosition: 'right',
-	systemMapLabelPlanetsFallbackPosition: 'bottom',
-	systemMapLabelColoniesEnabled: true,
-	systemMapLabelStarsEnabled: true,
-	systemMapLabelPlanetsEnabled: false,
-	systemMapLabelMoonsEnabled: false,
-	systemMapLabelAsteroidsEnabled: false,
-	systemMapHyperlanesEnabled: true,
-	systemMapCivilianFleetIcon: {
+	}),
+	systemMapStarScale: z.number().catch(2),
+	systemMapPlanetScale: z.number().catch(1),
+	systemMapMoonScale: z.number().catch(0.5),
+	systemMapLabelPlanetsFont: z.string().catch('Orbitron'),
+	systemMapLabelPlanetsFontSize: z.number().catch(10),
+	systemMapLabelPlanetsPosition: z.string().catch('right'),
+	systemMapLabelPlanetsFallbackPosition: z.string().catch('bottom'),
+	systemMapLabelColoniesEnabled: z.boolean().catch(true),
+	systemMapLabelStarsEnabled: z.boolean().catch(true),
+	systemMapLabelPlanetsEnabled: z.boolean().catch(false),
+	systemMapLabelMoonsEnabled: z.boolean().catch(false),
+	systemMapLabelAsteroidsEnabled: z.boolean().catch(false),
+	systemMapHyperlanesEnabled: z.boolean().catch(true),
+	systemMapCivilianFleetIcon: zIconSetting.catch({
 		enabled: false,
 		icon: 'icon-triangle-narrow',
 		size: 2,
 		position: 'center',
 		priority: 0,
 		color: { color: 'border', colorAdjustments: [{ type: 'MIN_CONTRAST', value: 0.25 }] },
-	},
-	systemMapCivilianStationIcon: {
+	}),
+	systemMapCivilianStationIcon: zIconSetting.catch({
 		enabled: false,
 		icon: 'icon-diamond',
 		size: 2,
 		position: 'center',
 		priority: 0,
 		color: { color: 'border', colorAdjustments: [{ type: 'MIN_CONTRAST', value: 0.25 }] },
-	},
-	systemMapMilitaryFleetIcon: {
+	}),
+	systemMapMilitaryFleetIcon: zIconSetting.catch({
 		enabled: false,
 		icon: 'icon-triangle-narrow',
 		size: 5,
 		position: 'center',
 		priority: 0,
 		color: { color: 'border', colorAdjustments: [{ type: 'MIN_CONTRAST', value: 0.25 }] },
-	},
-	systemMapMilitaryStationIcon: {
+	}),
+	systemMapMilitaryStationIcon: zIconSetting.catch({
 		enabled: false,
 		icon: 'icon-diamond',
 		size: 5,
 		position: 'center',
 		priority: 0,
 		color: { color: 'border', colorAdjustments: [{ type: 'MIN_CONTRAST', value: 0.25 }] },
-	},
-	systemMapLabelFleetsEnabled: true,
-	systemMapLabelFleetsFontSize: 3,
-	systemMapLabelFleetsPosition: 'right',
-	systemMapPlanetRingColor: {
+	}),
+	systemMapLabelFleetsEnabled: z.boolean().catch(true),
+	systemMapLabelFleetsFontSize: z.number().catch(3),
+	systemMapLabelFleetsPosition: z.string().catch('right'),
+	systemMapPlanetRingColor: zColorSetting.catch({
 		color: 'planet',
 		colorAdjustments: [{ type: 'OPACITY', value: 0.75 }],
-	},
-	systemMapOrbitDistanceExponent: 1,
-	systemMapPlanetShadowSelf: true,
-	systemMapPlanetShadowPlanetarySystem: true,
-	systemMapPlanetShadowRings: true,
-	systemMapPlanetShadowOverlap: false,
-};
+	}),
+	systemMapOrbitDistanceExponent: z.number().catch(1),
+	systemMapPlanetShadowSelf: z.boolean().catch(true),
+	systemMapPlanetShadowPlanetarySystem: z.boolean().catch(true),
+	systemMapPlanetShadowRings: z.boolean().catch(true),
+	systemMapPlanetShadowOverlap: z.boolean().catch(false),
+});
 
-export const mapSettings = localStorageStore('mapSettings', defaultMapSettings);
-export const editedMapSettings = localStorageStore('editedMapSettings', get(mapSettings));
-export const lastProcessedMapSettings = localStorageStore(
-	'lastProcessedMapSettings',
-	defaultMapSettings,
-);
-mapSettings.set(validateAndResetMapSettings(get(mapSettings)));
-editedMapSettings.set(validateAndResetMapSettings(get(editedMapSettings)));
-lastProcessedMapSettings.set(validateAndResetMapSettings(get(lastProcessedMapSettings)));
+export const defaultMapSettings = zMapSettings.parse({});
+
+export const mapSettings = new PersistedRawState({
+	name: 'mapSettings',
+	defaultValue: defaultMapSettings,
+	schema: zMapSettings,
+});
+export const editedMapSettings = new PersistedRawState({
+	name: 'editedMapSettings',
+	defaultValue: mapSettings.current,
+	schema: zMapSettings,
+});
+export const lastProcessedMapSettings = new PersistedRawState({
+	name: 'lastProcessedMapSettings',
+	defaultValue: mapSettings.current,
+	schema: zMapSettings,
+});
+
 export const applyMapSettings = () => {
-	mapSettings.set(get(editedMapSettings));
+	mapSettings.current = editedMapSettings.current;
 	if (
-		settingsAreDifferent(get(mapSettings), get(lastProcessedMapSettings), {
+		settingsAreDifferent(mapSettings.current, lastProcessedMapSettings.current, {
 			requiresReprocessingOnly: true,
 		})
 	) {
-		lastProcessedMapSettings.set(get(mapSettings));
+		lastProcessedMapSettings.current = mapSettings.current;
 	}
 };

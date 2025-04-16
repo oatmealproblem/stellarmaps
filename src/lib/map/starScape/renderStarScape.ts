@@ -8,7 +8,7 @@ import { rgb } from 'd3-color';
 import * as PIXI from 'pixi.js';
 import * as R from 'rambda';
 
-import type { GameState } from '../../GameState';
+import type { GameState } from '../../GameState.svelte';
 import type { ColorSetting, MapSettings } from '../../settings';
 import { isDefined } from '../../utils';
 import { resolveColor } from '../mapUtils';

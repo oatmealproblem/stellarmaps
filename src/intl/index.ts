@@ -25,6 +25,9 @@ function flattenMessages(messages: UnflattenedMessages, prefix = ''): Record<str
 	);
 }
 
+export const LOCALES = ['en-US', 'fi-FI', 'ja-JP', 'zh-TW', 'MessageID'] as const;
+type Locale = (typeof LOCALES)[number];
+
 const locales = {
 	'en-US': flattenMessages(enUS) as Record<MessageID, string>,
 	'fi-FI': flattenMessages(fiFI) as Partial<Record<MessageID, string>>,
@@ -34,14 +37,9 @@ const locales = {
 		MessageID,
 		string
 	>,
-};
-type Locale = keyof typeof locales;
+} satisfies Record<Locale, Partial<Record<MessageID, string>>>;
 
-export function isValidLocale(locale: string) {
-	return Object.keys(locales).includes(locale) && locale !== 'MessageID';
-}
-
-function getBestLocale(): Locale {
+export function getBestLocale(): Locale {
 	const keys = Object.keys(locales) as [Locale, ...Locale[]];
 	return (
 		// exact match

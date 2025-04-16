@@ -1,4 +1,4 @@
-import type { GameState } from '../../GameState';
+import type { GameState } from '../../GameState.svelte';
 import { isDefined } from '../../utils';
 
 export default function processBypassLinks(

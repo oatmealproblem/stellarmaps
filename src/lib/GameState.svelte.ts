@@ -1,18 +1,19 @@
-import { writable } from 'svelte/store';
 import { z } from 'zod';
 
+import { RawStateWrapper } from './stateUtils.svelte';
 import { isEmptyObject, saveToWindow } from './utils';
 
 type WithId<T> = T & { id: number };
 
-export const gameStatePromise = writable<Promise<GameState> | null>(null);
-gameStatePromise.subscribe(
-	(promise) =>
-		promise &&
-		promise.then((gameState) => {
+export const gameStatePromise = new RawStateWrapper<Promise<GameState> | null>(null);
+
+$effect.root(() => {
+	$effect(() => {
+		gameStatePromise.current?.then((gameState) => {
 			saveToWindow('gameState', gameState);
-		}),
-);
+		});
+	});
+});
 
 function preprocessedArray<T extends z.ZodTypeAny>(schema: T) {
 	return z.preprocess((val) => (val == null || isEmptyObject(val) ? [] : val), z.array(schema));

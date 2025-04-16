@@ -1,20 +1,17 @@
 <script lang="ts">
-	import {
-		getModalStore,
-		getToastStore,
-		localStorageStore,
-		RangeSlider,
-		SlideToggle,
-	} from '@skeletonlabs/skeleton';
+	import { getModalStore, getToastStore, RangeSlider, SlideToggle } from '@skeletonlabs/skeleton';
+	import { z } from 'zod';
 
 	import { t } from '../intl';
-	import type { GalacticObject, GameState } from './GameState';
+	import type { GalacticObject, GameState } from './GameState.svelte';
 	import type { MapData } from './map/data/processMapData';
 	import Legend from './map/Legend.svelte';
 	import { getFillColorAttributes, resolveColor } from './map/mapUtils';
 	import SolarSystemMap from './map/solarSystemMap/SolarSystemMap.svelte';
 	import { mapSettings } from './settings';
+	import { PersistedDeepState } from './stateUtils.svelte';
 	import { toastError } from './utils';
+
 	interface Props {
 		[key: string]: any;
 	}
@@ -57,27 +54,32 @@
 	// 	unmount(legend);
 	// });
 
-	const defaultExportSettings = {
-		lockAspectRatio: true,
-		lockedAspectRatio: [1, 1] as [number, number],
-		imageWidth: 4096,
-		imageHeight: 4096,
-		centerX: 0,
-		centerY: 0,
-		invertCenterX: false,
-		invertCenterY: true,
-		zoom: 0,
-	};
-	const exportSettings = localStorageStore('exportSettings', defaultExportSettings);
-	let lockAspectRatio = $state($exportSettings.lockAspectRatio);
-	let lockedAspectRatio = $state($exportSettings.lockedAspectRatio);
-	let imageWidth = $state($exportSettings.imageWidth);
-	let imageHeight = $state($exportSettings.imageHeight);
-	let centerX = $state($exportSettings.centerX);
-	let centerY = $state($exportSettings.centerY);
-	let invertCenterX = $state($exportSettings.invertCenterX);
-	let invertCenterY = $state($exportSettings.invertCenterY);
-	let zoom = $state($exportSettings.zoom);
+	const zExportSettings = z.object({
+		lockAspectRatio: z.boolean().catch(true),
+		lockedAspectRatio: z.tuple([z.number(), z.number()]).catch([1, 1]),
+		imageWidth: z.number().int().catch(2048),
+		imageHeight: z.number().int().catch(2048),
+		centerX: z.number().catch(0),
+		centerY: z.number().catch(0),
+		invertCenterX: z.boolean().catch(false),
+		invertCenterY: z.boolean().catch(true),
+		zoom: z.number().catch(0),
+	});
+	const defaultExportSettings = zExportSettings.parse({});
+	const exportSettings = new PersistedDeepState({
+		name: 'exportSettings',
+		defaultValue: defaultExportSettings,
+		schema: zExportSettings,
+	});
+	let lockAspectRatio = $derived(exportSettings.current.lockAspectRatio);
+	let lockedAspectRatio = $derived(exportSettings.current.lockedAspectRatio);
+	let imageWidth = $derived(exportSettings.current.imageWidth);
+	let imageHeight = $derived(exportSettings.current.imageHeight);
+	let centerX = $derived(exportSettings.current.centerX);
+	let centerY = $derived(exportSettings.current.centerY);
+	let invertCenterX = $derived(exportSettings.current.invertCenterX);
+	let invertCenterY = $derived(exportSettings.current.invertCenterY);
+	let zoom = $derived(exportSettings.current.zoom);
 	let scale = $derived(1 / (zoom >= 0 ? 1 + zoom : 1 / (1 - zoom)));
 	let mapWidth = $derived(
 		imageHeight > imageWidth
@@ -113,46 +115,33 @@
 	// 	);
 	// }
 
-	function closeAndSaveSettings() {
-		exportSettings.set({
-			lockAspectRatio,
-			lockedAspectRatio,
-			imageWidth,
-			imageHeight,
-			centerX,
-			centerY,
-			invertCenterX,
-			invertCenterY,
-			zoom,
-		});
-		modalStore.close();
-	}
-
 	function onPreviewClick(this: SVGElement, event: MouseEvent) {
 		const boundingRect = this.getBoundingClientRect();
 		const svgXPercent = (event.clientX - boundingRect.left) / boundingRect.width;
 		const svgYPercent = (event.clientY - boundingRect.top) / boundingRect.height;
-		centerX = Math.round(viewBoxLeft + viewBoxWidth * svgXPercent) * (invertCenterX ? -1 : 1);
+		exportSettings.current.centerX =
+			Math.round(viewBoxLeft + viewBoxWidth * svgXPercent) * (invertCenterX ? -1 : 1);
 		if (centerX < 0) {
-			centerX *= -1;
-			invertCenterX = !invertCenterX;
+			exportSettings.current.centerX *= -1;
+			exportSettings.current.invertCenterX = !invertCenterX;
 		}
-		centerY = Math.round(viewBoxTop + viewBoxHeight * svgYPercent) * (invertCenterY ? -1 : 1);
+		exportSettings.current.centerY =
+			Math.round(viewBoxTop + viewBoxHeight * svgYPercent) * (invertCenterY ? -1 : 1);
 		if (centerY < 0) {
-			centerY *= -1;
-			invertCenterY = !invertCenterY;
+			exportSettings.current.centerY *= -1;
+			exportSettings.current.invertCenterY = !invertCenterY;
 		}
 	}
 
 	async function exportPng() {
 		alert('TODO');
-		// TODO
+		// TODO!
 		// const backgroundImageUrl =
-		// 	openedSystem != null || !hasBackgroundImage($mapSettings)
+		// 	openedSystem != null || !hasBackgroundImage(mapSettings.current)
 		// 		? undefined
 		// 		: await processStarScape(
 		// 				gameState,
-		// 				$mapSettings,
+		// 				mapSettings.current,
 		// 				colors,
 		// 				{
 		// 					left: mapLeft,
@@ -165,7 +154,7 @@
 		// 					height: imageHeight,
 		// 				},
 		// 			);
-		// const legendImageUrl = $mapSettings.legend
+		// const legendImageUrl = mapSettings.current.legend
 		// 	? await convertSvgToPng(legendTarget.firstChild as SVGElement, {
 		// 			left: 0,
 		// 			top: 0,
@@ -186,7 +175,7 @@
 		// 		outputHeight: imageHeight,
 		// 		backgroundImageUrl,
 		// 		foregroundImageUrl: openedSystem ? undefined : legendImageUrl,
-		// 		backgroundColor: getBackgroundColor(colors, $mapSettings),
+		// 		backgroundColor: getBackgroundColor(colors, mapSettings.current),
 		// 	},
 		// ).then((blob) => blob.arrayBuffer());
 		// const savePath = await dialog.save({
@@ -217,7 +206,7 @@
 
 	async function exportSvg() {
 		alert('TODO');
-		// TODO
+		// TODO!
 		// const svgToExport = openedSystem
 		// 	? (solarSystemMapTarget.firstChild as SVGElement)
 		// 	: galaxyMapSvg;
@@ -225,7 +214,7 @@
 		// svgToExport.setAttribute('height', imageHeight.toString());
 		// svgToExport.setAttribute('viewBox', `${mapLeft} ${mapTop} ${mapWidth} ${mapHeight}`);
 		// const bgImage = document.createElementNS('http://www.w3.org/2000/svg', 'image');
-		// if (!openedSystem && hasBackgroundImage($mapSettings)) {
+		// if (!openedSystem && hasBackgroundImage(mapSettings.current)) {
 		// 	bgImage.setAttribute('x', mapLeft.toString());
 		// 	bgImage.setAttribute('y', mapTop.toString());
 		// 	bgImage.setAttribute('width', mapWidth.toString());
@@ -234,7 +223,7 @@
 		// 		'xlink:href',
 		// 		await processStarScape(
 		// 			gameState,
-		// 			$mapSettings,
+		// 			mapSettings.current,
 		// 			colors,
 		// 			{
 		// 				left: mapLeft,
@@ -256,14 +245,14 @@
 		// bgRect.setAttribute('y', mapTop.toString());
 		// bgRect.setAttribute('width', mapWidth.toString());
 		// bgRect.setAttribute('height', mapHeight.toString());
-		// bgRect.setAttribute('fill', getBackgroundColor(colors, $mapSettings));
+		// bgRect.setAttribute('fill', getBackgroundColor(colors, mapSettings.current));
 		// svgToExport.prepend(bgRect);
 		// const legendContainer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
 		// legendContainer.setAttribute('transform', `translate(${mapLeft} ${mapTop}) scale(${scale})`);
 		// legendContainer.innerHTML = openedSystem ? '' : legendTarget.innerHTML;
 		// svgToExport.append(legendContainer);
 		// const svgString = svgToExport.outerHTML;
-		// if (!openedSystem && hasBackgroundImage($mapSettings)) svgToExport.removeChild(bgImage);
+		// if (!openedSystem && hasBackgroundImage(mapSettings.current)) svgToExport.removeChild(bgImage);
 		// svgToExport.removeChild(bgRect);
 		// svgToExport.removeChild(legendContainer);
 		// const savePath = await dialog.save({
@@ -297,7 +286,7 @@
 		processing = true;
 		try {
 			await exporter();
-			closeAndSaveSettings();
+			modalStore.close();
 		} catch (error) {
 			toastError({
 				title: $t('notification.export_failed'),
@@ -309,236 +298,237 @@
 	}
 </script>
 
-<form
+<div
 	class="bg-surface-100-800-token modal block h-auto w-[60rem] space-y-4 overflow-y-auto p-4 shadow-xl rounded-container-token"
 	role="dialog"
 	aria-modal="true"
-	onsubmit={(e) => {
-		e.preventDefault();
-		onSubmit(exportPng);
-	}}
-	novalidate
 >
-	<header class="modal-header text-2xl font-bold">{$t('export.header')}</header>
-	<article class="modal-body flex space-x-5">
-		<div class="inline-block w-0 flex-1">
-			<div class="mb-1 flex justify-between">
-				<p>{$t('export.image_size')}</p>
-				<small class="flex">
-					{$t('export.lock_aspect_ratio')}
-					<SlideToggle
-						size="sm"
-						name="lock-aspect-ratio"
-						class="ml-1"
-						disabled={processing || !imageHeight || !imageWidth}
-						active="variant-filled-secondary"
-						bind:checked={lockAspectRatio}
+	<form
+		onsubmit={(e) => {
+			e.preventDefault();
+			onSubmit(exportPng);
+		}}
+		novalidate
+	>
+		<header class="modal-header text-2xl font-bold">{$t('export.header')}</header>
+		<article class="modal-body flex space-x-5">
+			<div class="inline-block w-0 flex-1">
+				<div class="mb-1 flex justify-between">
+					<p>{$t('export.image_size')}</p>
+					<small class="flex">
+						{$t('export.lock_aspect_ratio')}
+						<SlideToggle
+							size="sm"
+							name="lock-aspect-ratio"
+							class="ml-1"
+							disabled={processing || !imageHeight || !imageWidth}
+							active="variant-filled-secondary"
+							bind:checked={exportSettings.current.lockAspectRatio}
+						/>
+					</small>
+				</div>
+				<div class="input-group input-group-divider grid-cols-[auto_3rem_3rem_auto_3rem]">
+					<input
+						type="number"
+						disabled={processing}
+						bind:value={exportSettings.current.imageWidth}
+						oninput={() => {
+							if (imageWidth && lockAspectRatio) {
+								exportSettings.current.imageHeight = Math.round(
+									(imageWidth * lockedAspectRatio[0]) / lockedAspectRatio[1],
+								);
+							}
+							if (imageWidth && imageHeight && !lockAspectRatio) {
+								exportSettings.current.lockedAspectRatio = [imageHeight, imageWidth];
+							}
+						}}
 					/>
-				</small>
-			</div>
-			<div class="input-group input-group-divider grid-cols-[auto_3rem_3rem_auto_3rem]">
-				<input
-					type="number"
-					disabled={processing}
-					bind:value={imageWidth}
-					oninput={() => {
-						if (imageWidth && lockAspectRatio) {
-							imageHeight = Math.round((imageWidth * lockedAspectRatio[0]) / lockedAspectRatio[1]);
-						}
-						if (imageWidth && imageHeight && !lockAspectRatio) {
-							lockedAspectRatio = [imageHeight, imageWidth];
-						}
-					}}
-				/>
-				<div class="input-group-shim !justify-center !px-0">px</div>
-				<div class="input-group-shim">×</div>
-				<input
-					type="number"
-					disabled={processing}
-					bind:value={imageHeight}
-					oninput={() => {
-						if (imageHeight && lockAspectRatio) {
-							imageWidth = Math.round((imageHeight * lockedAspectRatio[1]) / lockedAspectRatio[0]);
-						}
-						if (imageWidth && imageHeight && !lockAspectRatio) {
-							lockedAspectRatio = [imageHeight, imageWidth];
-						}
-					}}
-				/>
-				<div class="input-group-shim !justify-center !px-0">px</div>
-			</div>
-			<p class="mb-1 mt-3">{$t('export.zoom')}</p>
-			<RangeSlider
-				disabled={processing}
-				name="zoom"
-				min={-9}
-				max={9}
-				step={0.1}
-				bind:value={zoom}
-			/>
-			<p class="mb-1 mt-3">
-				{$t('export.center')}
-				<span class="ml-1 text-surface-300">{$t('export.center_hint')}</span>
-			</p>
-			<div class="input-group input-group-divider grid-cols-[auto_3rem_3rem_auto_3rem]">
-				<input
-					type="number"
-					disabled={processing}
-					bind:value={centerX}
-					onblur={() => {
-						if (centerX < 0) {
-							centerX = -centerX;
-							invertCenterX = !invertCenterX;
-						}
-					}}
-				/>
-				<button
-					disabled={processing}
-					class="variant-filled-secondary !justify-center"
-					onclick={() => {
-						invertCenterX = !invertCenterX;
-					}}
-				>
-					{invertCenterX ? 'W' : 'E'}
-				</button>
-				<div class="input-group-shim">×</div>
-				<input
-					type="number"
-					disabled={processing}
-					bind:value={centerY}
-					onblur={() => {
-						if (centerY < 0) {
-							centerY = -centerY;
-							invertCenterY = !invertCenterY;
-						}
-					}}
-				/>
-				<button
-					disabled={processing}
-					class="variant-filled-secondary !justify-center"
-					onclick={() => {
-						invertCenterY = !invertCenterY;
-					}}
-				>
-					{invertCenterY ? 'N' : 'S'}
-				</button>
-			</div>
-		</div>
-		<aside class="inline-block w-[12rem] flex-initial">
-			<p>
-				{$t('export.preview')}
-				<small>{$t('export.click_to_center')}</small>
-			</p>
-			<!-- svelte-ignore a11y_click_events_have_key_events -->
-			<!-- svelte-ignore a11y_interactive_supports_focus -->
-			<svg
-				id="map-svg"
-				xmlns="http://www.w3.org/2000/svg"
-				viewBox="{viewBoxLeft} {viewBoxTop} {viewBoxWidth} {viewBoxHeight}"
-				width="1000"
-				height="1000"
-				class="h-[12rem] w-[12rem]"
-				style="background: {resolveColor({
-					mapSettings: $mapSettings,
-					colors,
-					colorStack: [$mapSettings.backgroundColor],
-				})};"
-				onclick={onPreviewClick}
-				role="button"
-				style:cursor="pointer"
-			>
-				{#if openedSystem}
-					<SolarSystemMap
-						system={openedSystem}
-						{mapData}
-						{colors}
-						{gameState}
-						id="systemMapPreview"
-						previewMode
+					<div class="input-group-shim !justify-center !px-0">px</div>
+					<div class="input-group-shim">×</div>
+					<input
+						type="number"
+						disabled={processing}
+						bind:value={exportSettings.current.imageHeight}
+						oninput={() => {
+							if (imageHeight && lockAspectRatio) {
+								exportSettings.current.imageWidth = Math.round(
+									(imageHeight * lockedAspectRatio[1]) / lockedAspectRatio[0],
+								);
+							}
+							if (imageWidth && imageHeight && !lockAspectRatio) {
+								exportSettings.current.lockedAspectRatio = [imageHeight, imageWidth];
+							}
+						}}
 					/>
-				{:else if mapData}
-					{#each mapData.borders as border}
-						<path
-							d={border.borderPath}
-							{...getFillColorAttributes({
-								mapSettings: $mapSettings,
-								colors,
-								countryColors: border,
-								colorStack: [$mapSettings.borderColor, $mapSettings.borderFillColor],
-							})}
+					<div class="input-group-shim !justify-center !px-0">px</div>
+				</div>
+				<p class="mb-1 mt-3">{$t('export.zoom')}</p>
+				<RangeSlider
+					disabled={processing}
+					name="zoom"
+					min={-9}
+					max={9}
+					step={0.1}
+					bind:value={exportSettings.current.zoom}
+				/>
+				<p class="mb-1 mt-3">
+					{$t('export.center')}
+					<span class="ml-1 text-surface-300">{$t('export.center_hint')}</span>
+				</p>
+				<div class="input-group input-group-divider grid-cols-[auto_3rem_3rem_auto_3rem]">
+					<input
+						type="number"
+						disabled={processing}
+						bind:value={exportSettings.current.centerX}
+						onblur={() => {
+							if (centerX < 0) {
+								exportSettings.current.centerX = -centerX;
+								exportSettings.current.invertCenterX = !invertCenterX;
+							}
+						}}
+					/>
+					<button
+						disabled={processing}
+						class="variant-filled-secondary !justify-center"
+						onclick={() => {
+							exportSettings.current.invertCenterX = !invertCenterX;
+						}}
+					>
+						{invertCenterX ? 'W' : 'E'}
+					</button>
+					<div class="input-group-shim">×</div>
+					<input
+						type="number"
+						disabled={processing}
+						bind:value={exportSettings.current.centerY}
+						onblur={() => {
+							if (centerY < 0) {
+								exportSettings.current.centerY = -centerY;
+								exportSettings.current.invertCenterY = !invertCenterY;
+							}
+						}}
+					/>
+					<button
+						disabled={processing}
+						class="variant-filled-secondary !justify-center"
+						onclick={() => {
+							exportSettings.current.invertCenterY = !invertCenterY;
+						}}
+					>
+						{invertCenterY ? 'N' : 'S'}
+					</button>
+				</div>
+			</div>
+			<aside class="inline-block w-[12rem] flex-initial">
+				<p>
+					{$t('export.preview')}
+					<small>{$t('export.click_to_center')}</small>
+				</p>
+				<!-- svelte-ignore a11y_click_events_have_key_events -->
+				<!-- svelte-ignore a11y_interactive_supports_focus -->
+				<svg
+					id="map-svg"
+					xmlns="http://www.w3.org/2000/svg"
+					viewBox="{viewBoxLeft} {viewBoxTop} {viewBoxWidth} {viewBoxHeight}"
+					width="1000"
+					height="1000"
+					class="h-[12rem] w-[12rem]"
+					style="background: {resolveColor({
+						mapSettings: mapSettings.current,
+						colors,
+						colorStack: [mapSettings.current.backgroundColor],
+					})};"
+					onclick={onPreviewClick}
+					role="button"
+					style:cursor="pointer"
+				>
+					{#if openedSystem}
+						<SolarSystemMap
+							system={openedSystem}
+							{mapData}
+							{colors}
+							{gameState}
+							id="systemMapPreview"
+							previewMode
 						/>
-						<path
-							d={border.innerPath}
-							{...getFillColorAttributes({
-								mapSettings: $mapSettings,
-								colors,
-								countryColors: border,
-								colorStack: [
-									// normally only use this approximation when for background colors
-									// but it helps this simplified preview reflect the map
-									$mapSettings.borderFillColor,
-								],
-							})}
-						/>
-					{/each}
-					{#if $mapSettings.terraIncognita}
-						<path
-							id="terra-incognita-fallback"
-							d={mapData.terraIncognitaPath}
-							fill={`rgba(${$mapSettings.terraIncognitaBrightness},${$mapSettings.terraIncognitaBrightness},${$mapSettings.terraIncognitaBrightness})`}
-						/>
+					{:else if mapData}
+						{#each mapData.borders as border}
+							<path
+								d={border.borderPath}
+								{...getFillColorAttributes({
+									mapSettings: mapSettings.current,
+									colors,
+									countryColors: border,
+									colorStack: [
+										mapSettings.current.borderColor,
+										mapSettings.current.borderFillColor,
+									],
+								})}
+							/>
+							<path
+								d={border.innerPath}
+								{...getFillColorAttributes({
+									mapSettings: mapSettings.current,
+									colors,
+									countryColors: border,
+									colorStack: [
+										// normally only use this approximation when for background colors
+										// but it helps this simplified preview reflect the map
+										mapSettings.current.borderFillColor,
+									],
+								})}
+							/>
+						{/each}
+						{#if mapSettings.current.terraIncognita}
+							<path
+								id="terra-incognita-fallback"
+								d={mapData.terraIncognitaPath}
+								fill={`rgba(${mapSettings.current.terraIncognitaBrightness},${mapSettings.current.terraIncognitaBrightness},${mapSettings.current.terraIncognitaBrightness})`}
+							/>
+						{/if}
+						<g transform="translate({mapLeft} {mapTop}) scale({scale})">
+							<Legend data={mapData} {colors} />
+						</g>
 					{/if}
-					<g transform="translate({mapLeft} {mapTop}) scale({scale})">
-						<Legend data={mapData} {colors} />
-					</g>
-				{/if}
-				<path
-					fill="rgba(150, 150, 150, 0.5)"
-					stroke="white"
-					stroke-width={Math.max(viewBoxWidth, viewBoxHeight) / 100}
-					d="M -100000 -100000 h 200000 v 200000 h -200000 v -200000 M {mapLeft} {mapTop} v {mapHeight} h {mapWidth} v -{mapHeight} h -{mapWidth}"
-				/>
-			</svg>
-		</aside>
-	</article>
-	<footer class="modal-footer flex justify-end space-x-2">
-		<button
-			type="button"
-			class="variant-ghost-surface btn"
-			onclick={() => {
-				exportSettings.set(defaultExportSettings);
-				lockAspectRatio = defaultExportSettings.lockAspectRatio;
-				lockedAspectRatio = defaultExportSettings.lockedAspectRatio;
-				imageWidth = defaultExportSettings.imageWidth;
-				imageHeight = defaultExportSettings.imageHeight;
-				centerX = defaultExportSettings.centerX;
-				centerY = defaultExportSettings.centerY;
-				invertCenterX = defaultExportSettings.invertCenterX;
-				invertCenterY = defaultExportSettings.invertCenterY;
-				zoom = defaultExportSettings.zoom;
-			}}
-			disabled={processing}
-		>
-			{$t('export.reset_button')}
-		</button>
-		<button
-			type="button"
-			class="variant-ghost-surface btn"
-			onclick={modalStore.close}
-			disabled={processing}
-		>
-			{$t('generic.cancel_button')}
-		</button>
-		<button
-			type="button"
-			class="variant-filled-tertiary btn"
-			disabled={processing}
-			onclick={() => onSubmit(exportSvg)}
-		>
-			{processing ? $t('export.processing') : $t('export.export_svg_button')}
-		</button>
-		<button type="submit" class="variant-filled-primary btn" disabled={processing}>
-			{processing ? $t('export.processing') : $t('export.export_png_button')}
-		</button>
-	</footer>
-</form>
+					<path
+						fill="rgba(150, 150, 150, 0.5)"
+						stroke="white"
+						stroke-width={Math.max(viewBoxWidth, viewBoxHeight) / 100}
+						d="M -100000 -100000 h 200000 v 200000 h -200000 v -200000 M {mapLeft} {mapTop} v {mapHeight} h {mapWidth} v -{mapHeight} h -{mapWidth}"
+					/>
+				</svg>
+			</aside>
+		</article>
+		<footer class="modal-footer flex justify-end space-x-2">
+			<button
+				type="button"
+				class="variant-ghost-surface btn"
+				onclick={() => {
+					exportSettings.current = defaultExportSettings;
+				}}
+				disabled={processing}
+			>
+				{$t('export.reset_button')}
+			</button>
+			<button
+				type="button"
+				class="variant-ghost-surface btn"
+				onclick={modalStore.close}
+				disabled={processing}
+			>
+				{$t('generic.cancel_button')}
+			</button>
+			<button
+				type="button"
+				class="variant-filled-tertiary btn"
+				disabled={processing}
+				onclick={() => onSubmit(exportSvg)}
+			>
+				{processing ? $t('export.processing') : $t('export.export_svg_button')}
+			</button>
+			<button type="submit" class="variant-filled-primary btn" disabled={processing}>
+				{processing ? $t('export.processing') : $t('export.export_png_button')}
+			</button>
+		</footer>
+	</form>
+</div>

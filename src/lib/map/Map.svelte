@@ -22,7 +22,7 @@
 
 <defs>
 	{#if data}
-		{#each data.borders.filter((border) => border.isKnown || !$mapSettings.terraIncognita) as border}
+		{#each data.borders.filter((border) => border.isKnown || !mapSettings.current.terraIncognita) as border}
 			<clipPath id="border-{border.countryId}-inner-clip-path">
 				<use href="#border-{border.countryId}-inner" />
 			</clipPath>
@@ -53,7 +53,7 @@
 				width="200%"
 				height="200%"
 			>
-				<feGaussianBlur in="SourceGraphic" stdDeviation={$mapSettings.borderFillFade * 25} />
+				<feGaussianBlur in="SourceGraphic" stdDeviation={mapSettings.current.borderFillFade * 25} />
 			</filter>
 		{/each}
 	{/if}
@@ -68,7 +68,7 @@
 		<MapModePaths {data} {colors} />
 		<SystemIcons {data} {colors} />
 		<CountryLabels {data} />
-		{#if $debug}
+		{#if debug.current}
 			{#each data.galaxyBorderCircles as circle}
 				<circle
 					cx={-circle.cx}

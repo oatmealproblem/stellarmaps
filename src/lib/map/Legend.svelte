@@ -18,12 +18,14 @@
 	let { data, colors }: Props = $props();
 
 	let borderWidth = $derived(
-		$mapSettings.legendBorderStroke.enabled ? $mapSettings.legendBorderStroke.width : 0,
+		mapSettings.current.legendBorderStroke.enabled
+			? mapSettings.current.legendBorderStroke.width
+			: 0,
 	);
-	let padding = $derived($mapSettings.legendFontSize);
-	let symbolSize = $derived($mapSettings.legendFontSize * 1.25);
-	let symbolLabelGap = $derived($mapSettings.legendFontSize / 4);
-	let rowGap = $derived($mapSettings.legendFontSize / 2);
+	let padding = $derived(mapSettings.current.legendFontSize);
+	let symbolSize = $derived(mapSettings.current.legendFontSize * 1.25);
+	let symbolLabelGap = $derived(mapSettings.current.legendFontSize / 4);
+	let rowGap = $derived(mapSettings.current.legendFontSize / 2);
 	let width = $derived(
 		(data?.legend.maxLabelWidth ?? 0) + symbolSize + symbolLabelGap + padding * 2 + borderWidth * 2,
 	);
@@ -35,7 +37,7 @@
 	);
 </script>
 
-{#if (data?.legend.items.length ?? 0) > 0 && $mapSettings.legend}
+{#if (data?.legend.items.length ?? 0) > 0 && mapSettings.current.legend}
 	<svg
 		xmlns="http://www.w3.org/2000/svg"
 		xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -54,15 +56,15 @@
 			y={borderWidth / 2}
 			width={width - borderWidth}
 			height={height - borderWidth}
-			{...getStrokeAttributes($mapSettings.legendBorderStroke)}
+			{...getStrokeAttributes(mapSettings.current.legendBorderStroke)}
 			{...getStrokeColorAttributes({
-				mapSettings: $mapSettings,
-				colorStack: [$mapSettings.legendBorderColor],
+				mapSettings: mapSettings.current,
+				colorStack: [mapSettings.current.legendBorderColor],
 				colors: colors ?? {},
 			})}
 			{...getFillColorAttributes({
-				mapSettings: $mapSettings,
-				colorStack: [$mapSettings.legendBackgroundColor],
+				mapSettings: mapSettings.current,
+				colorStack: [mapSettings.current.legendBackgroundColor],
 				colors: colors ?? {},
 			})}
 		></rect>
@@ -79,15 +81,15 @@
 						r={symbolSize / 2 - 1}
 						stroke-width={2}
 						{...getStrokeColorAttributes({
-							mapSettings: $mapSettings,
+							mapSettings: mapSettings.current,
 							countryColors: item.symbol,
-							colorStack: [$mapSettings.borderColor, $mapSettings.borderFillColor],
+							colorStack: [mapSettings.current.borderColor, mapSettings.current.borderFillColor],
 							colors,
 						})}
 						{...getFillColorAttributes({
-							mapSettings: $mapSettings,
+							mapSettings: mapSettings.current,
 							countryColors: item.symbol,
-							colorStack: [$mapSettings.borderFillColor],
+							colorStack: [mapSettings.current.borderFillColor],
 							colors,
 						})}
 					/>
@@ -102,7 +104,7 @@
 						transform="scale({item.symbol.scale ?? 1})"
 						transform-origin="{symbolSize / 2} {symbolSize / 2}"
 						{...getFillColorAttributes({
-							mapSettings: $mapSettings,
+							mapSettings: mapSettings.current,
 							colors,
 							colorStack: [item.symbol.color],
 						})}
@@ -117,11 +119,11 @@
 						x2={width - borderWidth - padding * 2}
 						y1={symbolSize / 2}
 						y2={symbolSize / 2}
-						{...getStrokeAttributes($mapSettings.legendBorderStroke)}
+						{...getStrokeAttributes(mapSettings.current.legendBorderStroke)}
 						stroke-width="1"
 						{...getStrokeColorAttributes({
-							mapSettings: $mapSettings,
-							colorStack: [$mapSettings.legendBorderColor],
+							mapSettings: mapSettings.current,
+							colorStack: [mapSettings.current.legendBorderColor],
 							colors: colors ?? {},
 						})}
 					/>
@@ -129,9 +131,9 @@
 				<text
 					fill="#FFFFFF"
 					x={symbolSize + symbolLabelGap}
-					y={$mapSettings.legendFontSize}
+					y={mapSettings.current.legendFontSize}
 					dominant-baseline="auto"
-					font-size={$mapSettings.legendFontSize}
+					font-size={mapSettings.current.legendFontSize}
 					font-family={SYSTEM_FONTS}
 				>
 					{item.label}

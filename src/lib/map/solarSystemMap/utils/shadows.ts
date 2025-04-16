@@ -1,6 +1,6 @@
 import type { PathKit } from 'pathkit-wasm/bin/pathkit';
 
-import type { Planet } from '../../../GameState';
+import type { Planet } from '../../../GameState.svelte';
 import type { MapSettings } from '../../../settings';
 import { getPlanetCoordinate } from './coordinates';
 import { getPlanetRadius, getPlanetStar, PLANET_RING_PATTERN } from './planets';

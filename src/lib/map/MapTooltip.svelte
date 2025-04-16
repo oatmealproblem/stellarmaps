@@ -4,7 +4,7 @@
 
 	import { locale, type MessageID, t } from '../../intl';
 	import debug from '../debug';
-	import type { GalacticObject, GameState, LocalizedText } from '../GameState';
+	import type { GalacticObject, GameState, LocalizedText } from '../GameState.svelte';
 	import HeroiconUserMicro from '../icons/HeroiconUserMicro.svelte';
 	import { mapSettings } from '../settings';
 	import { isDefined } from '../utils';
@@ -101,14 +101,14 @@
 			{name}
 		{/await}
 	</strong>
-	{#if $debug}
+	{#if debug.current}
 		<div>System ID: {system.id}</div>
 		<div>Country ID: {processedSystem?.countryId}</div>
 	{/if}
 	{#if processedSystem?.mapModeCountryLabel}
 		<div class="flex flex-row justify-between gap-1 text-sm">
 			<span>
-				{$t(mapModes[$mapSettings.mapMode]?.tooltipLabel ?? 'generic.NEVER')}:
+				{$t(mapModes[mapSettings.current.mapMode]?.tooltipLabel ?? 'generic.NEVER')}:
 			</span>
 			<strong>
 				{#await localizeValueLabel(processedSystem.mapModeCountryLabel)}
@@ -121,7 +121,7 @@
 	{/if}
 	{#if processedSystem?.mapModeValues?.filter((v) => v.value).length}
 		<strong class="mt-2 block">
-			{$t(mapModes[$mapSettings.mapMode]?.tooltipLabel ?? 'generic.NEVER')}
+			{$t(mapModes[mapSettings.current.mapMode]?.tooltipLabel ?? 'generic.NEVER')}
 		</strong>
 		<ul class="text-sm">
 			{#each processedSystem.mapModeValues.filter((v) => v.value) as systemValue}
@@ -131,7 +131,7 @@
 							<circle
 								r="0.875"
 								fill={resolveColor({
-									mapSettings: $mapSettings,
+									mapSettings: mapSettings.current,
 									colorStack: [systemValue.color],
 									colors,
 								})}

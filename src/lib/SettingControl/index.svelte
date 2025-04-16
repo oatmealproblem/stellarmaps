@@ -1,8 +1,5 @@
 <script lang="ts">
 	import { popup, RangeSlider, SlideToggle } from '@skeletonlabs/skeleton';
-	import { onDestroy } from 'svelte';
-	import type { FormEventHandler } from 'svelte/elements';
-	import { get, type Readable, type Writable } from 'svelte/store';
 	import { slide } from 'svelte/transition';
 
 	import { t } from '../../intl';
@@ -10,7 +7,6 @@
 	import {
 		asKnownSettingId,
 		emptyOptions,
-		type SelectOption,
 		type UnknownSettingConfig,
 		validateSetting,
 	} from '../settings';
@@ -20,56 +16,59 @@
 	import StrokeSettingControl from './StrokeSettingControl.svelte';
 
 	interface Props {
-		settings: Writable<Record<string, any>>;
-		writeToSettings?: Writable<Record<string, any>>[];
+		settings: { current: Record<string, any> };
+		writeToSettings?: { current: Record<string, any> }[];
 		config: UnknownSettingConfig;
 	}
 
 	let { settings, writeToSettings = [], config }: Props = $props();
 
-	let value: any = $state.raw(get(settings)[config.id]);
-	let unsubscribe = settings.subscribe((values) => {
-		value = values[config.id];
-	});
-	$effect(() => {
-		if (value !== $settings[config.id]) {
-			settings.update((prev) => ({
-				...prev,
-				[config.id]: value,
-			}));
-			for (const otherSettings of writeToSettings) {
-				otherSettings.update((prev) => ({
-					...prev,
-					[config.id]: value,
-				}));
-			}
-		}
-	});
+	function getValue() {
+		return settings.current[config.id];
+	}
+	function updateValue(v: any) {
+		settings.current = {
+			...settings.current,
+			[config.id]: v,
+		};
+		writeToSettings.forEach((otherSettings) => {
+			otherSettings.current = {
+				...settings.current,
+				[config.id]: v,
+			};
+		});
+	}
+	const value = $derived.by(getValue);
 
-	const handleNumberInput: FormEventHandler<HTMLInputElement> = (e) => {
-		const newValue = parseFloat(e.currentTarget.value);
+	const handleNumberInput = $derived((v: string) => {
+		const newValue = parseFloat(v);
 		if (Number.isFinite(newValue)) {
-			value = newValue;
+			settings.current = {
+				...settings.current,
+				[config.id]: newValue,
+			};
 		} else if (config.type === 'number' && config.optional) {
-			value = null;
+			settings.current = {
+				...settings.current,
+				[config.id]: null,
+			};
 		}
-	};
+	});
 
-	let hidden = $derived(config.hideIf?.($settings as any));
+	let hidden = $derived(config.hideIf?.(settings.current));
 
-	const dynamicOptions: Readable<SelectOption[]> =
+	const dynamicOptions = $derived(
 		config.type === 'select' && config.dynamicOptions != null
 			? config.dynamicOptions
-			: emptyOptions;
+			: emptyOptions,
+	);
 
-	let options = $derived(config.type === 'select' ? [...config.options, ...$dynamicOptions] : []);
+	let options = $derived(
+		config.type === 'select' ? [...config.options, ...dynamicOptions.current] : [],
+	);
 	let groups = $derived(
 		Array.from(new Set(options.map((option) => option.group).filter(isDefined))),
 	);
-
-	function handleStrokeToggle(e: Event) {
-		value = { ...value, enabled: (e.currentTarget as HTMLInputElement).checked };
-	}
 
 	let [valid, invalidMessage, invalidMessageValues] = $derived(validateSetting(value, config));
 
@@ -78,10 +77,6 @@
 		li: (s: string[]) => `<li>${s.join()}</li>`,
 		strong: (s: string[]) => `<strong class="text-warning-500">${s.join()}</strong>`,
 	};
-
-	onDestroy(() => {
-		unsubscribe();
-	});
 </script>
 
 {#if !hidden}
@@ -110,11 +105,13 @@
 				<div class="relative top-1 inline-block">
 					<SlideToggle
 						name={config.id}
-						checked={value.enabled}
+						bind:checked={() => value.enabled,
+						(checked) => {
+							updateValue({ ...value, enabled: checked });
+						}}
 						size="sm"
 						active="variant-filled-primary"
 						label="Enabled"
-						on:change={handleStrokeToggle}
 					/>
 				</div>
 			{/if}
@@ -124,8 +121,7 @@
 				class="input"
 				class:input-error={!valid}
 				type="number"
-				value={value ?? ''}
-				oninput={handleNumberInput}
+				bind:value={getValue, handleNumberInput}
 				min={config.min}
 				max={config.max}
 				step={config.step}
@@ -133,15 +129,15 @@
 		{:else if config.type === 'range'}
 			<RangeSlider
 				name={config.id}
-				bind:value
+				bind:value={getValue, updateValue}
 				min={config.min}
 				max={config.max}
 				step={config.step}
 			/>
 		{:else if config.type === 'text'}
-			<input class="input" type="text" bind:value />
+			<input class="input" type="text" bind:value={getValue, updateValue} />
 		{:else if config.type === 'select'}
-			<select class="select" bind:value>
+			<select class="select" bind:value={getValue, updateValue}>
 				{#each options.filter((opt) => opt.group == null) as option (option.id)}
 					<option value={option.id}>{option.literalName ?? $t(option.name)}</option>
 				{/each}
@@ -155,16 +151,16 @@
 			</select>
 		{:else if config.type === 'toggle'}
 			<div>
-				<SlideToggle name={config.id} bind:checked={value} active="bg-primary-500">
+				<SlideToggle name={config.id} bind:checked={getValue, updateValue} active="bg-primary-500">
 					{value === true ? $t('generic.enabled') : $t('generic.disabled')}
 				</SlideToggle>
 			</div>
 		{:else if config.type === 'color'}
-			<ColorSettingControl bind:value {config} />
+			<ColorSettingControl bind:value={getValue, updateValue} {config} />
 		{:else if config.type === 'stroke'}
-			<StrokeSettingControl bind:value {config} />
+			<StrokeSettingControl bind:value={getValue, updateValue} {config} />
 		{:else if config.type === 'icon'}
-			<IconSettingControl bind:value {config} />
+			<IconSettingControl bind:value={getValue, updateValue} {config} />
 		{:else}
 			<span>WARNING: unimplemented control</span>
 		{/if}

@@ -48,10 +48,10 @@
 	>
 		<rect
 			{...getFillColorAttributes({
-				mapSettings: $mapSettings,
+				mapSettings: mapSettings.current,
 				colors,
 				countryColors: [occupation, data.borders.find((b) => b.countryId === occupation.occupied)],
-				colorStack: [$mapSettings.occupationColor, $mapSettings.borderFillColor],
+				colorStack: [mapSettings.current.occupationColor, mapSettings.current.borderFillColor],
 			})}
 			width="10"
 			height={occupation.partial ? 3 : 6}
@@ -70,10 +70,10 @@
 	>
 		<rect
 			{...getFillColorAttributes({
-				mapSettings: $mapSettings,
+				mapSettings: mapSettings.current,
 				colors,
 				countryColors: data.occupationBorders.find((b) => b.occupier === occupier),
-				colorStack: [$mapSettings.borderColor, $mapSettings.borderFillColor],
+				colorStack: [mapSettings.current.borderColor, mapSettings.current.borderFillColor],
 			})}
 			width="10"
 			height="3"

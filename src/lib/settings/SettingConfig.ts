@@ -1,7 +1,5 @@
-import type { Readable } from 'svelte/store';
-
 import type { MessageID } from '../../intl';
-import type { AppSettings, BooleanAppSettings, StringAppSettings } from './appSettings';
+import type { AppSettings, BooleanAppSettings, StringAppSettings } from './appSettings.svelte';
 import type { ColorSetting, ColorSettingAdjustmentType } from './ColorSetting';
 import type { IconSetting } from './IconSetting';
 import type {
@@ -47,7 +45,7 @@ interface SettingConfigSelect<Settings, ID> extends SettingConfigBase<Settings, 
 	type: 'select';
 	requiresReprocessing?: boolean | RequiresReprocessingFunc<string>;
 	options: SelectOption[];
-	dynamicOptions?: Readable<SelectOption[]>;
+	dynamicOptions?: { current: SelectOption[] };
 }
 interface SettingConfigText<Settings, ID> extends SettingConfigBase<Settings, ID> {
 	type: 'text';

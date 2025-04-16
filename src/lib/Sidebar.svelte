@@ -6,15 +6,15 @@
 		getToastStore,
 		ListBox,
 		ListBoxItem,
-		localStorageStore,
 		popup,
 	} from '@skeletonlabs/skeleton';
 	import * as dialog from '@tauri-apps/plugin-dialog';
+	import { z } from 'zod';
 
 	import { t } from '../intl';
 	import ApplyChangesButton from './ApplyChangesButton.svelte';
 	import debug from './debug';
-	import { gameStatePromise, gameStateSchema } from './GameState';
+	import { gameStatePromise, gameStateSchema } from './GameState.svelte';
 	import HeroiconTrashMini from './icons/HeroiconTrashMini.svelte';
 	import { localizeText } from './map/data/locUtils';
 	import SettingControl from './SettingControl/index.svelte';
@@ -30,9 +30,10 @@
 		presetMapSettings,
 		type SavedMapSettings,
 		settingsAreDifferent,
-		validateAndResetMapSettings,
+		zSavedMapSettings,
 	} from './settings';
 	import { speciesOptions } from './settings/options/speciesOptions';
+	import { PersistedRawState } from './stateUtils.svelte';
 	import type { StellarisSaveMetadata } from './stellarMapsApi';
 	import stellarMapsApi from './stellarMapsApi';
 	import { saveToWindow, timeIt, timeItAsync, toastError, wait } from './utils';
@@ -42,7 +43,6 @@
 
 	let selectedSaveGroup: [StellarisSaveMetadata, ...StellarisSaveMetadata[]] | null = $state(null);
 	let selectedSave: StellarisSaveMetadata | null = $state(null);
-	// TODO
 	// $effect(() => {
 	// 	if (
 	// 		selectedSaveGroup != null &&
@@ -92,7 +92,7 @@
 			.then(() => timeItAsync('loadSave', stellarMapsApi.loadSave, path))
 			.then((unvalidated) =>
 				timeIt('validateSave', () => {
-					if ($debug) saveToWindow('unvalidatedGameState', unvalidated);
+					if (debug.current) saveToWindow('unvalidatedGameState', unvalidated);
 					return gameStateSchema.parse(unvalidated);
 				}),
 			);
@@ -106,7 +106,9 @@
 							literalName: name,
 						})),
 					),
-			).then(countryOptions.set);
+			).then((value) => {
+				countryOptions.current = value;
+			});
 			const speciesWithPopulation = new Set(
 				Object.values(gameState.planets.planet).flatMap((planet) =>
 					Object.keys(planet.species_information ?? {}).map((id) => parseInt(id)),
@@ -126,29 +128,31 @@
 							literalName: name,
 						})),
 					),
-			).then(speciesOptions.set);
+			).then((value) => {
+				speciesOptions.current = value;
+			});
 		});
-		gameStatePromise.set(promise);
+		gameStatePromise.current = promise;
 
 		// update settings that depend on save-specific options
-		editedMapSettings.update((prev) => ({
-			...prev,
+		editedMapSettings.current = {
+			...editedMapSettings.current,
 			terraIncognitaPerspectiveCountry: 'player',
 			mapModePointOfView: 'player',
 			mapModeSpecies: 'player',
-		}));
-		mapSettings.update((prev) => ({
-			...prev,
+		};
+		mapSettings.current = {
+			...mapSettings.current,
 			terraIncognitaPerspectiveCountry: 'player',
 			mapModePointOfView: 'player',
 			mapModeSpecies: 'player',
-		}));
-		lastProcessedMapSettings.update((prev) => ({
-			...prev,
+		};
+		lastProcessedMapSettings.current = {
+			...lastProcessedMapSettings.current,
 			terraIncognitaPerspectiveCountry: 'player',
 			mapModePointOfView: 'player',
 			mapModeSpecies: 'player',
-		}));
+		};
 
 		promise.catch(
 			toastError({
@@ -159,16 +163,22 @@
 		);
 	}
 
-	const loadedSettingsKey = localStorageStore('loadedSettingsKey', 'PRESET|Default');
+	const loadedSettingsKey = new PersistedRawState({
+		name: 'loadedSettingsKey',
+		defaultValue: 'PRESET|Default',
+		schema: z.string().catch('PRESET|Default'),
+	});
 	async function loadSettings(type: 'PRESET' | 'CUSTOM', savedSettings: SavedMapSettings) {
-		const loadedSettingsName = $loadedSettingsKey.substring($loadedSettingsKey.indexOf('|') + 1);
-		const loadedSettings = $loadedSettingsKey.startsWith('PRESET')
+		const loadedSettingsName = loadedSettingsKey.current.substring(
+			loadedSettingsKey.current.indexOf('|') + 1,
+		);
+		const loadedSettings = loadedSettingsKey.current.startsWith('PRESET')
 			? presetMapSettings.find((preset) => preset.name === loadedSettingsName)
-			: $customSavedSettings.find((saved) => saved.name === loadedSettingsName);
+			: customSavedSettings.current.find((saved) => saved.name === loadedSettingsName);
 		let confirmed = true;
 		if (
 			!loadedSettings ||
-			settingsAreDifferent(loadedSettings.settings, $editedMapSettings, {
+			settingsAreDifferent(loadedSettings.settings, editedMapSettings.current, {
 				excludeGroups: ['mapMode'],
 			})
 		) {
@@ -182,40 +192,46 @@
 			});
 		}
 		if (confirmed) {
-			loadedSettingsKey.set(`${type}|${savedSettings.name}`);
+			loadedSettingsKey.current = `${type}|${savedSettings.name}`;
 			if (
-				settingsAreDifferent(savedSettings.settings, $mapSettings, { excludeGroups: ['mapMode'] })
+				settingsAreDifferent(savedSettings.settings, mapSettings.current, {
+					excludeGroups: ['mapMode'],
+				})
 			) {
-				const validated = validateAndResetMapSettings(
-					copyGroupSettings('mapMode', $editedMapSettings, savedSettings.settings),
+				const savedSettingsWithUnchangedMapMode = copyGroupSettings(
+					'mapMode',
+					editedMapSettings.current,
+					savedSettings.settings,
 				);
-				editedMapSettings.set(validated);
-				mapSettings.set(validated);
-				lastProcessedMapSettings.set(validated);
+				editedMapSettings.current = savedSettingsWithUnchangedMapMode;
+				mapSettings.current = savedSettingsWithUnchangedMapMode;
+				lastProcessedMapSettings.current = savedSettingsWithUnchangedMapMode;
 			}
 		}
 	}
 
-	const customSavedSettings = localStorageStore<SavedMapSettings[]>('customSavedSettings', []);
+	const customSavedSettings = new PersistedRawState({
+		name: 'customSavedSettings',
+		defaultValue: [],
+		schema: z.array(zSavedMapSettings).catch([]),
+	});
 	function saveSettings() {
 		modalStore.trigger({
 			type: 'prompt',
 			title: $t('prompt.enter_settings_profile_name'),
-			value: $loadedSettingsKey.substring($loadedSettingsKey.indexOf('|') + 1),
+			value: loadedSettingsKey.current.substring(loadedSettingsKey.current.indexOf('|') + 1),
 			response: (response) => {
 				if (typeof response === 'string') {
-					customSavedSettings.update((prev) =>
-						prev
-							.filter((saved) => saved.name !== response)
-							.concat([
-								{
-									name: response,
-									settings: $mapSettings,
-								},
-							])
-							.sort((a, b) => a.name.toLocaleLowerCase().localeCompare(b.name.toLocaleLowerCase())),
-					);
-					loadedSettingsKey.set(`CUSTOM|${response}`);
+					customSavedSettings.current = customSavedSettings.current
+						.filter((saved) => saved.name !== response)
+						.concat([
+							{
+								name: response,
+								settings: mapSettings.current,
+							},
+						])
+						.sort((a, b) => a.name.toLocaleLowerCase().localeCompare(b.name.toLocaleLowerCase()));
+					loadedSettingsKey.current = `CUSTOM|${response}`;
 					toastStore.trigger({
 						message: $t('notification.settings_profile_saved', { name: response }),
 						background: 'variant-filled-success',
@@ -247,7 +263,14 @@
 				{$t('side_bar.refresh_saves_button')}
 			</button>
 		</div>
-		<select class="select mb-1" bind:value={selectedSaveGroup}>
+		<select
+			class="select mb-1"
+			bind:value={() => selectedSaveGroup,
+			(value) => {
+				selectedSaveGroup = value;
+				selectedSave = selectedSaveGroup?.[0] ?? null;
+			}}
+		>
 			{#if selectedSaveGroup == null}
 				<option value={null} disabled>{$t('side_bar.select_save_placeholder')}</option>
 			{/if}
@@ -319,13 +342,13 @@
 			</button>
 			<div class="card z-10 w-64 py-2 shadow-xl" data-popup="popupCombobox">
 				<ListBox rounded="rounded-none" active="variant-filled-primary">
-					{#if $customSavedSettings.length > 0}
+					{#if customSavedSettings.current.length > 0}
 						<div class="px-4 pt-2 text-secondary-300" style="font-variant-caps: small-caps;">
 							{$t('side_bar.custom_setting_profiles')}
 						</div>
-						{#each $customSavedSettings as saved}
+						{#each customSavedSettings.current as saved}
 							<ListBoxItem
-								group={$loadedSettingsKey}
+								group={loadedSettingsKey.current}
 								name="loadSettings"
 								value="CUSTOM|{saved.name}"
 								on:click={(e) => {
@@ -347,8 +370,8 @@
 												response: (response) => {
 													// eslint-disable-next-line @typescript-eslint/strict-boolean-expressions -- this is a boolean, but TS thinks any
 													if (response) {
-														customSavedSettings.update((prev) =>
-															prev.filter((other) => !(other.name === saved.name)),
+														customSavedSettings.current = customSavedSettings.current.filter(
+															(other) => !(other.name === saved.name),
 														);
 													}
 												},
@@ -366,7 +389,7 @@
 					</div>
 					{#each presetMapSettings as preset}
 						<ListBoxItem
-							group={$loadedSettingsKey}
+							group={loadedSettingsKey.current}
 							name="loadSettings"
 							value="PRESET|{preset.name}"
 							on:click={(e) => {

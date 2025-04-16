@@ -20,19 +20,19 @@
 
 	function getSectorBorderColorSetting(sectorBorder: SectorBorderPath) {
 		return match(sectorBorder)
-			.with({ type: 'union' }, () => $mapSettings.unionBorderColor)
-			.with({ type: 'core' }, () => $mapSettings.sectorCoreBorderColor)
-			.with({ type: 'standard' }, () => $mapSettings.sectorBorderColor)
-			.with({ type: 'frontier' }, () => $mapSettings.sectorFrontierBorderColor)
+			.with({ type: 'union' }, () => mapSettings.current.unionBorderColor)
+			.with({ type: 'core' }, () => mapSettings.current.sectorCoreBorderColor)
+			.with({ type: 'standard' }, () => mapSettings.current.sectorBorderColor)
+			.with({ type: 'frontier' }, () => mapSettings.current.sectorFrontierBorderColor)
 			.exhaustive();
 	}
 
 	function getSectorBorderStrokeSetting(sectorBorder: SectorBorderPath) {
 		return match(sectorBorder)
-			.with({ type: 'union' }, () => $mapSettings.unionBorderStroke)
-			.with({ type: 'core' }, () => $mapSettings.sectorCoreBorderStroke)
-			.with({ type: 'standard' }, () => $mapSettings.sectorBorderStroke)
-			.with({ type: 'frontier' }, () => $mapSettings.sectorFrontierBorderStroke)
+			.with({ type: 'union' }, () => mapSettings.current.unionBorderStroke)
+			.with({ type: 'core' }, () => mapSettings.current.sectorCoreBorderStroke)
+			.with({ type: 'standard' }, () => mapSettings.current.sectorBorderStroke)
+			.with({ type: 'frontier' }, () => mapSettings.current.sectorFrontierBorderStroke)
 			.exhaustive();
 	}
 
@@ -54,35 +54,35 @@
 	}
 </script>
 
-{#if $mapSettings.borderStroke.enabled}
-	{#each data.borders.filter((border) => border.isKnown || !$mapSettings.terraIncognita) as border}
+{#if mapSettings.current.borderStroke.enabled}
+	{#each data.borders.filter((border) => border.isKnown || !mapSettings.current.terraIncognita) as border}
 		<path id="border-{border.countryId}-outer" d={`${border.outerPath}`} fill="none" />
 		<path
 			id="border-{border.countryId}-inner"
 			d={border.innerPath}
 			{...getFillColorAttributes({
-				mapSettings: $mapSettings,
+				mapSettings: mapSettings.current,
 				colors,
 				countryColors: border,
-				colorStack: [$mapSettings.borderFillColor],
+				colorStack: [mapSettings.current.borderFillColor],
 			})}
 		/>
-		{#if $mapSettings.borderFillFade > 0}
+		{#if mapSettings.current.borderFillFade > 0}
 			<path
 				id="border-{border.countryId}-inner"
 				d={border.innerPath}
 				clip-path={`url(#border-${border.countryId}-inner-clip-path)`}
-				stroke-width={$mapSettings.borderFillFade * 25}
+				stroke-width={mapSettings.current.borderFillFade * 25}
 				filter="url(#fade)"
 				fill="none"
 				{...getStrokeColorAttributes({
-					mapSettings: $mapSettings,
+					mapSettings: mapSettings.current,
 					colors,
 					countryColors: border,
 					colorStack: [
 						{
-							...$mapSettings.borderFillColor,
-							colorAdjustments: $mapSettings.borderFillColor.colorAdjustments.filter(
+							...mapSettings.current.borderFillColor,
+							colorAdjustments: mapSettings.current.borderFillColor.colorAdjustments.filter(
 								(a) => a.type !== 'OPACITY',
 							),
 						},
@@ -99,10 +99,13 @@
 						{filter}
 						clip-path={`url(#border-${border.countryId}-outer-clip-path)`}
 						{...getStrokeColorAttributes({
-							mapSettings: $mapSettings,
+							mapSettings: mapSettings.current,
 							colors,
 							countryColors: border,
-							colorStack: [getSectorBorderColorSetting(sectorBorder), $mapSettings.borderFillColor],
+							colorStack: [
+								getSectorBorderColorSetting(sectorBorder),
+								mapSettings.current.borderFillColor,
+							],
 						})}
 						fill="none"
 					/>
@@ -110,23 +113,23 @@
 			</Glow>
 		{/each}
 
-		<Glow enabled={$mapSettings.borderStroke.glow}>
+		<Glow enabled={mapSettings.current.borderStroke.glow}>
 			{#snippet children({ filter })}
 				<path
 					id="border-{border.countryId}-border-only"
 					d={`${border.borderPath}`}
 					{...getFillColorAttributes({
-						mapSettings: $mapSettings,
+						mapSettings: mapSettings.current,
 						colors,
 						countryColors: border,
-						colorStack: [$mapSettings.borderColor, $mapSettings.borderFillColor],
+						colorStack: [mapSettings.current.borderColor, mapSettings.current.borderFillColor],
 					})}
 					{filter}
 				/>
 			{/snippet}
 		</Glow>
 
-		{#if $mapSettings.occupation}
+		{#if mapSettings.current.occupation}
 			{#each data.occupationBorders.filter((b) => b.occupied === border.countryId) as occupationBorder}
 				<path
 					d={occupationBorder.path}
