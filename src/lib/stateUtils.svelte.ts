@@ -14,6 +14,7 @@ export class PersistedRawState<T> {
 	#current: T = $state()!;
 	#dir?: string;
 	#baseDir: BaseDirectory;
+	#loaded = false;
 
 	constructor({
 		name,
@@ -38,6 +39,7 @@ export class PersistedRawState<T> {
 			.then((fileValue) => schema.parse(JSON.parse(fileValue)))
 			.catch(() => defaultValue)
 			.then((value) => {
+				this.#loaded = true;
 				this.#current = value;
 			});
 	}
@@ -49,13 +51,15 @@ export class PersistedRawState<T> {
 	set current(value: T) {
 		this.#current = value;
 		localStorage.setItem(this.#name, JSON.stringify(value));
-		writeTextFile(
-			`${this.#dir != null && this.#dir != '' ? `${this.#dir}/` : ''}${this.#name}.json`,
-			JSON.stringify(value, undefined, 2),
-			{
-				baseDir: this.#baseDir,
-			},
-		);
+		if (this.#loaded) {
+			writeTextFile(
+				`${this.#dir != null && this.#dir != '' ? `${this.#dir}/` : ''}${this.#name}.json`,
+				JSON.stringify(value, undefined, 2),
+				{
+					baseDir: this.#baseDir,
+				},
+			);
+		}
 	}
 }
 
@@ -64,6 +68,7 @@ export class PersistedDeepState<T> {
 	#current: T = $state()!;
 	#dir?: string;
 	#baseDir: BaseDirectory;
+	#loaded = false;
 
 	constructor({
 		name,
@@ -88,19 +93,22 @@ export class PersistedDeepState<T> {
 			.then((fileValue) => schema.parse(JSON.parse(fileValue)))
 			.catch(() => defaultValue)
 			.then((value) => {
+				this.#loaded = true;
 				this.#current = value;
 			});
 
 		$effect.root(() => {
 			$effect(() => {
 				localStorage.setItem(this.#name, JSON.stringify(this.#current));
-				writeTextFile(
-					`${this.#dir != null && this.#dir != '' ? `${this.#dir}/` : ''}${this.#name}.json`,
-					JSON.stringify(this.#current, undefined, 2),
-					{
-						baseDir: this.#baseDir,
-					},
-				);
+				if (this.#loaded) {
+					writeTextFile(
+						`${this.#dir != null && this.#dir != '' ? `${this.#dir}/` : ''}${this.#name}.json`,
+						JSON.stringify(this.#current, undefined, 2),
+						{
+							baseDir: this.#baseDir,
+						},
+					);
+				}
 			});
 		});
 	}
