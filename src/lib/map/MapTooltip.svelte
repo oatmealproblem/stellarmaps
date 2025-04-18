@@ -76,7 +76,7 @@
 		for (const [k, v] of Object.entries(data)) {
 			values[k] = await localizeText(v);
 		}
-		return typeof message === 'string' ? $t(message, values) : await localizeText(message);
+		return typeof message === 'string' ? t(message, values) : await localizeText(message);
 	}
 </script>
 
@@ -96,7 +96,7 @@
 	<div class="arrow bg-surface-600" bind:this={arrowEl}></div>
 	<strong>
 		{#await localizeText(system.name)}
-			{$t('generic.loading')}
+			{t('generic.loading')}
 		{:then name}
 			{name}
 		{/await}
@@ -108,11 +108,11 @@
 	{#if processedSystem?.mapModeCountryLabel}
 		<div class="flex flex-row justify-between gap-1 text-sm">
 			<span>
-				{$t(mapModes[mapSettings.current.mapMode]?.tooltipLabel ?? 'generic.NEVER')}:
+				{t(mapModes[mapSettings.current.mapMode]?.tooltipLabel ?? 'generic.NEVER')}:
 			</span>
 			<strong>
 				{#await localizeValueLabel(processedSystem.mapModeCountryLabel)}
-					{$t('generic.loading')}
+					{t('generic.loading')}
 				{:then label}
 					{label}
 				{/await}
@@ -121,7 +121,7 @@
 	{/if}
 	{#if processedSystem?.mapModeValues?.filter((v) => v.value).length}
 		<strong class="mt-2 block">
-			{$t(mapModes[mapSettings.current.mapMode]?.tooltipLabel ?? 'generic.NEVER')}
+			{t(mapModes[mapSettings.current.mapMode]?.tooltipLabel ?? 'generic.NEVER')}
 		</strong>
 		<ul class="text-sm">
 			{#each processedSystem.mapModeValues.filter((v) => v.value) as systemValue}
@@ -140,13 +140,13 @@
 							/>
 						</svg>
 						{#await localizeValueLabel(systemValue.legendLabel, systemValue.legendLabelData)}
-							{$t('generic.loading')}
+							{t('generic.loading')}
 						{:then label}
 							{label}
 						{/await}
 					</span>
 					<strong>
-						{new Intl.NumberFormat($locale, {
+						{new Intl.NumberFormat(locale.current, {
 							notation: 'compact',
 							maximumFractionDigits: 1,
 						}).format(systemValue.value)}
@@ -156,13 +156,13 @@
 		</ul>
 	{/if}
 	{#if planets.length}
-		<strong class="mt-2 block">{$t('map.tooltip.colonies')}</strong>
+		<strong class="mt-2 block">{t('map.tooltip.colonies')}</strong>
 		<ul class="ps-4">
 			{#each planets as planet}
 				<li class="flex flex-row justify-between text-sm">
 					<span>
 						{#await localizeText(planet.name)}
-							{$t('generic.loading')}
+							{t('generic.loading')}
 						{:then name}
 							{name}
 						{/await}
@@ -175,6 +175,6 @@
 		</ul>
 	{/if}
 	<div class="text-sm">
-		{$t('map.click_to_view_system')}
+		{t('map.click_to_view_system')}
 	</div>
 </div>

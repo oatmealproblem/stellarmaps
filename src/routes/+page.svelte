@@ -33,7 +33,7 @@
 	{#snippet header()}
 		<AppBar>
 			{#snippet lead()}
-				{$t('top_bar.stellar_maps')}
+				{t('top_bar.stellar_maps')}
 				<VersionInfo />
 			{/snippet}
 			{#snippet trail()}

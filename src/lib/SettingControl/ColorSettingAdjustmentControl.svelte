@@ -30,9 +30,9 @@
 		value={adjustment.type ?? ''}
 		onchange={onTypeSelectChange}
 	>
-		<option value="">{$t('control.color.adjustment.placeholder')}</option>
+		<option value="">{t('control.color.adjustment.placeholder')}</option>
 		{#each COLOR_SETTING_ADJUSTMENT_TYPES.filter((t) => !config.allowedAdjustments || config.allowedAdjustments.includes(t)) as type}
-			<option value={type}>{$t(`option.color_adjustment.${type}`)}</option>
+			<option value={type}>{t(`option.color_adjustment.${type}`)}</option>
 		{/each}
 	</select>
 	<input

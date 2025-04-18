@@ -1,5 +1,3 @@
-import { get } from 'svelte/store';
-
 import { type MessageID, t } from '../../../intl';
 import type { GameState } from '../../GameState.svelte';
 import type { ColorSetting, IconSetting, MapSettings } from '../../settings';
@@ -67,7 +65,7 @@ export default async function processLegend(
 						.map(async (mapModeCountry) => ({
 							label:
 								typeof mapModeCountry.label === 'string'
-									? get(t)(mapModeCountry.label)
+									? t(mapModeCountry.label)
 									: await localizeText(mapModeCountry.label ?? { key: 'UNKNOWN' }),
 							symbol: {
 								type: 'border',
@@ -95,7 +93,7 @@ export default async function processLegend(
 				return {
 					label:
 						typeof value.legendLabel === 'string'
-							? get(t)(value.legendLabel, values)
+							? t(value.legendLabel, values)
 							: await localizeText(value.legendLabel),
 					symbol: {
 						type: 'icon',
@@ -109,14 +107,14 @@ export default async function processLegend(
 	const occupationLegendItems: LegendItem[] = settings.occupation
 		? [
 				{
-					label: get(t)('legend.fully_occupied'),
+					label: t('legend.fully_occupied'),
 					symbol: {
 						type: 'pattern',
 						pattern: 'pattern-full-occupier',
 					},
 				},
 				{
-					label: get(t)('legend.partially_occupied'),
+					label: t('legend.partially_occupied'),
 					symbol: {
 						type: 'pattern',
 						pattern: 'pattern-partial-occupier',
@@ -142,7 +140,7 @@ export default async function processLegend(
 	const systemIconItems: LegendItem[] = systemIconSettings
 		.filter(([_messageId, setting]) => setting.enabled)
 		.map(([messageId, setting]) => ({
-			label: get(t)(messageId),
+			label: t(messageId),
 			symbol: {
 				type: 'icon',
 				icon: setting.icon,

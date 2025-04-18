@@ -51,18 +51,18 @@
 	$effect(() => {
 		stellarisDataPromise.current.catch(
 			toastError({
-				title: $t('notification.failed_to_load_stellaris_data.title'),
-				description: $t('notification.failed_to_load_stellaris_data.description'),
+				title: t('notification.failed_to_load_stellaris_data.title'),
+				description: t('notification.failed_to_load_stellaris_data.description'),
 				defaultValue: {} as Record<string, string>,
 				toastStore,
 				action: {
-					label: $t('notification.failed_to_load_stellaris_data.action'),
+					label: t('notification.failed_to_load_stellaris_data.action'),
 					response: () =>
 						dialog
 							.open({
 								directory: true,
 								multiple: false,
-								title: $t('prompt.select_stellaris_install'),
+								title: t('prompt.select_stellaris_install'),
 							})
 							.then((result) => {
 								if (typeof result === 'string') {
@@ -418,12 +418,12 @@
 		{/if}
 		{#if openedSystem}
 			<button type="button" class="variant-filled btn" onclick={closeSystemMap}>
-				{$t('generic.back_button')}
+				{t('generic.back_button')}
 			</button>
 		{/if}
 		{#if dataOrNull}
 			<button type="button" class="variant-filled btn" transition:fade onclick={openExportModal}>
-				{$t('export.button')}
+				{t('export.button')}
 			</button>
 		{/if}
 	</div>
@@ -442,7 +442,7 @@
 	{#if !gameStatePromise.current}
 		<div class="flex h-full w-full items-center" style:background={bg}>
 			<div class="h1 w-full text-center" style="lineHeight: 100%;">
-				{$t('map.select_save')}
+				{t('map.select_save')}
 			</div>
 		</div>
 	{:else if resizing}
@@ -455,13 +455,13 @@
 				class="absolute left-0 top-0 flex h-full w-full items-center backdrop-blur backdrop-brightness-75"
 			>
 				<div class="h1 w-full text-center" style="lineHeight: 100%;">
-					{$t('map.loading')}
+					{t('map.loading')}
 				</div>
 			</div>
 		{:catch reason}
 			<div class="absolute left-0 top-0 flex h-full w-full items-center bg-error-800">
 				<div class="h1 w-full text-center text-error-200">
-					{$t('map.error')}
+					{t('map.error')}
 					<br />
 					<code class="mt-3 inline-block max-w-96 text-sm">
 						{reason.toString().length > 200

@@ -18,7 +18,7 @@
 			target="_blank"
 			rel="noopener"
 		>
-			{$t('top_bar.download_latest_release')}
+			{t('top_bar.download_latest_release')}
 			{latestRelease.substring(latestRelease.lastIndexOf('v'))}
 		</a>
 	{/if}

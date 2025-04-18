@@ -346,7 +346,7 @@
 					{...getPlanetLabelTextPathAttributes(planet, mapSettings.current)}
 				>
 					{#await localizeText(planet.name)}
-						{$t('generic.loading')}
+						{t('generic.loading')}
 					{:then planetName}
 						{planetName}
 					{/await}
@@ -422,7 +422,7 @@
 						font-family={mapSettings.current.systemMapLabelPlanetsFont}
 					>
 						{#await localizeText(fleet.name)}
-							{$t('generic.loading')}
+							{t('generic.loading')}
 						{:then name}
 							{name}
 						{/await}
@@ -462,7 +462,7 @@
 							dominant-baseline={connection.y < 0 ? 'hanging' : 'auto'}
 						>
 							{#await localizeText(connection.system.name)}
-								{$t('generic.loading')}
+								{t('generic.loading')}
 							{:then systemName}
 								{systemName}
 							{/await}

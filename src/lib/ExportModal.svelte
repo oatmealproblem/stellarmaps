@@ -167,7 +167,7 @@
 			await fs.writeFile(savePath, new Uint8Array(buffer)).then(() => {
 				toastStore.trigger({
 					background: 'variant-filled-success',
-					message: $t('notification.export_success'),
+					message: t('notification.export_success'),
 					timeout: 10000,
 					action: {
 						label: `
@@ -240,7 +240,7 @@
 			await fs.writeTextFile(savePath, svgString).then(() => {
 				toastStore.trigger({
 					background: 'variant-filled-success',
-					message: $t('notification.export_success'),
+					message: t('notification.export_success'),
 					timeout: 10000,
 					action: {
 						label: `
@@ -266,7 +266,7 @@
 			modalStore.close();
 		} catch (error) {
 			toastError({
-				title: $t('notification.export_failed'),
+				title: t('notification.export_failed'),
 				defaultValue: null,
 				toastStore,
 			})(error);
@@ -288,13 +288,13 @@
 		}}
 		novalidate
 	>
-		<header class="modal-header text-2xl font-bold">{$t('export.header')}</header>
+		<header class="modal-header text-2xl font-bold">{t('export.header')}</header>
 		<article class="modal-body flex space-x-5">
 			<div class="inline-block w-0 flex-1">
 				<div class="mb-1 flex justify-between">
-					<p>{$t('export.image_size')}</p>
+					<p>{t('export.image_size')}</p>
 					<small class="flex">
-						{$t('export.lock_aspect_ratio')}
+						{t('export.lock_aspect_ratio')}
 						<SlideToggle
 							size="sm"
 							name="lock-aspect-ratio"
@@ -340,7 +340,7 @@
 					/>
 					<div class="input-group-shim !justify-center !px-0">px</div>
 				</div>
-				<p class="mb-1 mt-3">{$t('export.zoom')}</p>
+				<p class="mb-1 mt-3">{t('export.zoom')}</p>
 				<RangeSlider
 					disabled={processing}
 					name="zoom"
@@ -350,8 +350,8 @@
 					bind:value={exportSettings.current.zoom}
 				/>
 				<p class="mb-1 mt-3">
-					{$t('export.center')}
-					<span class="ml-1 text-surface-300">{$t('export.center_hint')}</span>
+					{t('export.center')}
+					<span class="ml-1 text-surface-300">{t('export.center_hint')}</span>
 				</p>
 				<div class="input-group input-group-divider grid-cols-[auto_3rem_3rem_auto_3rem]">
 					<input
@@ -399,8 +399,8 @@
 			</div>
 			<aside class="inline-block w-[12rem] flex-initial">
 				<p>
-					{$t('export.preview')}
-					<small>{$t('export.click_to_center')}</small>
+					{t('export.preview')}
+					<small>{t('export.click_to_center')}</small>
 				</p>
 				<!-- svelte-ignore a11y_click_events_have_key_events -->
 				<!-- svelte-ignore a11y_interactive_supports_focus -->
@@ -486,7 +486,7 @@
 				}}
 				disabled={processing}
 			>
-				{$t('export.reset_button')}
+				{t('export.reset_button')}
 			</button>
 			<button
 				type="button"
@@ -494,7 +494,7 @@
 				onclick={modalStore.close}
 				disabled={processing}
 			>
-				{$t('generic.cancel_button')}
+				{t('generic.cancel_button')}
 			</button>
 			<button
 				type="button"
@@ -502,10 +502,10 @@
 				disabled={processing}
 				onclick={() => onSubmit(exportSvg)}
 			>
-				{processing ? $t('export.processing') : $t('export.export_svg_button')}
+				{processing ? t('export.processing') : t('export.export_svg_button')}
 			</button>
 			<button type="submit" class="variant-filled-primary btn" disabled={processing}>
-				{processing ? $t('export.processing') : $t('export.export_png_button')}
+				{processing ? t('export.processing') : t('export.export_png_button')}
 			</button>
 		</footer>
 	</form>

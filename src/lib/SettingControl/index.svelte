@@ -82,7 +82,7 @@
 {#if !hidden}
 	<label class="label" for={config.id} transition:slide>
 		<div class="flex items-center">
-			{$t(`setting.${asKnownSettingId(config.id)}`)}
+			{t(`setting.${asKnownSettingId(config.id)}`)}
 			{#if config.tooltip}
 				<button
 					type="button"
@@ -96,7 +96,7 @@
 					data-popup="{config.id}-tooltip"
 				>
 					<!-- eslint-disable-next-line svelte/no-at-html-tags -- this is safe, all tooltip text is provided by the app -->
-					{@html $t(config.tooltip, richTextHandlers)}
+					{@html t(config.tooltip, richTextHandlers)}
 					<div class="variant-filled-secondary arrow"></div>
 				</div>
 			{/if}
@@ -139,12 +139,12 @@
 		{:else if config.type === 'select'}
 			<select class="select" bind:value={getValue, updateValue}>
 				{#each options.filter((opt) => opt.group == null) as option (option.id)}
-					<option value={option.id}>{option.literalName ?? $t(option.name)}</option>
+					<option value={option.id}>{option.literalName ?? t(option.name)}</option>
 				{/each}
 				{#each groups as group}
-					<optgroup label={$t(group)}>
+					<optgroup label={t(group)}>
 						{#each options.filter((opt) => opt.group === group) as option (option.id)}
-							<option value={option.id}>{option.literalName ?? $t(option.name)}</option>
+							<option value={option.id}>{option.literalName ?? t(option.name)}</option>
 						{/each}
 					</optgroup>
 				{/each}
@@ -152,7 +152,7 @@
 		{:else if config.type === 'toggle'}
 			<div>
 				<SlideToggle name={config.id} bind:checked={getValue, updateValue} active="bg-primary-500">
-					{value === true ? $t('generic.enabled') : $t('generic.disabled')}
+					{value === true ? t('generic.enabled') : t('generic.disabled')}
 				</SlideToggle>
 			</div>
 		{:else if config.type === 'color'}
@@ -165,7 +165,7 @@
 			<span>WARNING: unimplemented control</span>
 		{/if}
 		{#if !valid && invalidMessage}
-			<span class="text-error-300">{$t(invalidMessage, invalidMessageValues)}</span>
+			<span class="text-error-300">{t(invalidMessage, invalidMessageValues)}</span>
 		{/if}
 	</label>
 {/if}

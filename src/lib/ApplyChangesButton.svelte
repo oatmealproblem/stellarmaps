@@ -33,7 +33,7 @@
 		disabled={!valid}
 	>
 		<span><HeroiconPaintBrushMini /></span>
-		<span>{$t('side_bar.apply_changes_button')}</span>
+		<span>{t('side_bar.apply_changes_button')}</span>
 		<span class="invisible"><HeroiconPaintBrushMini /></span>
 	</button>
 {/if}

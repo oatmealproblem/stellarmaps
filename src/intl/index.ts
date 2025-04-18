@@ -1,5 +1,7 @@
 import IntlMessageFormat, { type FormatXMLElementFn, type PrimitiveType } from 'intl-messageformat';
-import { derived, writable } from 'svelte/store';
+
+import { RawStateWrapper } from '$lib/stateUtils.svelte';
+import { getOrSetDefault } from '$lib/utils';
 
 import enUS from './en-US';
 import fiFI from './fi-FI';
@@ -51,36 +53,41 @@ export function getBestLocale(): Locale {
 	);
 }
 
-export const locale = writable<Locale>(getBestLocale());
+export const locale = new RawStateWrapper<Locale>(getBestLocale());
 
-export const translatorModeMessages = writable<Record<string, string>>({});
-export const translatorModeExtraMessageIDs = derived(translatorModeMessages, (messages) =>
-	Object.keys(messages).filter((key) => !(key in locales['en-US'])),
-);
-export const translatorModeUntranslatedMessageIDs = derived(translatorModeMessages, (messages) =>
-	Object.keys(locales['en-US']).filter(
-		(key) => !(key in messages) || messages[key] === locales['en-US'][key as MessageID],
-	),
-);
+export const translatorModeMessages = new RawStateWrapper<Record<string, string>>({});
 
-export const t = derived(
-	[locale, translatorModeMessages],
-	([localeKey, translatorModeMessages]) => {
-		const messages: Record<string, IntlMessageFormat> = {};
-		return function t(
-			messageId: MessageID,
-			values?: Record<string, PrimitiveType | FormatXMLElementFn<string>>,
-		) {
-			if (localeKey === 'MessageID') return messageId;
-			const message =
-				messages[messageId] ??
-				new IntlMessageFormat(
-					translatorModeMessages[messageId] ??
-						locales[localeKey][messageId] ??
-						locales['en-US'][messageId],
-					localeKey,
-				);
-			return `${message.format(values)}`;
-		};
-	},
-);
+export function getTranslatorModeExtraMessageIDs() {
+	return Object.keys(translatorModeMessages.current).filter((key) => !(key in locales['en-US']));
+}
+
+export function getTranslatorModeUntranslatedMessageIDs() {
+	return Object.keys(locales['en-US']).filter(
+		(key) =>
+			!(key in translatorModeMessages.current) ||
+			translatorModeMessages.current[key] === locales['en-US'][key as MessageID],
+	);
+}
+
+const cachedMessages: Partial<Record<Locale, Record<string, IntlMessageFormat>>> = {};
+
+export function t(
+	messageId: MessageID,
+	values?: Record<string, PrimitiveType | FormatXMLElementFn<string>>,
+) {
+	if (locale.current === 'MessageID') return messageId;
+	if (translatorModeMessages.current[messageId] != null) {
+		return new IntlMessageFormat(translatorModeMessages.current[messageId]).format(
+			values,
+		) as string;
+	} else {
+		const message =
+			cachedMessages[locale.current]?.[messageId] ??
+			new IntlMessageFormat(
+				locales[locale.current][messageId] ?? locales['en-US'][messageId],
+				locale.current,
+			);
+		getOrSetDefault(cachedMessages, locale.current, {})[messageId] = message;
+		return `${message.format(values)}` as string;
+	}
+}

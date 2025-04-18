@@ -56,7 +56,7 @@
 	function loadSaves() {
 		return stellarMapsApi.loadSaveMetadata().catch(
 			toastError({
-				title: $t('notification.failed_to_load_save_list'),
+				title: t('notification.failed_to_load_save_list'),
 				defaultValue: [] as StellarisSaveMetadata[][],
 				toastStore,
 			}),
@@ -75,8 +75,8 @@
 			.open({
 				directory: false,
 				multiple: false,
-				title: $t('prompt.select_save_file'),
-				filters: [{ name: $t('prompt.select_save_file_filter_name'), extensions: ['sav'] }],
+				title: t('prompt.select_save_file'),
+				filters: [{ name: t('prompt.select_save_file_filter_name'), extensions: ['sav'] }],
 			})
 			.then((path) => {
 				if (typeof path === 'string') {
@@ -156,7 +156,7 @@
 
 		promise.catch(
 			toastError({
-				title: $t('notification.failed_to_load_save_file', { filePath: path }),
+				title: t('notification.failed_to_load_save_file', { filePath: path }),
 				defaultValue: null,
 				toastStore,
 			}),
@@ -185,8 +185,8 @@
 			confirmed = await new Promise<boolean>((resolve) => {
 				modalStore.trigger({
 					type: 'confirm',
-					title: $t('generic.confirmation'),
-					body: $t('confirmation.unsaved_setting_profile'),
+					title: t('generic.confirmation'),
+					body: t('confirmation.unsaved_setting_profile'),
 					response: resolve,
 				});
 			});
@@ -218,7 +218,7 @@
 	function saveSettings() {
 		modalStore.trigger({
 			type: 'prompt',
-			title: $t('prompt.enter_settings_profile_name'),
+			title: t('prompt.enter_settings_profile_name'),
 			value: loadedSettingsKey.current.substring(loadedSettingsKey.current.indexOf('|') + 1),
 			response: (response) => {
 				if (typeof response === 'string') {
@@ -233,7 +233,7 @@
 						.sort((a, b) => a.name.toLocaleLowerCase().localeCompare(b.name.toLocaleLowerCase()));
 					loadedSettingsKey.current = `CUSTOM|${response}`;
 					toastStore.trigger({
-						message: $t('notification.settings_profile_saved', { name: response }),
+						message: t('notification.settings_profile_saved', { name: response }),
 						background: 'variant-filled-success',
 					});
 				}
@@ -254,13 +254,13 @@
 		}}
 	>
 		<div class="flex">
-			<h2 class="label flex-1">{$t('side_bar.save_game')}</h2>
+			<h2 class="label flex-1">{t('side_bar.save_game')}</h2>
 			<button type="button" class="text-sm text-surface-300" onclick={manuallySelectSave}>
-				{$t('side_bar.select_manually_button')}
+				{t('side_bar.select_manually_button')}
 			</button>
 			<span class="px-2 text-surface-600">|</span>
 			<button type="button" class="text-sm text-surface-300" onclick={refreshSaves}>
-				{$t('side_bar.refresh_saves_button')}
+				{t('side_bar.refresh_saves_button')}
 			</button>
 		</div>
 		<select
@@ -272,7 +272,7 @@
 			}}
 		>
 			{#if selectedSaveGroup == null}
-				<option value={null} disabled>{$t('side_bar.select_save_placeholder')}</option>
+				<option value={null} disabled>{t('side_bar.select_save_placeholder')}</option>
 			{/if}
 			{#await savesPromise then saves}
 				{#each saves as saveGroup}
@@ -301,7 +301,7 @@
 			class:variant-filled-primary={selectedSave != null && selectedSave !== loadedSave}
 			class:variant-filled-surface={selectedSave == null || selectedSave === loadedSave}
 		>
-			{$t('side_bar.load_save_button')}
+			{t('side_bar.load_save_button')}
 		</button>
 	</form>
 
@@ -324,9 +324,9 @@
 		</div>
 
 		<div class="flex items-baseline p-4 pb-1" style="transition-duration: 50ms;">
-			<h2 class="h3 flex-1">{$t('side_bar.map_settings')}</h2>
+			<h2 class="h3 flex-1">{t('side_bar.map_settings')}</h2>
 			<button type="button" class="mx-2 text-primary-500" onclick={saveSettings}>
-				{$t('side_bar.save_settings_button')}
+				{t('side_bar.save_settings_button')}
 			</button>
 			<button
 				type="button"
@@ -338,13 +338,13 @@
 					closeQuery: '.listbox-item',
 				}}
 			>
-				{$t('side_bar.load_settings_button')}
+				{t('side_bar.load_settings_button')}
 			</button>
 			<div class="card z-10 w-64 py-2 shadow-xl" data-popup="popupCombobox">
 				<ListBox rounded="rounded-none" active="variant-filled-primary">
 					{#if customSavedSettings.current.length > 0}
 						<div class="px-4 pt-2 text-secondary-300" style="font-variant-caps: small-caps;">
-							{$t('side_bar.custom_setting_profiles')}
+							{t('side_bar.custom_setting_profiles')}
 						</div>
 						{#each customSavedSettings.current as saved}
 							<ListBoxItem
@@ -364,8 +364,8 @@
 										onclick={() => {
 											modalStore.trigger({
 												type: 'confirm',
-												title: $t('generic.confirmation'),
-												body: $t('confirmation.delete_setting_profile', { name: saved.name }),
+												title: t('generic.confirmation'),
+												body: t('confirmation.delete_setting_profile', { name: saved.name }),
 												buttonTextConfirm: 'Delete',
 												response: (response) => {
 													// eslint-disable-next-line @typescript-eslint/strict-boolean-expressions -- this is a boolean, but TS thinks any
@@ -385,7 +385,7 @@
 						{/each}
 					{/if}
 					<div class="px-4 pt-2 text-secondary-300" style="font-variant-caps: small-caps;">
-						{$t('side_bar.preset_setting_profiles')}
+						{t('side_bar.preset_setting_profiles')}
 					</div>
 					{#each presetMapSettings as preset}
 						<ListBoxItem
@@ -411,7 +411,7 @@
 					<AccordionItem regionPanel="space-y-6">
 						<svelte:fragment slot="summary">
 							<h3 class="h4 font-bold">
-								{$t(settingGroup.name)}
+								{t(settingGroup.name)}
 							</h3>
 						</svelte:fragment>
 						<svelte:fragment slot="content">

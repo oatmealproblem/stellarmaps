@@ -48,6 +48,6 @@ $effect.root(() => {
 	});
 
 	$effect(() => {
-		locale.set(appSettings.current.appLocale);
+		locale.current = appSettings.current.appLocale;
 	});
 });

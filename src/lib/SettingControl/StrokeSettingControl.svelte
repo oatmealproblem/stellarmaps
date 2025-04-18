@@ -15,12 +15,12 @@
 </script>
 
 {#if !value.enabled}
-	<div class="rounded-lg bg-surface-800 p-2 text-surface-300">{$t('generic.disabled')}</div>
+	<div class="rounded-lg bg-surface-800 p-2 text-surface-300">{t('generic.disabled')}</div>
 {:else}
 	<div class="rounded-lg bg-surface-800">
 		<div class="p-2 pb-0">
 			<label class="flex items-baseline">
-				<span class="w-24">{$t('control.stroke.width')}</span>
+				<span class="w-24">{t('control.stroke.width')}</span>
 				<input
 					class="input"
 					type="number"
@@ -44,7 +44,7 @@
 		>
 			<AccordionItem>
 				{#snippet summary()}
-					{$t('control.stroke.more_styles.header')}
+					{t('control.stroke.more_styles.header')}
 				{/snippet}
 				{#snippet content()}
 					<div class="flex-col space-y-1">
@@ -63,7 +63,7 @@
 									}}
 								/>
 								<label for="{config.id}-smoothing" class="ms-1 grow cursor-pointer">
-									{$t('control.stroke.more_styles.smoothed')}
+									{t('control.stroke.more_styles.smoothed')}
 								</label>
 							</div>
 						{/if}
@@ -81,7 +81,7 @@
 								}}
 							/>
 							<label for="{config.id}-glow" class="ms-1 grow cursor-pointer">
-								{$t('control.stroke.more_styles.glow')}
+								{t('control.stroke.more_styles.glow')}
 							</label>
 						</div>
 						{#if !config.noDashed}
@@ -99,11 +99,11 @@
 									}}
 								/>
 								<label for="{config.id}-dashed" class="ms-1 grow cursor-pointer">
-									{$t('control.stroke.more_styles.dashed')}
+									{t('control.stroke.more_styles.dashed')}
 								</label>
 								{#if value.dashed}
 									<label class="text-surface-300" for="{config.id}-dashArray" transition:fade>
-										{$t('control.stroke.more_styles.dash_pattern')}
+										{t('control.stroke.more_styles.dash_pattern')}
 									</label>
 									<button
 										type="button"
@@ -120,7 +120,7 @@
 										class="card variant-filled-secondary z-10 max-w-96 p-2 text-sm"
 										data-popup="{config.id}-dash-pattern-tooltip"
 									>
-										{$t('control.stroke.more_styles.dash_pattern_tooltip')}
+										{t('control.stroke.more_styles.dash_pattern_tooltip')}
 										<div class="variant-filled-secondary arrow"></div>
 									</div>
 									<input

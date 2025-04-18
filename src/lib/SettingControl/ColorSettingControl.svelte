@@ -45,7 +45,7 @@
 <div class="rounded-lg bg-surface-800">
 	<div class="p-2 pb-0">
 		<label class="flex items-baseline">
-			<span class="w-24">{$t('control.color.label')}</span>
+			<span class="w-24">{t('control.color.label')}</span>
 			<select
 				class="select"
 				value={selectValue}
@@ -54,11 +54,11 @@
 				}}
 			>
 				{#each groups as group}
-					<optgroup label={$t(group)}>
+					<optgroup label={t(group)}>
 						{#each options
 							.filter((opt) => opt.group === group)
 							.filter(filterAllowedOption) as option (option.id)}
-							<option value={option.id}>{option.literalName ?? $t(option.name)}</option>
+							<option value={option.id}>{option.literalName ?? t(option.name)}</option>
 						{/each}
 					</optgroup>
 				{/each}
@@ -74,7 +74,7 @@
 	>
 		<AccordionItem>
 			{#snippet summary()}
-				{$t('control.color.adjustment.header')}
+				{t('control.color.adjustment.header')}
 				<div class="relative inline-block">
 					<span class="variant-filled-secondary badge-icon absolute left-0 top-[-14px]">
 						{value.colorAdjustments.length}
@@ -121,7 +121,7 @@
 							};
 						}}
 					>
-						{$t('control.color.adjustment.add_button')}
+						{t('control.color.adjustment.add_button')}
 					</button>
 				</div>
 			{/snippet}
