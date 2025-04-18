@@ -14,7 +14,7 @@ interface ConvertSvgToPngOptions {
 	backgroundColor?: string;
 }
 export default async function convertSvgToPng(
-	svg: SVGElement,
+	svg: SVGSVGElement,
 	{
 		left,
 		top,

@@ -36,7 +36,7 @@
 	const openedSystem: GalacticObject | undefined = $modalStore[0]?.meta?.openedSystem;
 
 	let hiddenGalaxyMapSvg: SVGSVGElement;
-	let hiddenSystemMapSvg: SVGSVGElement;
+	let hiddenSystemMapContainer: HTMLDivElement;
 	let hiddenLegendContainer: HTMLDivElement;
 
 	const zExportSettings = z.object({
@@ -148,17 +148,22 @@
 					outputHeight: imageHeight,
 				}).then(convertBlobToDataUrl)
 			: undefined;
-		const buffer = await convertSvgToPng(openedSystem ? hiddenSystemMapSvg : hiddenGalaxyMapSvg, {
-			left: mapLeft,
-			top: mapTop,
-			width: mapWidth,
-			height: mapHeight,
-			outputWidth: imageWidth,
-			outputHeight: imageHeight,
-			backgroundImageUrl,
-			foregroundImageUrl: openedSystem ? undefined : legendImageUrl,
-			backgroundColor: getBackgroundColor(colors, mapSettings.current),
-		}).then((blob) => blob.arrayBuffer());
+		const buffer = await convertSvgToPng(
+			openedSystem
+				? (hiddenSystemMapContainer.querySelector('svg') as SVGSVGElement)
+				: hiddenGalaxyMapSvg,
+			{
+				left: mapLeft,
+				top: mapTop,
+				width: mapWidth,
+				height: mapHeight,
+				outputWidth: imageWidth,
+				outputHeight: imageHeight,
+				backgroundImageUrl,
+				foregroundImageUrl: openedSystem ? undefined : legendImageUrl,
+				backgroundColor: getBackgroundColor(colors, mapSettings.current),
+			},
+		).then((blob) => blob.arrayBuffer());
 		const savePath = await dialog.save({
 			defaultPath: await path.join(await path.pictureDir(), 'map.png'),
 			filters: [{ extensions: ['png'], name: 'Image' }],
@@ -186,7 +191,9 @@
 	}
 
 	async function exportSvg() {
-		const svgToExport = openedSystem ? hiddenSystemMapSvg : hiddenGalaxyMapSvg;
+		const svgToExport = openedSystem
+			? (hiddenSystemMapContainer.querySelector('svg') as SVGSVGElement)
+			: hiddenGalaxyMapSvg;
 		svgToExport.setAttribute('width', imageWidth.toString());
 		svgToExport.setAttribute('height', imageHeight.toString());
 		svgToExport.setAttribute('viewBox', `${mapLeft} ${mapTop} ${mapWidth} ${mapHeight}`);
@@ -522,11 +529,7 @@
 			<Map data={mapData} {colors} />
 		{/if}
 	</svg>
-	<svg
-		bind:this={hiddenSystemMapSvg}
-		xmlns="http://www.w3.org/2000/svg"
-		xmlns:xlink="http://www.w3.org/1999/xlink"
-	>
+	<div bind:this={hiddenSystemMapContainer}>
 		{#if openedSystem}
 			<SolarSystemMap
 				id="exportSystemMap"
@@ -537,7 +540,7 @@
 				exportMode
 			/>
 		{/if}
-	</svg>
+	</div>
 	<div bind:this={hiddenLegendContainer}>
 		<Legend {colors} data={mapData} />
 	</div>
