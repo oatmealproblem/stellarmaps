@@ -32,7 +32,7 @@
 	import MapTooltip from './MapTooltip.svelte';
 	import { getBackgroundColor } from './mapUtils';
 	import SolarSystemMap from './solarSystemMap/SolarSystemMap.svelte';
-	import processStarScape from './starScape/renderStarScape';
+	import renderStarScape from './starScape/renderStarScape';
 
 	const modalStore = getModalStore();
 
@@ -85,7 +85,6 @@
 					colors,
 					mapData,
 					gameState: gameStateOrNull,
-					svg: document.createElementNS('http://www.w3.org/2000/svg', 'svg'), // TODO
 					openedSystem,
 				},
 			});
@@ -234,7 +233,7 @@
 
 		const newStarScapeDataUrlPromise =
 			gameStateOrNull && colorsOrNull
-				? processStarScape(
+				? renderStarScape(
 						gameStateOrNull,
 						mapSettings.current,
 						colorsOrNull,

@@ -1,15 +1,23 @@
 <script lang="ts">
 	import { getModalStore, getToastStore, RangeSlider, SlideToggle } from '@skeletonlabs/skeleton';
+	import { path } from '@tauri-apps/api';
+	import * as dialog from '@tauri-apps/plugin-dialog';
+	import * as fs from '@tauri-apps/plugin-fs';
 	import { z } from 'zod';
 
 	import { t } from '../intl';
+	import convertBlobToDataUrl from './convertBlobToDataUrl';
+	import convertSvgToPng from './convertSvgToPng';
 	import type { GalacticObject, GameState } from './GameState.svelte';
 	import type { MapData } from './map/data/processMapData';
 	import Legend from './map/Legend.svelte';
-	import { getFillColorAttributes, resolveColor } from './map/mapUtils';
+	import Map from './map/Map.svelte';
+	import { getBackgroundColor, getFillColorAttributes, resolveColor } from './map/mapUtils';
 	import SolarSystemMap from './map/solarSystemMap/SolarSystemMap.svelte';
-	import { mapSettings } from './settings';
+	import renderStarScape from './map/starScape/renderStarScape';
+	import { type MapSettings, mapSettings } from './settings';
 	import { PersistedDeepState } from './stateUtils.svelte';
+	import stellarMapsApi from './stellarMapsApi';
 	import { toastError } from './utils';
 
 	interface Props {
@@ -27,32 +35,9 @@
 	const gameState: GameState = $modalStore[0]?.meta?.gameState;
 	const openedSystem: GalacticObject | undefined = $modalStore[0]?.meta?.openedSystem;
 
-	// const solarSystemMapTarget = document.createElement('div');
-	// const solarSystemMap = openedSystem
-	// 	? mount(SolarSystemMap, {
-	// 			target: solarSystemMapTarget,
-	// 			props: {
-	// 				id: 'exportSystemMap',
-	// 				colors,
-	// 				mapData,
-	// 				gameState,
-	// 				system: openedSystem,
-	// 				exportMode: true,
-	// 			},
-	// 		})
-	// 	: null;
-	// const legendTarget = document.createElement('div');
-	// const legend = mount(Legend, {
-	// 	target: legendTarget,
-	// 	props: {
-	// 		colors: colors,
-	// 		data: mapData,
-	// 	},
-	// });
-	// onDestroy(() => {
-	// 	solarSystemMap?.$destroy();
-	// 	unmount(legend);
-	// });
+	let hiddenGalaxyMapSvg: SVGSVGElement;
+	let hiddenSystemMapSvg: SVGSVGElement;
+	let hiddenLegendContainer: HTMLDivElement;
 
 	const zExportSettings = z.object({
 		lockAspectRatio: z.boolean().catch(true),
@@ -106,14 +91,14 @@
 			: Math.max(1000, 500 + mapTop + mapHeight),
 	);
 
-	// function hasBackgroundImage(mapSettings: MapSettings) {
-	// 	return (
-	// 		mapSettings.starScapeDust ||
-	// 		mapSettings.starScapeCore ||
-	// 		mapSettings.starScapeNebula ||
-	// 		mapSettings.starScapeStars
-	// 	);
-	// }
+	function hasBackgroundImage(mapSettings: MapSettings) {
+		return (
+			mapSettings.starScapeDust ||
+			mapSettings.starScapeCore ||
+			mapSettings.starScapeNebula ||
+			mapSettings.starScapeStars
+		);
+	}
 
 	function onPreviewClick(this: SVGElement, event: MouseEvent) {
 		const boundingRect = this.getBoundingClientRect();
@@ -134,151 +119,143 @@
 	}
 
 	async function exportPng() {
-		alert('TODO');
-		// TODO!
-		// const backgroundImageUrl =
-		// 	openedSystem != null || !hasBackgroundImage(mapSettings.current)
-		// 		? undefined
-		// 		: await processStarScape(
-		// 				gameState,
-		// 				mapSettings.current,
-		// 				colors,
-		// 				{
-		// 					left: mapLeft,
-		// 					top: mapTop,
-		// 					width: mapWidth,
-		// 					height: mapHeight,
-		// 				},
-		// 				{
-		// 					width: imageWidth,
-		// 					height: imageHeight,
-		// 				},
-		// 			);
-		// const legendImageUrl = mapSettings.current.legend
-		// 	? await convertSvgToPng(legendTarget.firstChild as SVGElement, {
-		// 			left: 0,
-		// 			top: 0,
-		// 			width: (1000 * imageWidth) / imageHeight,
-		// 			height: 1000,
-		// 			outputWidth: imageWidth,
-		// 			outputHeight: imageHeight,
-		// 		}).then(convertBlobToDataUrl)
-		// 	: undefined;
-		// const buffer = await convertSvgToPng(
-		// 	solarSystemMap ? (solarSystemMapTarget.firstChild as SVGElement) : galaxyMapSvg,
-		// 	{
-		// 		left: mapLeft,
-		// 		top: mapTop,
-		// 		width: mapWidth,
-		// 		height: mapHeight,
-		// 		outputWidth: imageWidth,
-		// 		outputHeight: imageHeight,
-		// 		backgroundImageUrl,
-		// 		foregroundImageUrl: openedSystem ? undefined : legendImageUrl,
-		// 		backgroundColor: getBackgroundColor(colors, mapSettings.current),
-		// 	},
-		// ).then((blob) => blob.arrayBuffer());
-		// const savePath = await dialog.save({
-		// 	defaultPath: await path.join(await path.pictureDir(), 'map.png'),
-		// 	filters: [{ extensions: ['png'], name: 'Image' }],
-		// });
-		// if (savePath != null) {
-		// 	await fs.writeFile(savePath, new Uint8Array(buffer)).then(() => {
-		// 		toastStore.trigger({
-		// 			background: 'variant-filled-success',
-		// 			message: $t('notification.export_success'),
-		// 			timeout: 10000,
-		// 			action: {
-		// 				label: `
-		// 					<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-		// 						<path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 00-1.883 2.542l.857 6a2.25 2.25 0 002.227 1.932H19.05a2.25 2.25 0 002.227-1.932l.857-6a2.25 2.25 0 00-1.883-2.542m-16.5 0V6A2.25 2.25 0 016 3.75h3.879a1.5 1.5 0 011.06.44l2.122 2.12a1.5 1.5 0 001.06.44H18A2.25 2.25 0 0120.25 9v.776" />
-		// 					</svg>
-		// 				`,
-		// 				response: () => stellarMapsApi.revealFile(savePath),
-		// 			},
-		// 		});
-		// 	});
-		// 	return;
-		// } else {
-		// 	return;
-		// }
+		const backgroundImageUrl =
+			openedSystem != null || !hasBackgroundImage(mapSettings.current)
+				? undefined
+				: await renderStarScape(
+						gameState,
+						mapSettings.current,
+						colors,
+						{
+							left: mapLeft,
+							top: mapTop,
+							width: mapWidth,
+							height: mapHeight,
+						},
+						{
+							width: imageWidth,
+							height: imageHeight,
+						},
+					);
+		const legendSvg = hiddenLegendContainer.querySelector('svg');
+		const legendImageUrl = legendSvg
+			? await convertSvgToPng(legendSvg, {
+					left: 0,
+					top: 0,
+					width: (1000 * imageWidth) / imageHeight,
+					height: 1000,
+					outputWidth: imageWidth,
+					outputHeight: imageHeight,
+				}).then(convertBlobToDataUrl)
+			: undefined;
+		const buffer = await convertSvgToPng(openedSystem ? hiddenSystemMapSvg : hiddenGalaxyMapSvg, {
+			left: mapLeft,
+			top: mapTop,
+			width: mapWidth,
+			height: mapHeight,
+			outputWidth: imageWidth,
+			outputHeight: imageHeight,
+			backgroundImageUrl,
+			foregroundImageUrl: openedSystem ? undefined : legendImageUrl,
+			backgroundColor: getBackgroundColor(colors, mapSettings.current),
+		}).then((blob) => blob.arrayBuffer());
+		const savePath = await dialog.save({
+			defaultPath: await path.join(await path.pictureDir(), 'map.png'),
+			filters: [{ extensions: ['png'], name: 'Image' }],
+		});
+		if (savePath != null) {
+			await fs.writeFile(savePath, new Uint8Array(buffer)).then(() => {
+				toastStore.trigger({
+					background: 'variant-filled-success',
+					message: $t('notification.export_success'),
+					timeout: 10000,
+					action: {
+						label: `
+							<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+								<path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 00-1.883 2.542l.857 6a2.25 2.25 0 002.227 1.932H19.05a2.25 2.25 0 002.227-1.932l.857-6a2.25 2.25 0 00-1.883-2.542m-16.5 0V6A2.25 2.25 0 016 3.75h3.879a1.5 1.5 0 011.06.44l2.122 2.12a1.5 1.5 0 001.06.44H18A2.25 2.25 0 0120.25 9v.776" />
+							</svg>
+						`,
+						response: () => stellarMapsApi.revealFile(savePath),
+					},
+				});
+			});
+			return;
+		} else {
+			return;
+		}
 	}
 
 	async function exportSvg() {
-		alert('TODO');
-		// TODO!
-		// const svgToExport = openedSystem
-		// 	? (solarSystemMapTarget.firstChild as SVGElement)
-		// 	: galaxyMapSvg;
-		// svgToExport.setAttribute('width', imageWidth.toString());
-		// svgToExport.setAttribute('height', imageHeight.toString());
-		// svgToExport.setAttribute('viewBox', `${mapLeft} ${mapTop} ${mapWidth} ${mapHeight}`);
-		// const bgImage = document.createElementNS('http://www.w3.org/2000/svg', 'image');
-		// if (!openedSystem && hasBackgroundImage(mapSettings.current)) {
-		// 	bgImage.setAttribute('x', mapLeft.toString());
-		// 	bgImage.setAttribute('y', mapTop.toString());
-		// 	bgImage.setAttribute('width', mapWidth.toString());
-		// 	bgImage.setAttribute('height', mapHeight.toString());
-		// 	bgImage.setAttribute(
-		// 		'xlink:href',
-		// 		await processStarScape(
-		// 			gameState,
-		// 			mapSettings.current,
-		// 			colors,
-		// 			{
-		// 				left: mapLeft,
-		// 				top: mapTop,
-		// 				width: mapWidth,
-		// 				height: mapHeight,
-		// 			},
-		// 			{
-		// 				width: imageWidth,
-		// 				height: imageHeight,
-		// 			},
-		// 		),
-		// 	);
-		// 	svgToExport.prepend(bgImage);
-		// }
-		// const bgRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-		// bgRect.setAttribute('class', 'bg-rect');
-		// bgRect.setAttribute('x', mapLeft.toString());
-		// bgRect.setAttribute('y', mapTop.toString());
-		// bgRect.setAttribute('width', mapWidth.toString());
-		// bgRect.setAttribute('height', mapHeight.toString());
-		// bgRect.setAttribute('fill', getBackgroundColor(colors, mapSettings.current));
-		// svgToExport.prepend(bgRect);
-		// const legendContainer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-		// legendContainer.setAttribute('transform', `translate(${mapLeft} ${mapTop}) scale(${scale})`);
-		// legendContainer.innerHTML = openedSystem ? '' : legendTarget.innerHTML;
-		// svgToExport.append(legendContainer);
-		// const svgString = svgToExport.outerHTML;
-		// if (!openedSystem && hasBackgroundImage(mapSettings.current)) svgToExport.removeChild(bgImage);
-		// svgToExport.removeChild(bgRect);
-		// svgToExport.removeChild(legendContainer);
-		// const savePath = await dialog.save({
-		// 	defaultPath: await path.join(await path.pictureDir(), 'map.svg').catch(() => ''),
-		// 	filters: [{ extensions: ['svg'], name: 'Image' }],
-		// });
-		// if (savePath != null) {
-		// 	await fs.writeTextFile(savePath, svgString).then(() => {
-		// 		toastStore.trigger({
-		// 			background: 'variant-filled-success',
-		// 			message: $t('notification.export_success'),
-		// 			timeout: 10000,
-		// 			action: {
-		// 				label: `
-		// 					<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-		// 						<path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 00-1.883 2.542l.857 6a2.25 2.25 0 002.227 1.932H19.05a2.25 2.25 0 002.227-1.932l.857-6a2.25 2.25 0 00-1.883-2.542m-16.5 0V6A2.25 2.25 0 016 3.75h3.879a1.5 1.5 0 011.06.44l2.122 2.12a1.5 1.5 0 001.06.44H18A2.25 2.25 0 0120.25 9v.776" />
-		// 					</svg>
-		// 				`,
-		// 				response: () => stellarMapsApi.revealFile(savePath),
-		// 			},
-		// 		});
-		// 	});
-		// 	return;
-		// } else {
-		// 	return;
-		// }
+		const svgToExport = openedSystem ? hiddenSystemMapSvg : hiddenGalaxyMapSvg;
+		svgToExport.setAttribute('width', imageWidth.toString());
+		svgToExport.setAttribute('height', imageHeight.toString());
+		svgToExport.setAttribute('viewBox', `${mapLeft} ${mapTop} ${mapWidth} ${mapHeight}`);
+		const bgImage = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+		if (!openedSystem && hasBackgroundImage(mapSettings.current)) {
+			bgImage.setAttribute('x', mapLeft.toString());
+			bgImage.setAttribute('y', mapTop.toString());
+			bgImage.setAttribute('width', mapWidth.toString());
+			bgImage.setAttribute('height', mapHeight.toString());
+			bgImage.setAttribute(
+				'xlink:href',
+				await renderStarScape(
+					gameState,
+					mapSettings.current,
+					colors,
+					{
+						left: mapLeft,
+						top: mapTop,
+						width: mapWidth,
+						height: mapHeight,
+					},
+					{
+						width: imageWidth,
+						height: imageHeight,
+					},
+				),
+			);
+			svgToExport.prepend(bgImage);
+		}
+		const bgRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+		bgRect.setAttribute('class', 'bg-rect');
+		bgRect.setAttribute('x', mapLeft.toString());
+		bgRect.setAttribute('y', mapTop.toString());
+		bgRect.setAttribute('width', mapWidth.toString());
+		bgRect.setAttribute('height', mapHeight.toString());
+		bgRect.setAttribute('fill', getBackgroundColor(colors, mapSettings.current));
+		svgToExport.prepend(bgRect);
+		const legendContainer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+		legendContainer.setAttribute('transform', `translate(${mapLeft} ${mapTop}) scale(${scale})`);
+		legendContainer.innerHTML = openedSystem ? '' : hiddenLegendContainer.innerHTML;
+		svgToExport.append(legendContainer);
+		const svgString = svgToExport.outerHTML;
+		if (!openedSystem && hasBackgroundImage(mapSettings.current)) svgToExport.removeChild(bgImage);
+		svgToExport.removeChild(bgRect);
+		svgToExport.removeChild(legendContainer);
+		const savePath = await dialog.save({
+			defaultPath: await path.join(await path.pictureDir(), 'map.svg').catch(() => ''),
+			filters: [{ extensions: ['svg'], name: 'Image' }],
+		});
+		if (savePath != null) {
+			await fs.writeTextFile(savePath, svgString).then(() => {
+				toastStore.trigger({
+					background: 'variant-filled-success',
+					message: $t('notification.export_success'),
+					timeout: 10000,
+					action: {
+						label: `
+							<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+								<path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 00-1.883 2.542l.857 6a2.25 2.25 0 002.227 1.932H19.05a2.25 2.25 0 002.227-1.932l.857-6a2.25 2.25 0 00-1.883-2.542m-16.5 0V6A2.25 2.25 0 016 3.75h3.879a1.5 1.5 0 011.06.44l2.122 2.12a1.5 1.5 0 001.06.44H18A2.25 2.25 0 0120.25 9v.776" />
+							</svg>
+						`,
+						response: () => stellarMapsApi.revealFile(savePath),
+					},
+				});
+			});
+			return;
+		} else {
+			return;
+		}
 	}
 
 	let processing = $state(false);
@@ -299,11 +276,12 @@
 </script>
 
 <div
-	class="bg-surface-100-800-token modal block h-auto w-[60rem] space-y-4 overflow-y-auto p-4 shadow-xl rounded-container-token"
+	class="bg-surface-100-800-token modal block h-auto w-[60rem] overflow-y-auto p-4 shadow-xl rounded-container-token"
 	role="dialog"
 	aria-modal="true"
 >
 	<form
+		class="space-y-4"
 		onsubmit={(e) => {
 			e.preventDefault();
 			onSubmit(exportPng);
@@ -531,4 +509,36 @@
 			</button>
 		</footer>
 	</form>
+</div>
+
+<!-- These are displayed, but are used for converting SVG to PNG -->
+<div class="hidden">
+	<svg
+		bind:this={hiddenGalaxyMapSvg}
+		xmlns="http://www.w3.org/2000/svg"
+		xmlns:xlink="http://www.w3.org/1999/xlink"
+	>
+		{#if !openedSystem}
+			<Map data={mapData} {colors} />
+		{/if}
+	</svg>
+	<svg
+		bind:this={hiddenSystemMapSvg}
+		xmlns="http://www.w3.org/2000/svg"
+		xmlns:xlink="http://www.w3.org/1999/xlink"
+	>
+		{#if openedSystem}
+			<SolarSystemMap
+				id="exportSystemMap"
+				{colors}
+				{mapData}
+				{gameState}
+				system={openedSystem}
+				exportMode
+			/>
+		{/if}
+	</svg>
+	<div bind:this={hiddenLegendContainer}>
+		<Legend {colors} data={mapData} />
+	</div>
 </div>
