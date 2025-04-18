@@ -117,6 +117,7 @@
 	let starScapeDataUrl = $state('');
 	let unzoomedStarScapeDataUrl = $state('');
 
+	let hiddenMapSvg: SVGSVGElement;
 	let container: HTMLDivElement | undefined = $state();
 	let outputWidth = $state(0);
 	let outputHeight = $state(0);
@@ -203,14 +204,18 @@
 		let left = -width / 2;
 		let top = -height / 2;
 
-		const mapSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
 		let newPngDataUrlPromise = onlyRenderZoomed
 			? Promise.resolve(pngDataUrl)
 			: dataOrNull == null || colorsOrNull == null
 				? Promise.resolve(pngDataUrl)
-				: convertSvgToPng(mapSvg, { left, top, width, height, outputWidth, outputHeight }).then(
-						convertBlobToDataUrl,
-					);
+				: convertSvgToPng(hiddenMapSvg, {
+						left,
+						top,
+						width,
+						height,
+						outputWidth,
+						outputHeight,
+					}).then(convertBlobToDataUrl);
 		if (!onlyRenderZoomed) {
 			pngDataUrlPromise = newPngDataUrlPromise;
 		}
@@ -222,7 +227,7 @@
 		height /= transform?.k ?? 1;
 		let newRenderedTransform = transform;
 		const newZoomedPngDataUrlPromise = transform
-			? convertSvgToPng(mapSvg, { left, top, width, height, outputWidth, outputHeight }).then(
+			? convertSvgToPng(hiddenMapSvg, { left, top, width, height, outputWidth, outputHeight }).then(
 					convertBlobToDataUrl,
 				)
 			: Promise.resolve('');
@@ -507,9 +512,6 @@
 						href={unzoomedStarScapeDataUrl}
 					/>
 				{/if}
-				<g transform="translate({outputWidth / 2} {outputHeight / 2})">
-					<Map data={dataOrNull} colors={colorsOrNull} />
-				</g>
 			</g>
 			<g transform={transform?.toString()}>
 				{#if pngDataUrl}
@@ -573,4 +575,14 @@
 			{/if}
 		</svg>
 	{/if}
+</div>
+
+<div class="hidden">
+	<svg
+		bind:this={hiddenMapSvg}
+		xmlns="http://www.w3.org/2000/svg"
+		xmlns:xlink="http://www.w3.org/1999/xlink"
+	>
+		<Map data={dataOrNull} colors={colorsOrNull} onChange={renderMap} />
+	</svg>
 </div>

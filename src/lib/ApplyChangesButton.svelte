@@ -14,10 +14,13 @@
 	let valid = $derived(
 		mapSettingsConfig
 			.flatMap((category) => category.settings)
-			.every(
-				(config) =>
-					validateSetting(editedMapSettings.current[config.id], asUnknownSettingConfig(config))[0],
-			),
+			.every((config) => {
+				const [valid] = validateSetting(
+					editedMapSettings.current[config.id],
+					asUnknownSettingConfig(config),
+				);
+				return valid;
+			}),
 	);
 </script>
 

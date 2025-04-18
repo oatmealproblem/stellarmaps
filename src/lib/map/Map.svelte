@@ -1,4 +1,8 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
+
+	import { debounce } from '$lib/utils';
+
 	import debug from '../debug';
 	import { mapSettings } from '../settings';
 	import BypassLinks from './BypassLinks.svelte';
@@ -16,11 +20,28 @@
 	interface Props {
 		data: null | MapData;
 		colors: null | Record<string, string>;
+		onChange?: () => void;
 	}
-	let { data, colors }: Props = $props();
+	let { data, colors, onChange }: Props = $props();
+
+	let debouncedOnChange = $derived(onChange ? debounce(onChange, 100) : undefined);
+
+	onMount(() => {
+		const mutationObserver = new MutationObserver(() => {
+			debouncedOnChange?.();
+		});
+		const options = { attributes: true, characterData: true, childList: true, subtree: true };
+		mutationObserver.observe(defs, options);
+		mutationObserver.observe(g, options);
+
+		return () => mutationObserver.disconnect();
+	});
+
+	let defs: SVGDefsElement;
+	let g: SVGGElement;
 </script>
 
-<defs>
+<defs bind:this={defs}>
 	{#if data}
 		{#each data.borders.filter((border) => border.isKnown || !mapSettings.current.terraIncognita) as border}
 			<clipPath id="border-{border.countryId}-inner-clip-path">
@@ -59,7 +80,7 @@
 	{/if}
 	<Icons />
 </defs>
-<g>
+<g bind:this={g}>
 	{#if data && colors}
 		<CountryBorders {data} {colors} />
 		<Hyperlanes {data} {colors} />
