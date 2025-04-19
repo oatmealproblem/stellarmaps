@@ -518,7 +518,7 @@
 	</form>
 </div>
 
-<!-- These are displayed, but are used for converting SVG to PNG -->
+<!-- These aren't displayed, but are used for converting SVG to PNG -->
 <div class="hidden">
 	<svg
 		bind:this={hiddenGalaxyMapSvg}
