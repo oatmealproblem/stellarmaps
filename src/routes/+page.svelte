@@ -27,7 +27,7 @@
 	const modalStore = getModalStore();
 </script>
 
-<Toast position="t" background="variant-filled-error" class="!z-[1000]" />
+<Toast position="t" background="variant-filled-error" class="z-1000!" />
 <Modal components={{ export: { ref: ExportModal }, settings: { ref: AppSettingsModal } }} />
 <AppShell slotPageContent="h-full" regionPage="h-full">
 	{#snippet header()}

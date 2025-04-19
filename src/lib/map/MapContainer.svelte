@@ -452,7 +452,7 @@
 	{:else}
 		{#await Promise.all([pngDataUrlPromise, allAsyncDataPromise])}
 			<div
-				class="absolute left-0 top-0 flex h-full w-full items-center backdrop-blur backdrop-brightness-75"
+				class="absolute left-0 top-0 flex h-full w-full items-center backdrop-blur-sm backdrop-brightness-75"
 			>
 				<div class="h1 w-full text-center" style="lineHeight: 100%;">
 					{t('map.loading')}

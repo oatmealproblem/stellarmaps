@@ -107,7 +107,7 @@
 									</label>
 									<button
 										type="button"
-										class="text-secondary-500-400-token ms-1 [&>*]:pointer-events-none"
+										class="text-secondary-500-400-token ms-1 *:pointer-events-none"
 										use:popup={{
 											event: 'hover',
 											target: `${config.id}-dash-pattern-tooltip`,

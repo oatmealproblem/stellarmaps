@@ -405,7 +405,7 @@
 			</div>
 		</div>
 
-		<div class="flex-shrink flex-grow overflow-y-auto">
+		<div class="shrink grow overflow-y-auto">
 			<Accordion spacing="space-y-2">
 				{#each mapSettingsConfig.slice(1) as settingGroup (settingGroup.id)}
 					<AccordionItem regionPanel="space-y-6">

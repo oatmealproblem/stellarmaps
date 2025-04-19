@@ -90,7 +90,7 @@
 
 <div
 	data-popup="map-tooltip"
-	class="pointer-events-none rounded border border-surface-500 bg-surface-600 px-2 py-1 shadow-sm"
+	class="pointer-events-none rounded-sm border border-surface-500 bg-surface-600 px-2 py-1 shadow-xs"
 	bind:this={popupEl}
 >
 	<div class="arrow bg-surface-600" bind:this={arrowEl}></div>

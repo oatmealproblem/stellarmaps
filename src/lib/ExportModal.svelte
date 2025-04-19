@@ -328,7 +328,7 @@
 							}
 						}}
 					/>
-					<div class="input-group-shim !justify-center !px-0">px</div>
+					<div class="input-group-shim justify-center! px-0!">px</div>
 					<div class="input-group-shim">×</div>
 					<input
 						type="number"
@@ -345,7 +345,7 @@
 							}
 						}}
 					/>
-					<div class="input-group-shim !justify-center !px-0">px</div>
+					<div class="input-group-shim justify-center! px-0!">px</div>
 				</div>
 				<p class="mb-1 mt-3">{t('export.zoom')}</p>
 				<RangeSlider
@@ -374,7 +374,7 @@
 					/>
 					<button
 						disabled={processing}
-						class="variant-filled-secondary !justify-center"
+						class="variant-filled-secondary justify-center!"
 						onclick={() => {
 							exportSettings.current.invertCenterX = !invertCenterX;
 						}}
@@ -395,7 +395,7 @@
 					/>
 					<button
 						disabled={processing}
-						class="variant-filled-secondary !justify-center"
+						class="variant-filled-secondary justify-center!"
 						onclick={() => {
 							exportSettings.current.invertCenterY = !invertCenterY;
 						}}
