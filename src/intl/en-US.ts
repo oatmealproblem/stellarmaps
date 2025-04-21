@@ -67,6 +67,7 @@ export default {
 		failed_to_load_save_file: 'Failed to load {filePath}',
 		export_success: 'Export Successful',
 		export_failed: 'Export Failed',
+		open_folder_button: 'Open',
 		failed_to_load_stellaris_data: {
 			title: 'Failed to load Stellaris data',
 			description:

@@ -1,9 +1,11 @@
 <script lang="ts">
-	import { getModalStore, getToastStore } from '@skeletonlabs/skeleton';
+	import { Modal } from '@skeletonlabs/skeleton-svelte';
 	import * as dialog from '@tauri-apps/plugin-dialog';
 	import { select } from 'd3-selection';
 	import { zoom, zoomIdentity, ZoomTransform } from 'd3-zoom';
 	import { fade } from 'svelte/transition';
+
+	import ExportModal from '$lib/ExportModal.svelte';
 
 	import { t } from '../../intl';
 	import resizeObserver from '../actions/resizeObserver';
@@ -34,8 +36,6 @@
 	import SolarSystemMap from './solarSystemMap/SolarSystemMap.svelte';
 	import renderStarScape from './starScape/renderStarScape';
 
-	const modalStore = getModalStore();
-
 	let mapDataPromise = $derived.by(() => {
 		if (gameStatePromise.current) {
 			const settings = lastProcessedMapSettings.current;
@@ -47,17 +47,15 @@
 	});
 
 	loadStellarisData();
-	const toastStore = getToastStore();
 	$effect(() => {
 		stellarisDataPromise.current.catch(
 			toastError({
 				title: t('notification.failed_to_load_stellaris_data.title'),
 				description: t('notification.failed_to_load_stellaris_data.description'),
 				defaultValue: {} as Record<string, string>,
-				toastStore,
 				action: {
 					label: t('notification.failed_to_load_stellaris_data.action'),
-					response: () =>
+					onClick: () =>
 						dialog
 							.open({
 								directory: true,
@@ -75,21 +73,6 @@
 		);
 	});
 	let colorsPromise = $derived(stellarisDataPromise.current.then(({ colors }) => colors));
-
-	async function openExportModal() {
-		Promise.all([stellarisDataPromise.current, mapDataPromise]).then(([{ colors }, mapData]) => {
-			modalStore.trigger({
-				type: 'component',
-				component: 'export',
-				meta: {
-					colors,
-					mapData,
-					gameState: gameStateOrNull,
-					openedSystem,
-				},
-			});
-		});
-	}
 
 	let allAsyncDataPromise = $derived(
 		Promise.all([colorsPromise, gameStatePromise.current, mapDataPromise]),
@@ -397,6 +380,8 @@
 			openedSystem = tooltip?.system;
 		}
 	}
+
+	let exportOpen = $state(false);
 </script>
 
 <div
@@ -406,29 +391,50 @@
 	use:resizeObserver={resizeCallback}
 >
 	{#if dataOrNull && colorsOrNull && openedSystem == null}
-		<div class="absolute left-3 top-3">
+		<div class="absolute top-3 left-3">
 			<Legend data={dataOrNull} colors={colorsOrNull}></Legend>
 		</div>
 	{/if}
-	<div class="absolute right-3 top-3 flex gap-3">
+	<div class="absolute top-3 right-3 flex gap-3">
 		{#if transform != null && !openedSystem}
-			<button type="button" class="variant-filled btn-icon" transition:fade onclick={resetZoom}>
+			<button type="button" class="preset-filled btn-icon" transition:fade onclick={resetZoom}>
 				<HeroiconArrowsPointingOut />
 			</button>
 		{/if}
 		{#if openedSystem}
-			<button type="button" class="variant-filled btn" onclick={closeSystemMap}>
+			<button type="button" class="preset-filled btn" onclick={closeSystemMap}>
 				{t('generic.back_button')}
 			</button>
 		{/if}
 		{#if dataOrNull}
-			<button type="button" class="variant-filled btn" transition:fade onclick={openExportModal}>
-				{t('export.button')}
-			</button>
+			<Modal
+				triggerBase="preset-filled btn"
+				open={exportOpen}
+				onOpenChange={(details) => {
+					exportOpen = details.open;
+				}}
+			>
+				{#snippet trigger()}
+					{t('export.button')}
+				{/snippet}
+				{#snippet content()}
+					{#if gameStateOrNull != null && colorsOrNull != null && dataOrNull != null}
+						<ExportModal
+							gameState={gameStateOrNull}
+							colors={colorsOrNull}
+							mapData={dataOrNull}
+							{openedSystem}
+							close={() => {
+								exportOpen = false;
+							}}
+						/>
+					{/if}
+				{/snippet}
+			</Modal>
 		{/if}
 	</div>
 	{#if tooltip != null && openedSystem == null && !tooltip.hidden && !zooming && !resizing}
-		<div class="pointer-events-none absolute left-0 top-0 h-full w-full overflow-hidden">
+		<div class="pointer-events-none absolute top-0 left-0 h-full w-full overflow-hidden">
 			<MapTooltip
 				x={tooltip.x}
 				y={tooltip.y}
@@ -452,15 +458,15 @@
 	{:else}
 		{#await Promise.all([pngDataUrlPromise, allAsyncDataPromise])}
 			<div
-				class="absolute left-0 top-0 flex h-full w-full items-center backdrop-blur-sm backdrop-brightness-75"
+				class="absolute top-0 left-0 flex h-full w-full items-center backdrop-blur-sm backdrop-brightness-75"
 			>
 				<div class="h1 w-full text-center" style="lineHeight: 100%;">
 					{t('map.loading')}
 				</div>
 			</div>
 		{:catch reason}
-			<div class="absolute left-0 top-0 flex h-full w-full items-center bg-error-800">
-				<div class="h1 w-full text-center text-error-200">
+			<div class="bg-error-800 absolute top-0 left-0 flex h-full w-full items-center">
+				<div class="h1 text-error-200 w-full text-center">
 					{t('map.error')}
 					<br />
 					<code class="mt-3 inline-block max-w-96 text-sm">

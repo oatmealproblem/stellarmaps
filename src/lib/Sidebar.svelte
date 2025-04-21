@@ -1,14 +1,7 @@
 <script lang="ts">
-	import {
-		Accordion,
-		AccordionItem,
-		getModalStore,
-		getToastStore,
-		ListBox,
-		ListBoxItem,
-		popup,
-	} from '@skeletonlabs/skeleton';
+	import { Accordion } from '@skeletonlabs/skeleton-svelte';
 	import * as dialog from '@tauri-apps/plugin-dialog';
+	import { Menu } from 'spare-bones';
 	import { z } from 'zod';
 
 	import { t } from '../intl';
@@ -36,21 +29,11 @@
 	import { PersistedRawState } from './stateUtils.svelte';
 	import type { StellarisSaveMetadata } from './stellarMapsApi';
 	import stellarMapsApi from './stellarMapsApi';
+	import { toaster } from './Toaster.svelte';
 	import { saveToWindow, timeIt, timeItAsync, toastError, wait } from './utils';
-
-	const modalStore = getModalStore();
-	const toastStore = getToastStore();
 
 	let selectedSaveGroup: [StellarisSaveMetadata, ...StellarisSaveMetadata[]] | null = $state(null);
 	let selectedSave: StellarisSaveMetadata | null = $state(null);
-	// $effect(() => {
-	// 	if (
-	// 		selectedSaveGroup != null &&
-	// 		(selectedSave == null || !selectedSaveGroup.includes(selectedSave))
-	// 	) {
-	// 		selectedSave = selectedSaveGroup[0];
-	// 	}
-	// });
 	let loadedSave: StellarisSaveMetadata | null = $state(null);
 
 	function loadSaves() {
@@ -58,7 +41,6 @@
 			toastError({
 				title: t('notification.failed_to_load_save_list'),
 				defaultValue: [] as StellarisSaveMetadata[][],
-				toastStore,
 			}),
 		);
 	}
@@ -158,7 +140,6 @@
 			toastError({
 				title: t('notification.failed_to_load_save_file', { filePath: path }),
 				defaultValue: null,
-				toastStore,
 			}),
 		);
 	}
@@ -182,14 +163,10 @@
 				excludeGroups: ['mapMode'],
 			})
 		) {
-			confirmed = await new Promise<boolean>((resolve) => {
-				modalStore.trigger({
-					type: 'confirm',
-					title: t('generic.confirmation'),
-					body: t('confirmation.unsaved_setting_profile'),
-					response: resolve,
-				});
-			});
+			confirmed = await dialog.confirm(
+				t('confirmation.unsaved_setting_profile'),
+				t('generic.confirmation'),
+			);
 		}
 		if (confirmed) {
 			loadedSettingsKey.current = `${type}|${savedSettings.name}`;
@@ -216,33 +193,30 @@
 		schema: z.array(zSavedMapSettings).catch([]),
 	});
 	function saveSettings() {
-		modalStore.trigger({
-			type: 'prompt',
-			title: t('prompt.enter_settings_profile_name'),
-			value: loadedSettingsKey.current.substring(loadedSettingsKey.current.indexOf('|') + 1),
-			response: (response) => {
-				if (typeof response === 'string') {
-					customSavedSettings.current = customSavedSettings.current
-						.filter((saved) => saved.name !== response)
-						.concat([
-							{
-								name: response,
-								settings: mapSettings.current,
-							},
-						])
-						.sort((a, b) => a.name.toLocaleLowerCase().localeCompare(b.name.toLocaleLowerCase()));
-					loadedSettingsKey.current = `CUSTOM|${response}`;
-					toastStore.trigger({
-						message: t('notification.settings_profile_saved', { name: response }),
-						background: 'variant-filled-success',
-					});
-				}
-			},
-		});
+		// TODO use a custom prompt instead of blocking builtin prompt()
+		const response = prompt(t('prompt.enter_settings_profile_name'));
+		if (typeof response === 'string') {
+			customSavedSettings.current = customSavedSettings.current
+				.filter((saved) => saved.name !== response)
+				.concat([
+					{
+						name: response,
+						settings: mapSettings.current,
+					},
+				])
+				.sort((a, b) => a.name.toLocaleLowerCase().localeCompare(b.name.toLocaleLowerCase()));
+			loadedSettingsKey.current = `CUSTOM|${response}`;
+			toaster.addToast({
+				data: {
+					kind: 'success',
+					title: t('notification.settings_profile_saved', { name: response }),
+				},
+			});
+		}
 	}
 </script>
 
-<div id="sidebar-left" class="flex h-full w-96 flex-col">
+<div id="sidebar-left" class="flex h-full w-128 flex-col">
 	<form
 		class="p-4"
 		onsubmit={(e) => {
@@ -255,11 +229,11 @@
 	>
 		<div class="flex">
 			<h2 class="label flex-1">{t('side_bar.save_game')}</h2>
-			<button type="button" class="text-sm text-surface-300" onclick={manuallySelectSave}>
+			<button type="button" class="text-surface-300 text-sm" onclick={manuallySelectSave}>
 				{t('side_bar.select_manually_button')}
 			</button>
-			<span class="px-2 text-surface-600">|</span>
-			<button type="button" class="text-sm text-surface-300" onclick={refreshSaves}>
+			<span class="text-surface-600 px-2">|</span>
+			<button type="button" class="text-surface-300 text-sm" onclick={refreshSaves}>
 				{t('side_bar.refresh_saves_button')}
 			</button>
 		</div>
@@ -296,17 +270,17 @@
 		</select>
 		<button
 			type="submit"
-			class="variant-filled-primary btn w-full"
+			class="preset-filled-primary-500 btn w-full"
 			disabled={selectedSave == null}
-			class:variant-filled-primary={selectedSave != null && selectedSave !== loadedSave}
-			class:variant-filled-surface={selectedSave == null || selectedSave === loadedSave}
+			class:preset-filled-primary-500={selectedSave != null && selectedSave !== loadedSave}
+			class:preset-filled-surface-500={selectedSave == null || selectedSave === loadedSave}
 		>
 			{t('side_bar.load_save_button')}
 		</button>
 	</form>
 
 	<form
-		class="flex flex grow flex-col overflow-y-auto"
+		class="flex grow flex-col overflow-y-auto"
 		onsubmit={(e) => {
 			e.preventDefault();
 			applyMapSettings();
@@ -325,107 +299,89 @@
 
 		<div class="flex items-baseline p-4 pb-1" style="transition-duration: 50ms;">
 			<h2 class="h3 flex-1">{t('side_bar.map_settings')}</h2>
-			<button type="button" class="mx-2 text-primary-500" onclick={saveSettings}>
+			<button type="button" class="text-primary-500 mx-2" onclick={saveSettings}>
 				{t('side_bar.save_settings_button')}
 			</button>
-			<button
-				type="button"
-				class="text-primary-500"
-				use:popup={{
-					event: 'focus-click',
-					target: 'popupCombobox',
-					placement: 'bottom',
-					closeQuery: '.listbox-item',
+			<Menu
+				onSelect={(details) => {
+					const [type, name] = details.value.split('|');
+					const settings =
+						type === 'CUSTOM'
+							? customSavedSettings.current.find((s) => s.name === name)
+							: presetMapSettings.find((s) => s.name === name);
+					if ((type === 'CUSTOM' || type === 'PRESET') && settings) {
+						loadSettings(type, settings);
+					} else {
+						console.error('invalid settings option', details.value);
+					}
 				}}
+				triggerBase="text-primary-500 flex"
+				itemClasses="w-full flex justify-between"
 			>
-				{t('side_bar.load_settings_button')}
-			</button>
-			<div class="card z-10 w-64 py-2 shadow-xl" data-popup="popupCombobox">
-				<ListBox rounded="rounded-none" active="variant-filled-primary">
-					{#if customSavedSettings.current.length > 0}
-						<div class="px-4 pt-2 text-secondary-300" style="font-variant-caps: small-caps;">
-							{t('side_bar.custom_setting_profiles')}
-						</div>
-						{#each customSavedSettings.current as saved}
-							<ListBoxItem
-								group={loadedSettingsKey.current}
-								name="loadSettings"
-								value="CUSTOM|{saved.name}"
-								on:click={(e) => {
-									e.preventDefault();
-									loadSettings('CUSTOM', saved);
+				{#snippet trigger()}{t('side_bar.load_settings_button')}{/snippet}
+				{#snippet indicator()}{/snippet}
+				{#if customSavedSettings.current.length > 0}
+					<div class="text-secondary-300 px-2 pt-2" style="font-variant-caps: small-caps;">
+						{t('side_bar.custom_setting_profiles')}
+					</div>
+					{#each customSavedSettings.current as saved}
+						<Menu.Item value="CUSTOM|{saved.name}">
+							{saved.name}
+							<button
+								type="button"
+								class="text-error-400 hover:text-error-300 focus:text-error-300"
+								onclick={() => {
+									dialog
+										.confirm(
+											t('confirmation.delete_setting_profile', { name: saved.name }),
+											t('generic.confirmation'),
+										)
+										.then((response) => {
+											if (response) {
+												customSavedSettings.current = customSavedSettings.current.filter(
+													(other) => !(other.name === saved.name),
+												);
+											}
+										});
 								}}
 							>
-								{saved.name}
-								<svelte:fragment slot="trail">
-									<button
-										type="button"
-										class="relative top-1 text-error-400 hover:text-error-300 focus:text-error-300"
-										onclick={() => {
-											modalStore.trigger({
-												type: 'confirm',
-												title: t('generic.confirmation'),
-												body: t('confirmation.delete_setting_profile', { name: saved.name }),
-												buttonTextConfirm: 'Delete',
-												response: (response) => {
-													// eslint-disable-next-line @typescript-eslint/strict-boolean-expressions -- this is a boolean, but TS thinks any
-													if (response) {
-														customSavedSettings.current = customSavedSettings.current.filter(
-															(other) => !(other.name === saved.name),
-														);
-													}
-												},
-											});
-										}}
-									>
-										<HeroiconTrashMini class="h-4 w-4" />
-									</button>
-								</svelte:fragment>
-							</ListBoxItem>
-						{/each}
-					{/if}
-					<div class="px-4 pt-2 text-secondary-300" style="font-variant-caps: small-caps;">
-						{t('side_bar.preset_setting_profiles')}
-					</div>
-					{#each presetMapSettings as preset}
-						<ListBoxItem
-							group={loadedSettingsKey.current}
-							name="loadSettings"
-							value="PRESET|{preset.name}"
-							on:click={(e) => {
-								e.preventDefault();
-								loadSettings('PRESET', preset);
-							}}
-						>
-							{preset.name}
-						</ListBoxItem>
+								<HeroiconTrashMini class="h-4 w-4" />
+							</button>
+						</Menu.Item>
 					{/each}
-				</ListBox>
-				<div class="bg-surface-100-800-token arrow"></div>
-			</div>
+				{/if}
+				<div class="text-secondary-300 px-2 pt-2" style="font-variant-caps: small-caps;">
+					{t('side_bar.preset_setting_profiles')}
+				</div>
+				{#each presetMapSettings as preset}
+					<Menu.Item value="PRESET|{preset.name}">
+						{preset.name}
+					</Menu.Item>
+				{/each}
+			</Menu>
 		</div>
 
-		<div class="shrink grow overflow-y-auto">
-			<Accordion spacing="space-y-2">
-				{#each mapSettingsConfig.slice(1) as settingGroup (settingGroup.id)}
-					<AccordionItem regionPanel="space-y-6">
-						<svelte:fragment slot="summary">
-							<h3 class="h4 font-bold">
-								{t(settingGroup.name)}
-							</h3>
-						</svelte:fragment>
-						<svelte:fragment slot="content">
-							{#each settingGroup.settings as config (config.id)}
-								<SettingControl
-									config={asUnknownSettingConfig(config)}
-									settings={editedMapSettings}
-								/>
-							{/each}
-						</svelte:fragment>
-					</AccordionItem>
-				{/each}
-			</Accordion>
-		</div>
+		<Accordion collapsible classes="grow h-0 overflow-y-auto">
+			{#each mapSettingsConfig.slice(1) as settingGroup (settingGroup.id)}
+				<Accordion.Item
+					value={settingGroup.id}
+					panelClasses="flex flex-col gap-4"
+					controlClasses="h5"
+				>
+					{#snippet control()}
+						{t(settingGroup.name)}
+					{/snippet}
+					{#snippet panel()}
+						{#each settingGroup.settings as config (config.id)}
+							<SettingControl
+								config={asUnknownSettingConfig(config)}
+								settings={editedMapSettings}
+							/>
+						{/each}
+					{/snippet}
+				</Accordion.Item>
+			{/each}
+		</Accordion>
 		<ApplyChangesButton />
 	</form>
 </div>

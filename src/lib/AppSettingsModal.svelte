@@ -1,6 +1,4 @@
 <script lang="ts">
-	import { getModalStore, getToastStore } from '@skeletonlabs/skeleton';
-
 	import {
 		getTranslatorModeExtraMessageIDs,
 		getTranslatorModeUntranslatedMessageIDs,
@@ -11,20 +9,14 @@
 	import { selectTranslatorModeFile, translatorModeFilePath } from './translatorMode';
 
 	interface Props {
-		[key: string]: any;
+		close: () => void;
 	}
 
-	let { ...props }: Props = $props();
-
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars -- this suppresses warning about unknown prop 'parent'
-	const _props = props;
-
-	const modalStore = getModalStore();
-	const toastStore = getToastStore();
+	let { close }: Props = $props();
 </script>
 
 <div
-	class="bg-surface-100-800-token modal block h-auto max-h-[90vh] w-[32rem] space-y-4 overflow-y-auto p-4 shadow-xl rounded-container-token"
+	class="bg-surface-100-900 modal rounded-container block h-auto max-h-[90vh] w-[32rem] space-y-4 overflow-y-auto p-4 shadow-xl"
 	role="dialog"
 	aria-modal="true"
 >
@@ -37,9 +29,9 @@
 			{/each}
 			{#if appSettings.current.appTranslatorMode}
 				<button
-					class="variant-ghost-primary btn -my-3"
+					class="preset-tonal-primary border-primary-500 btn -my-3 border"
 					type="button"
-					onclick={() => selectTranslatorModeFile(toastStore)}
+					onclick={() => selectTranslatorModeFile()}
 				>
 					{t('app_settings.select_translator_mode_file')}
 				</button>
@@ -51,7 +43,7 @@
 					<small>{t('app_settings.translator_mode_no_file')}</small>
 				{/if}
 				{#if translatorModeFilePath.current != null && getTranslatorModeUntranslatedMessageIDs().length > 0}
-					<strong class="block text-warning-400">
+					<strong class="text-warning-400 block">
 						{t('app_settings.translator_mode_untranslated_messages', {
 							number: getTranslatorModeUntranslatedMessageIDs().length,
 						})}
@@ -66,7 +58,7 @@
 					</ul>
 				{/if}
 				{#if getTranslatorModeExtraMessageIDs().length > 0}
-					<strong class="block text-warning-400">
+					<strong class="text-warning-400 block">
 						{t('app_settings.translator_mode_extra_messages', {
 							number: getTranslatorModeExtraMessageIDs().length,
 						})}
@@ -83,7 +75,7 @@
 			{/if}
 		</div>
 		<footer class="modal-footer flex justify-end space-x-2">
-			<button class="variant-ghost-surface btn" type="button" onclick={() => modalStore.close()}>
+			<button class="preset-tonal-surface btn" type="button" onclick={close}>
 				{t('generic.close_button')}
 			</button>
 		</footer>

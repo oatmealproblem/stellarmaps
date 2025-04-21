@@ -1,8 +1,21 @@
 @import 'tailwindcss';
+@plugin '@tailwindcss/forms';
+
+@import '@skeletonlabs/skeleton';
+@import '@skeletonlabs/skeleton/optional/presets';
+@import '@skeletonlabs/skeleton/themes/legacy';
+@source "../node_modules/@skeletonlabs/skeleton-svelte/dist";
 
 @custom-variant dark (&:is(.dark *));
 
 @font-face {
 	font-family: 'Orbitron';
 	src: url('./static/Orbitron-VariableFont_wght.ttf');
+}
+
+/* theme overrides */
+:root {
+	--default-font-family: system-ui;
+	--base-font-family: system-ui;
+	--heading-font-family: system-ui;
 }

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { popup, RangeSlider, SlideToggle } from '@skeletonlabs/skeleton';
+	import { Slider, Switch, Tooltip } from '@skeletonlabs/skeleton-svelte';
 	import { slide } from 'svelte/transition';
 
 	import { t } from '../../intl';
@@ -84,33 +84,33 @@
 		<div class="flex items-center">
 			{t(`setting.${asKnownSettingId(config.id)}`)}
 			{#if config.tooltip}
-				<button
-					type="button"
-					class="text-secondary-500-400-token ms-1 *:pointer-events-none"
-					use:popup={{ event: 'hover', target: `${config.id}-tooltip`, placement: 'top' }}
+				<Tooltip
+					arrow
+					triggerBase="ms-1 text-secondary-700-300"
+					contentBackground="preset-filled-secondary-500"
+					arrowBackground="preset-filled-secondary-500!"
+					contentBase="p-2 rounded-base"
+					openDelay={200}
+					closeDelay={200}
+					positioning={{ placement: 'top' }}
 				>
-					<HeroiconInfoMini />
-				</button>
-				<div
-					class="card variant-filled-secondary z-10 max-w-96 p-2 text-sm"
-					data-popup="{config.id}-tooltip"
-				>
-					<!-- eslint-disable-next-line svelte/no-at-html-tags -- this is safe, all tooltip text is provided by the app -->
-					{@html t(config.tooltip, richTextHandlers)}
-					<div class="variant-filled-secondary arrow"></div>
-				</div>
+					{#snippet trigger()}
+						<HeroiconInfoMini />
+					{/snippet}
+					{#snippet content()}
+						<!-- eslint-disable-next-line svelte/no-at-html-tags -- this is safe, all tooltip text is provided by the app -->
+						{@html t(config.tooltip!, richTextHandlers)}
+					{/snippet}
+				</Tooltip>
 			{/if}
 			<div class="grow"></div>
 			{#if (config.type === 'stroke' && !config.noDisable) || config.type === 'icon'}
 				<div class="relative top-1 inline-block">
-					<SlideToggle
+					<Switch
 						name={config.id}
-						bind:checked={() => value.enabled,
-						(checked) => {
-							updateValue({ ...value, enabled: checked });
-						}}
-						size="sm"
-						active="variant-filled-primary"
+						checked={value.enabled}
+						onCheckedChange={(details) => updateValue({ ...value, enabled: details.checked })}
+						controlActive="preset-filled-primary-500"
 						label="Enabled"
 					/>
 				</div>
@@ -127,9 +127,10 @@
 				step={config.step}
 			/>
 		{:else if config.type === 'range'}
-			<RangeSlider
+			<Slider
 				name={config.id}
-				bind:value={getValue, updateValue}
+				value={[getValue()]}
+				onValueChange={(details) => updateValue(details.value[0])}
 				min={config.min}
 				max={config.max}
 				step={config.step}
@@ -151,9 +152,14 @@
 			</select>
 		{:else if config.type === 'toggle'}
 			<div>
-				<SlideToggle name={config.id} bind:checked={getValue, updateValue} active="bg-primary-500">
+				<Switch
+					name={config.id}
+					checked={getValue()}
+					onCheckedChange={(details) => updateValue(details.checked)}
+					controlActive="bg-primary-500"
+				>
 					{value === true ? t('generic.enabled') : t('generic.disabled')}
-				</SlideToggle>
+				</Switch>
 			</div>
 		{:else if config.type === 'color'}
 			<ColorSettingControl bind:value={getValue, updateValue} {config} />

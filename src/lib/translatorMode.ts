@@ -1,4 +1,3 @@
-import type { ToastStore } from '@skeletonlabs/skeleton';
 import { path } from '@tauri-apps/api';
 import type { UnlistenFn } from '@tauri-apps/api/event';
 import * as dialog from '@tauri-apps/plugin-dialog';
@@ -14,7 +13,7 @@ let enabled = false;
 
 export const translatorModeFilePath = new RawStateWrapper<string | null>(null);
 let unwatch: null | UnlistenFn = null;
-export async function selectTranslatorModeFile(toastStore: ToastStore) {
+export async function selectTranslatorModeFile() {
 	const filePath = await dialog.open({
 		directory: false,
 		multiple: false,
@@ -90,7 +89,6 @@ export async function selectTranslatorModeFile(toastStore: ToastStore) {
 				} catch (error) {
 					console.error(error);
 					toastError({
-						toastStore,
 						title: 'Failed to parse translation file',
 						defaultValue: null,
 					})(error);

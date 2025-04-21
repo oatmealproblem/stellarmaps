@@ -9,7 +9,7 @@
 		.then((data) => data[0].name);
 </script>
 
-<span class="px-1 text-surface-300">(v{VERSION})</span>
+<span class="text-surface-300 px-1">(v{VERSION})</span>
 {#await latestReleasePromise then latestRelease}
 	{#if !latestRelease.endsWith(VERSION)}
 		<a

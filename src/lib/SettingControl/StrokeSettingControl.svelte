@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Accordion, AccordionItem, popup } from '@skeletonlabs/skeleton';
+	import { Accordion, Tooltip } from '@skeletonlabs/skeleton-svelte';
 	import { fade } from 'svelte/transition';
 
 	import { t } from '../../intl';
@@ -15,9 +15,9 @@
 </script>
 
 {#if !value.enabled}
-	<div class="rounded-lg bg-surface-800 p-2 text-surface-300">{t('generic.disabled')}</div>
+	<div class="bg-surface-800 text-surface-300 rounded-lg p-2">{t('generic.disabled')}</div>
 {:else}
-	<div class="rounded-lg bg-surface-800">
+	<div class="bg-surface-800 rounded-lg">
 		<div class="p-2 pb-0">
 			<label class="flex items-baseline">
 				<span class="w-24">{t('control.stroke.width')}</span>
@@ -35,18 +35,12 @@
 				/>
 			</label>
 		</div>
-		<Accordion
-			regionControl="text-sm text-secondary-300"
-			hover="hover:bg-secondary-700"
-			padding="p-2"
-			spacing="space-y-1"
-			regionPanel="pt-0"
-		>
-			<AccordionItem>
-				{#snippet summary()}
+		<Accordion padding="p-2" collapsible>
+			<Accordion.Item value="styles" panelPadding="p-0" controlPadding="py-1 px-0">
+				{#snippet control()}
 					{t('control.stroke.more_styles.header')}
 				{/snippet}
-				{#snippet content()}
+				{#snippet panel()}
 					<div class="flex-col space-y-1">
 						{#if !config.noSmoothing}
 							<div class="flex text-sm">
@@ -105,24 +99,23 @@
 									<label class="text-surface-300" for="{config.id}-dashArray" transition:fade>
 										{t('control.stroke.more_styles.dash_pattern')}
 									</label>
-									<button
-										type="button"
-										class="text-secondary-500-400-token ms-1 *:pointer-events-none"
-										use:popup={{
-											event: 'hover',
-											target: `${config.id}-dash-pattern-tooltip`,
-											placement: 'top',
-										}}
+									<Tooltip
+										arrow
+										triggerBase="ms-1 text-secondary-700-300"
+										contentBackground="preset-filled-secondary-500"
+										arrowBackground="preset-filled-secondary-500!"
+										contentBase="p-2 rounded-base"
+										openDelay={200}
+										closeDelay={200}
+										positioning={{ placement: 'top' }}
 									>
-										<HeroiconInfoMini />
-									</button>
-									<div
-										class="card variant-filled-secondary z-10 max-w-96 p-2 text-sm"
-										data-popup="{config.id}-dash-pattern-tooltip"
-									>
-										{t('control.stroke.more_styles.dash_pattern_tooltip')}
-										<div class="variant-filled-secondary arrow"></div>
-									</div>
+										{#snippet trigger()}
+											<HeroiconInfoMini />
+										{/snippet}
+										{#snippet content()}
+											{t('control.stroke.more_styles.dash_pattern_tooltip')}
+										{/snippet}
+									</Tooltip>
 									<input
 										id="{config.id}-dashArray"
 										type="text"
@@ -141,7 +134,7 @@
 						{/if}
 					</div>
 				{/snippet}
-			</AccordionItem>
+			</Accordion.Item>
 		</Accordion>
 	</div>
 {/if}

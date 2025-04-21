@@ -90,10 +90,10 @@
 
 <div
 	data-popup="map-tooltip"
-	class="pointer-events-none rounded-sm border border-surface-500 bg-surface-600 px-2 py-1 shadow-xs"
+	class="border-surface-500 bg-surface-600 pointer-events-none absolute rounded-sm border px-2 py-1 shadow-xs"
 	bind:this={popupEl}
 >
-	<div class="arrow bg-surface-600" bind:this={arrowEl}></div>
+	<div class="bg-surface-600 absolute size-2 rotate-45" bind:this={arrowEl}></div>
 	<strong>
 		{#await localizeText(system.name)}
 			{t('generic.loading')}

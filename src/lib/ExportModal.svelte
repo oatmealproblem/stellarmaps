@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getModalStore, getToastStore, RangeSlider, SlideToggle } from '@skeletonlabs/skeleton';
+	import { Slider, Switch } from '@skeletonlabs/skeleton-svelte';
 	import { path } from '@tauri-apps/api';
 	import * as dialog from '@tauri-apps/plugin-dialog';
 	import * as fs from '@tauri-apps/plugin-fs';
@@ -18,22 +18,18 @@
 	import { type MapSettings, mapSettings } from './settings';
 	import { PersistedDeepState } from './stateUtils.svelte';
 	import stellarMapsApi from './stellarMapsApi';
+	import { toaster } from './Toaster.svelte';
 	import { toastError } from './utils';
 
 	interface Props {
-		[key: string]: any;
+		colors: Record<string, string>;
+		mapData: MapData;
+		gameState: GameState;
+		openedSystem: GalacticObject | undefined;
+		close: () => void;
 	}
 
-	let { ...props }: Props = $props();
-
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars -- this suppresses warning about unknown prop 'parent'
-	const _props = props;
-	const modalStore = getModalStore();
-	const toastStore = getToastStore();
-	const colors: Record<string, string> = $modalStore[0]?.meta?.colors;
-	const mapData: MapData = $modalStore[0]?.meta?.mapData;
-	const gameState: GameState = $modalStore[0]?.meta?.gameState;
-	const openedSystem: GalacticObject | undefined = $modalStore[0]?.meta?.openedSystem;
+	let { colors, mapData, gameState, openedSystem, close }: Props = $props();
 
 	let hiddenGalaxyMapSvg: SVGSVGElement;
 	let hiddenSystemMapContainer: HTMLDivElement;
@@ -170,17 +166,15 @@
 		});
 		if (savePath != null) {
 			await fs.writeFile(savePath, new Uint8Array(buffer)).then(() => {
-				toastStore.trigger({
-					background: 'variant-filled-success',
-					message: t('notification.export_success'),
-					timeout: 10000,
-					action: {
-						label: `
-							<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-								<path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 00-1.883 2.542l.857 6a2.25 2.25 0 002.227 1.932H19.05a2.25 2.25 0 002.227-1.932l.857-6a2.25 2.25 0 00-1.883-2.542m-16.5 0V6A2.25 2.25 0 016 3.75h3.879a1.5 1.5 0 011.06.44l2.122 2.12a1.5 1.5 0 001.06.44H18A2.25 2.25 0 0120.25 9v.776" />
-							</svg>
-						`,
-						response: () => stellarMapsApi.revealFile(savePath),
+				toaster.addToast({
+					closeDelay: 10000,
+					data: {
+						kind: 'success',
+						title: t('notification.export_success'),
+						action: {
+							label: t('notification.open_folder_button'),
+							onClick: () => stellarMapsApi.revealFile(savePath),
+						},
 					},
 				});
 			});
@@ -245,17 +239,15 @@
 		});
 		if (savePath != null) {
 			await fs.writeTextFile(savePath, svgString).then(() => {
-				toastStore.trigger({
-					background: 'variant-filled-success',
-					message: t('notification.export_success'),
-					timeout: 10000,
-					action: {
-						label: `
-							<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-								<path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 00-1.883 2.542l.857 6a2.25 2.25 0 002.227 1.932H19.05a2.25 2.25 0 002.227-1.932l.857-6a2.25 2.25 0 00-1.883-2.542m-16.5 0V6A2.25 2.25 0 016 3.75h3.879a1.5 1.5 0 011.06.44l2.122 2.12a1.5 1.5 0 001.06.44H18A2.25 2.25 0 0120.25 9v.776" />
-							</svg>
-						`,
-						response: () => stellarMapsApi.revealFile(savePath),
+				toaster.addToast({
+					closeDelay: 10000,
+					data: {
+						kind: 'success',
+						title: t('notification.export_success'),
+						action: {
+							label: t('notification.open_folder_button'),
+							onClick: () => stellarMapsApi.revealFile(savePath),
+						},
 					},
 				});
 			});
@@ -270,12 +262,11 @@
 		processing = true;
 		try {
 			await exporter();
-			modalStore.close();
+			close();
 		} catch (error) {
 			toastError({
 				title: t('notification.export_failed'),
 				defaultValue: null,
-				toastStore,
 			})(error);
 			processing = false;
 		}
@@ -283,7 +274,7 @@
 </script>
 
 <div
-	class="bg-surface-100-800-token modal block h-auto w-[60rem] overflow-y-auto p-4 shadow-xl rounded-container-token"
+	class="bg-surface-100-900 modal rounded-container block h-auto w-[60rem] overflow-y-auto p-4 shadow-xl"
 	role="dialog"
 	aria-modal="true"
 >
@@ -302,19 +293,21 @@
 					<p>{t('export.image_size')}</p>
 					<small class="flex">
 						{t('export.lock_aspect_ratio')}
-						<SlideToggle
-							size="sm"
+						<Switch
 							name="lock-aspect-ratio"
-							class="ml-1"
 							disabled={processing || !imageHeight || !imageWidth}
-							active="variant-filled-secondary"
-							bind:checked={exportSettings.current.lockAspectRatio}
+							controlActive="preset-filled-secondary-500"
+							checked={exportSettings.current.lockAspectRatio}
+							onCheckedChange={(details) => {
+								exportSettings.current.lockAspectRatio = details.checked;
+							}}
 						/>
 					</small>
 				</div>
 				<div class="input-group input-group-divider grid-cols-[auto_3rem_3rem_auto_3rem]">
 					<input
 						type="number"
+						class="ig-input"
 						disabled={processing}
 						bind:value={exportSettings.current.imageWidth}
 						oninput={() => {
@@ -328,10 +321,11 @@
 							}
 						}}
 					/>
-					<div class="input-group-shim justify-center! px-0!">px</div>
-					<div class="input-group-shim">×</div>
+					<div class="ig-cell justify-center! px-0!">px</div>
+					<div class="ig-cell">×</div>
 					<input
 						type="number"
+						class="ig-input"
 						disabled={processing}
 						bind:value={exportSettings.current.imageHeight}
 						oninput={() => {
@@ -345,24 +339,30 @@
 							}
 						}}
 					/>
-					<div class="input-group-shim justify-center! px-0!">px</div>
+					<div class="ig-cell justify-center! px-0!">px</div>
 				</div>
-				<p class="mb-1 mt-3">{t('export.zoom')}</p>
-				<RangeSlider
+				<p class="mt-3 mb-1">{t('export.zoom')}</p>
+				<Slider
 					disabled={processing}
 					name="zoom"
 					min={-9}
 					max={9}
 					step={0.1}
-					bind:value={exportSettings.current.zoom}
+					value={[exportSettings.current.zoom]}
+					onValueChange={(details) => {
+						if (details.value[0] != null) {
+							exportSettings.current.zoom = details.value[0];
+						}
+					}}
 				/>
-				<p class="mb-1 mt-3">
+				<p class="mt-3 mb-1">
 					{t('export.center')}
-					<span class="ml-1 text-surface-300">{t('export.center_hint')}</span>
+					<span class="text-surface-300 ml-1">{t('export.center_hint')}</span>
 				</p>
 				<div class="input-group input-group-divider grid-cols-[auto_3rem_3rem_auto_3rem]">
 					<input
 						type="number"
+						class="ig-input"
 						disabled={processing}
 						bind:value={exportSettings.current.centerX}
 						onblur={() => {
@@ -373,17 +373,19 @@
 						}}
 					/>
 					<button
+						type="button"
 						disabled={processing}
-						class="variant-filled-secondary justify-center!"
+						class="ig-btn preset-filled-secondary-500 justify-center!"
 						onclick={() => {
 							exportSettings.current.invertCenterX = !invertCenterX;
 						}}
 					>
 						{invertCenterX ? 'W' : 'E'}
 					</button>
-					<div class="input-group-shim">×</div>
+					<div class="ig-cell">×</div>
 					<input
 						type="number"
+						class="ig-input"
 						disabled={processing}
 						bind:value={exportSettings.current.centerY}
 						onblur={() => {
@@ -394,8 +396,9 @@
 						}}
 					/>
 					<button
+						type="button"
 						disabled={processing}
-						class="variant-filled-secondary justify-center!"
+						class="ig-btn preset-filled-secondary-500 justify-center!"
 						onclick={() => {
 							exportSettings.current.invertCenterY = !invertCenterY;
 						}}
@@ -487,7 +490,7 @@
 		<footer class="modal-footer flex justify-end space-x-2">
 			<button
 				type="button"
-				class="variant-ghost-surface btn"
+				class="preset-tonal-surface btn"
 				onclick={() => {
 					exportSettings.current = defaultExportSettings;
 				}}
@@ -495,23 +498,18 @@
 			>
 				{t('export.reset_button')}
 			</button>
-			<button
-				type="button"
-				class="variant-ghost-surface btn"
-				onclick={modalStore.close}
-				disabled={processing}
-			>
+			<button type="button" class="preset-tonal-surface btn" onclick={close} disabled={processing}>
 				{t('generic.cancel_button')}
 			</button>
 			<button
 				type="button"
-				class="variant-filled-tertiary btn"
+				class="preset-filled-tertiary-500 btn"
 				disabled={processing}
 				onclick={() => onSubmit(exportSvg)}
 			>
 				{processing ? t('export.processing') : t('export.export_svg_button')}
 			</button>
-			<button type="submit" class="variant-filled-primary btn" disabled={processing}>
+			<button type="submit" class="preset-filled-primary-500 btn" disabled={processing}>
 				{processing ? t('export.processing') : t('export.export_png_button')}
 			</button>
 		</footer>

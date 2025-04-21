@@ -1,21 +1,26 @@
-import type { getToastStore, ToastSettings } from '@skeletonlabs/skeleton';
+import { type ToastData, toaster } from './Toaster.svelte';
 
 export function toastError<T>(options: {
 	title: string;
 	description?: string;
 	defaultValue: T;
-	toastStore: ReturnType<typeof getToastStore>;
-	action?: ToastSettings['action'];
+	action?: ToastData['action'];
 }): (reason: unknown) => T {
 	return (reason: unknown) => {
-		options.toastStore.trigger({
-			message: `
-				<h4 class="h4">${options.title}</h4>
-				${options.description != null ? `<div>${options.description}</div>` : ''}
-				<pre class="bg-error-700 p-2 my-2 rounded-sm whitespace-pre-line break-all max-h-48 overflow-y-auto">${reason}</pre>
-			`,
-			autohide: false,
-			action: options.action,
+		let combinedDescription = options.description;
+		if (options.description != null && reason != null) {
+			combinedDescription = `${options.description}\n\n${reason}`;
+		} else if (reason != null) {
+			combinedDescription = `${reason}`;
+		}
+		toaster.addToast({
+			closeDelay: 0,
+			data: {
+				kind: 'error',
+				title: options.title,
+				description: combinedDescription,
+				action: options.action,
+			},
 		});
 		return options.defaultValue;
 	};

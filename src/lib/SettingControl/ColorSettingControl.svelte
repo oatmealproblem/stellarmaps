@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Accordion, AccordionItem } from '@skeletonlabs/skeleton';
+	import { Accordion } from '@skeletonlabs/skeleton-svelte';
 
 	import { t } from '../../intl';
 	import {
@@ -42,7 +42,7 @@
 	}
 </script>
 
-<div class="rounded-lg bg-surface-800">
+<div class="bg-surface-800 rounded-lg">
 	<div class="p-2 pb-0">
 		<label class="flex items-baseline">
 			<span class="w-24">{t('control.color.label')}</span>
@@ -65,23 +65,15 @@
 			</select>
 		</label>
 	</div>
-	<Accordion
-		regionControl="text-sm text-secondary-300"
-		hover="hover:bg-secondary-700"
-		padding="p-2"
-		spacing="space-y-1"
-		regionPanel="pt-0"
-	>
-		<AccordionItem>
-			{#snippet summary()}
+	<Accordion padding="p-2" collapsible>
+		<Accordion.Item value="adjustments" panelPadding="p-0" controlPadding="py-1 px-0">
+			{#snippet control()}
 				{t('control.color.adjustment.header')}
-				<div class="relative inline-block">
-					<span class="variant-filled-secondary badge-icon absolute left-0 top-[-14px]">
-						{value.colorAdjustments.length}
-					</span>
-				</div>
+				<span class="preset-filled-secondary-500 badge-icon relative -top-1">
+					{value.colorAdjustments.length}
+				</span>
 			{/snippet}
-			{#snippet content()}
+			{#snippet panel()}
 				<div class="flex-col space-y-1">
 					{#each value.colorAdjustments as adjustment}
 						<ColorSettingAdjustmentControl
@@ -113,7 +105,7 @@
 					{/each}
 					<button
 						type="button"
-						class="variant-filled-secondary btn btn-sm"
+						class="preset-filled-secondary-500 btn btn-sm"
 						onclick={() => {
 							value = {
 								...value,
@@ -125,6 +117,6 @@
 					</button>
 				</div>
 			{/snippet}
-		</AccordionItem>
+		</Accordion.Item>
 	</Accordion>
 </div>

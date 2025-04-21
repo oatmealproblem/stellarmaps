@@ -28,8 +28,8 @@
 	<button
 		type="submit"
 		class="btn btn-lg w-full rounded-none"
-		class:variant-filled-primary={valid}
-		class:variant-filled-error={!valid}
+		class:preset-filled-primary-500={valid}
+		class:preset-filled-error-500={!valid}
 		disabled={!valid}
 	>
 		<span><HeroiconPaintBrushMini /></span>

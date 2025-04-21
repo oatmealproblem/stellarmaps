@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Accordion, AccordionItem } from '@skeletonlabs/skeleton';
+	import { Accordion } from '@skeletonlabs/skeleton-svelte';
 
 	import { t } from '../../intl';
 	import {
@@ -36,9 +36,9 @@
 </script>
 
 {#if !value.enabled}
-	<div class="rounded-lg bg-surface-800 p-2 text-surface-300">{t('generic.disabled')}</div>
+	<div class="bg-surface-800 text-surface-300 rounded-lg p-2">{t('generic.disabled')}</div>
 {:else}
-	<div class="rounded-lg bg-surface-800">
+	<div class="bg-surface-800 rounded-lg">
 		<div class="p-2 pb-0">
 			<label class="flex items-baseline">
 				<span class="w-24">{t('control.icon.label')}</span>
@@ -75,18 +75,12 @@
 			</label>
 		</div>
 		{#if !config.noAdvanced}
-			<Accordion
-				regionControl="text-sm text-secondary-300"
-				hover="hover:bg-secondary-700"
-				padding="p-2"
-				spacing="space-y-1"
-				regionPanel="pt-0"
-			>
-				<AccordionItem>
-					{#snippet summary()}
+			<Accordion padding="p-2" collapsible>
+				<Accordion.Item value="advanced" panelPadding="p-0" controlPadding="py-1 px-0">
+					{#snippet control()}
 						{t('control.icon.advanced_options.header')}
 					{/snippet}
-					{#snippet content()}
+					{#snippet panel()}
 						<div class="flex-col space-y-1">
 							<div class="flex items-baseline text-sm">
 								<label for="{config.id}-smoothing" class="ms-1 w-24 cursor-pointer">
@@ -130,7 +124,7 @@
 							</div>
 						</div>
 					{/snippet}
-				</AccordionItem>
+				</Accordion.Item>
 			</Accordion>
 		{/if}
 		<ColorSettingControl
