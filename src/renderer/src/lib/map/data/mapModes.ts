@@ -216,7 +216,7 @@ export const mapModes: Record<string, MapMode> = {
 									gameState.species_db[speciesId]?.base_ref === selectedSpecies.id)
 							) {
 								freePlanetPopulation +=
-									speciesPopulation.num_pops - (speciesPopulation.num_enslaved ?? 0);
+									(speciesPopulation.num_pops ?? 0) - (speciesPopulation.num_enslaved ?? 0);
 								enslavedPlanetPopulation += speciesPopulation.num_enslaved ?? 0;
 							}
 						}
@@ -369,10 +369,10 @@ export const mapModes: Record<string, MapMode> = {
 			scale: 0.25,
 			getValues(gameState, system, povCountry, _species, owner) {
 				const ownedByPov = owner != null && owner.id === povCountry?.id;
-				const collectedValue = !ownedByPov ? 0 : system.trade_hub.collected ?? 0;
+				const collectedValue = !ownedByPov ? 0 : system.trade_hub?.collected ?? 0;
 				const incomingValue = !ownedByPov
 					? undefined
-					: system.trade_hub.sources?.reduce(
+					: system.trade_hub?.sources?.reduce(
 							(acc, cur) => acc + (gameState.trade_routes[cur]?.delivered ?? 0),
 							0,
 						);
