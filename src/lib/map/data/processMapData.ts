@@ -1,8 +1,7 @@
 import * as R from 'rambda';
-import { get } from 'svelte/store';
 
 import debug from '../../debug';
-import type { GameState } from '../../GameState';
+import type { GameState } from '../../GameState.svelte';
 import { type MapSettings } from '../../settings';
 import { timeIt, timeItAsync } from '../../utils';
 import processBorders, { processBordersDeps } from './processBorders';
@@ -241,7 +240,7 @@ function cached<Args extends unknown[], ReturnValue>(
 	let last: [Args, ReturnValue] | null = null;
 	const fnWithCaching = (...args: Args) => {
 		if (
-			!get(debug) &&
+			!debug.current &&
 			last !== null &&
 			last[0].length === args.length &&
 			last[0].every((arg, i) => arg === args[i])

@@ -1,22 +1,26 @@
 <script lang="ts">
 	import { mapSettings } from '../settings';
-	$: terraIncognitaLightStripeColor = `rgb(${Math.min(
-		255,
-		$mapSettings.terraIncognitaBrightness + 10,
-	)},${Math.min(255, $mapSettings.terraIncognitaBrightness + 10)},${Math.min(
-		255,
-		$mapSettings.terraIncognitaBrightness + 10,
-	)})`;
-	$: terraIncognitaDarkStripeColor = `rgb(${Math.max(
-		0,
-		$mapSettings.terraIncognitaBrightness - 10,
-	)},${Math.max(0, $mapSettings.terraIncognitaBrightness - 10)},${Math.max(
-		0,
-		$mapSettings.terraIncognitaBrightness - 10,
-	)})`;
+	let terraIncognitaLightStripeColor = $derived(
+		`rgb(${Math.min(
+			255,
+			mapSettings.current.terraIncognitaBrightness + 10,
+		)},${Math.min(255, mapSettings.current.terraIncognitaBrightness + 10)},${Math.min(
+			255,
+			mapSettings.current.terraIncognitaBrightness + 10,
+		)})`,
+	);
+	let terraIncognitaDarkStripeColor = $derived(
+		`rgb(${Math.max(
+			0,
+			mapSettings.current.terraIncognitaBrightness - 10,
+		)},${Math.max(0, mapSettings.current.terraIncognitaBrightness - 10)},${Math.max(
+			0,
+			mapSettings.current.terraIncognitaBrightness - 10,
+		)})`,
+	);
 </script>
 
-{#if $mapSettings.terraIncognita && $mapSettings.terraIncognitaStyle === 'striped'}
+{#if mapSettings.current.terraIncognita && mapSettings.current.terraIncognitaStyle === 'striped'}
 	<pattern
 		id="dark-stripes"
 		viewBox="0,0,10,10"
@@ -30,7 +34,7 @@
 		<rect fill={terraIncognitaDarkStripeColor} width="10" height="6" y="5" />
 	</pattern>
 {/if}
-{#if $mapSettings.terraIncognita && $mapSettings.terraIncognitaStyle === 'cloudy'}
+{#if mapSettings.current.terraIncognita && mapSettings.current.terraIncognitaStyle === 'cloudy'}
 	<filter id="terra-incognita-filter">
 		<feGaussianBlur in="SourceGraphic" result="blurred" stdDeviation="2" />
 		<feTurbulence type="turbulence" numOctaves="4" baseFrequency="0.02" result="turbulence" />

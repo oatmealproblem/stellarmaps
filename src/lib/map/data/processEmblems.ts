@@ -1,7 +1,5 @@
-import { get } from 'svelte/store';
-
-import type { Country } from '../../GameState';
-import { stellarisPathStore } from '../../loadStellarisData';
+import type { Country } from '../../GameState.svelte';
+import { stellarisPath } from '../../loadStellarisData.svelte';
 import stellarMapsApi from '../../stellarMapsApi';
 
 const emblems: Record<string, Promise<string>> = {};
@@ -17,7 +15,7 @@ export async function processEmblems(countries: Country[]) {
 				keys.push(key);
 				if (emblems[key] == null) {
 					emblems[key] = stellarMapsApi.loadEmblem(
-						get(stellarisPathStore),
+						stellarisPath.current,
 						c.flag.icon.category,
 						c.flag.icon.file,
 					);

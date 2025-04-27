@@ -1,17 +1,22 @@
-import globals from 'globals';
-import pluginJs from '@eslint/js';
-import tsEslint from 'typescript-eslint';
-import eslintPluginSvelte from 'eslint-plugin-svelte';
-import simpleImportSort from 'eslint-plugin-simple-import-sort';
-import eslintConfigPrettier from 'eslint-config-prettier';
+import { fileURLToPath } from 'node:url';
 
-import svelteConfig from './svelte.config.mjs';
+import { includeIgnoreFile } from '@eslint/compat';
+import pluginJs from '@eslint/js';
+import eslintConfigPrettier from 'eslint-config-prettier';
+import simpleImportSort from 'eslint-plugin-simple-import-sort';
+import eslintPluginSvelte from 'eslint-plugin-svelte';
+import globals from 'globals';
+import tsEslint from 'typescript-eslint';
+
+import svelteConfig from './svelte.config.js';
 
 const extraFileExtensions = ['.svelte'];
+const gitignorePath = fileURLToPath(new URL('./.gitignore', import.meta.url));
 
 /** @type {import('eslint').Linter.Config[]} */
-export default [
-	{ files: ['**/*.{ts}'] },
+export default tsEslint.config(
+	includeIgnoreFile(gitignorePath),
+	{ files: ['src/**/*.{ts}'] },
 	{ languageOptions: { globals: { ...globals.browser, ...globals.node } } },
 	pluginJs.configs.recommended,
 	// ts
@@ -55,29 +60,16 @@ export default [
 			'simple-import-sort/exports': 'error',
 		},
 	},
+	// disable type-aware linting for some files
 	{
-		ignores: [
-			'.git/',
-			'.DS_Store/',
-			'.vite',
-			'node_modules/',
-			'src-tauri/',
-			'out/',
-			'dist/',
-			'build/',
-			'scripts/',
-			'resources/',
-			'examples/',
-			'patches/',
-			'package-lock.json',
-			// config files
-			'tailwind.config.ts',
-			'eslint.config.js',
-			'vite.config.ts',
-			'postcss.config.cjs',
-			'electron.vite.config.ts',
-			'svelte.config.mjs',
-			'commitlint.config.cjs',
+		files: [
+			'*.{js,ts,cjs}', // root dir config files
+			'scripts/*', // helper scripts
+			'src/electron/preload.cjs',
 		],
+		...tsEslint.configs.disableTypeChecked,
 	},
-];
+	{
+		ignores: ['src-tauri/'],
+	},
+);

@@ -2,47 +2,19 @@ import type { PrimitiveType } from 'intl-messageformat';
 import * as R from 'rambda';
 
 import type { MessageID } from '../../intl';
-import type { AppSettings } from './appSettings';
-import { colorSettingSchema } from './ColorSetting';
-import { iconSettingSchema } from './IconSetting';
-import { defaultMapSettings, type MapSettings } from './mapSettings';
+import type { AppSettings } from './appSettings.svelte';
+import { zColorSetting } from './ColorSetting';
+import { zIconSetting } from './IconSetting';
+import { type MapSettings } from './mapSettings';
 import { mapSettingsConfig } from './mapSettingsConfig';
 import type { AppSettingConfig, MapSettingConfig, UnknownSettingConfig } from './SettingConfig';
-import { strokeSettingSchema } from './StrokeSetting';
+import { zStrokeSetting } from './StrokeSetting';
 
 export function isColorDynamic(color: string, settings: MapSettings): boolean {
 	return (
 		['primary', 'secondary'].includes(color) ||
 		(color === 'border' && isColorDynamic(settings.borderColor.color, settings))
 	);
-}
-
-export function validateAndResetMapSettings(unvalidatedSettings: MapSettings): MapSettings {
-	const settings = { ...unvalidatedSettings };
-	const configs = mapSettingsConfig.flatMap((category) => category.settings);
-	for (const key of Object.keys(settings)) {
-		const config = configs.find((config) => config.id === key);
-		if (!config) {
-			console.warn(`no config found for setting ${key}; deleting`);
-			delete settings[key as keyof MapSettings];
-		} else {
-			const [valid] = validateSetting(
-				settings[key as keyof MapSettings],
-				config as UnknownSettingConfig,
-			);
-			if (!valid) {
-				console.warn(`invalid value for setting ${key}; setting default`);
-				(settings as any)[key] = (defaultMapSettings as any)[key];
-			}
-		}
-	}
-	for (const config of configs) {
-		if (!Object.hasOwn(settings, config.id)) {
-			console.warn(`missing value for setting ${config.id}; setting default`);
-			(settings as any)[config.id] = (defaultMapSettings as any)[config.id];
-		}
-	}
-	return settings;
 }
 
 export function copyGroupSettings(
@@ -67,7 +39,7 @@ export function validateSetting<T extends UnknownSettingConfig>(
 ): [boolean] | [boolean, MessageID, Record<string, PrimitiveType>] {
 	switch (config.type) {
 		case 'color': {
-			const result = colorSettingSchema.safeParse(value);
+			const result = zColorSetting.safeParse(value);
 			if (result.success) {
 				const { data } = result;
 				if (config.allowedAdjustments) {
@@ -85,7 +57,7 @@ export function validateSetting<T extends UnknownSettingConfig>(
 			}
 		}
 		case 'icon': {
-			const result = iconSettingSchema.safeParse(value);
+			const result = zIconSetting.safeParse(value);
 			return [result.success];
 		}
 		case 'number': {
@@ -125,7 +97,7 @@ export function validateSetting<T extends UnknownSettingConfig>(
 			}
 		}
 		case 'stroke': {
-			const result = strokeSettingSchema.safeParse(value);
+			const result = zStrokeSetting.safeParse(value);
 			if (result.success) {
 				const { data } = result;
 				if (data.dashed && config.noDashed) return [false];

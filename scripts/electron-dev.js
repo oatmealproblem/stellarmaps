@@ -1,5 +1,6 @@
-import concurrently from 'concurrently';
 import { rm } from 'node:fs/promises';
+
+import concurrently from 'concurrently';
 
 // since electron starts when /tmp/stellarmaps-electron-dev exists (ie created by tauri), delete any pre-existing file
 await rm('/tmp/stellarmaps-electron-dev', { force: true });

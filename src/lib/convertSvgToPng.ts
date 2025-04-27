@@ -1,3 +1,5 @@
+import orbitronUrl from '../static/Orbitron-VariableFont_wght.ttf';
+import convertBlobToDataUrl from './convertBlobToDataUrl';
 import { wait } from './utils';
 
 interface ConvertSvgToPngOptions {
@@ -12,7 +14,7 @@ interface ConvertSvgToPngOptions {
 	backgroundColor?: string;
 }
 export default async function convertSvgToPng(
-	svg: SVGElement,
+	svg: SVGSVGElement,
 	{
 		left,
 		top,
@@ -112,8 +114,31 @@ export default async function convertSvgToPng(
 	bgRect?.setAttribute('y', top.toString());
 	bgRect?.setAttribute('width', width.toString());
 	bgRect?.setAttribute('height', height.toString());
+	const fonts = await getFonts();
+	svg.insertBefore(fonts, svg.firstChild);
 	const svgUrl = URL.createObjectURL(new Blob([svg.outerHTML], { type: 'image/svg+xml' }));
+	svg.removeChild(fonts);
 
 	img.src = svgUrl;
+	return promise;
+}
+
+let fontsPromise: Promise<HTMLStyleElement> | null = null;
+function getFonts() {
+	if (fontsPromise) return fontsPromise;
+	const promise = fetch(orbitronUrl)
+		.then((response) => response.blob())
+		.then(convertBlobToDataUrl)
+		.then((dataUrl) => {
+			const style = document.createElement('style');
+			style.textContent = `
+			@font-face {
+				font-family: "Orbitron";
+				src: url(${dataUrl});
+			}
+		`;
+			return style;
+		});
+	fontsPromise = promise;
 	return promise;
 }

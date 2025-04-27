@@ -4,12 +4,16 @@
 	import type { MapData } from './data/processMapData';
 	import { getFillColorAttributes, getStrokeColorAttributes } from './mapUtils';
 
-	export let data: MapData;
-	export let colors: Record<string, string>;
+	interface Props {
+		data: MapData;
+		colors: Record<string, string>;
+	}
+
+	let { data, colors }: Props = $props();
 
 	function getMapModePaths(systems: MapData['systems']) {
 		const max = Math.max(...systems.map((s) => s.mapModeTotalValue ?? 0));
-		const scale = (100 / max) * (mapModes[$mapSettings.mapMode]?.system?.scale ?? 1);
+		const scale = (100 / max) * (mapModes[mapSettings.current.mapMode]?.system?.scale ?? 1);
 		return systems
 			.filter((system) => system.mapModeValues?.some((v) => v.directedValues?.size))
 			.flatMap((system) => {
@@ -113,7 +117,7 @@
 		<path d="M 0 0 L 5 0 L 10 5 L 5 10 L 0 10 L 5 5 Z" fill="rgba(0,0,0,0.5)" />
 	</pattern>
 </defs>
-{#each getMapModePaths(data.systems.filter((s) => s.systemIsKnown || !$mapSettings.terraIncognita)) as path}
+{#each getMapModePaths(data.systems.filter((s) => s.systemIsKnown || !mapSettings.current.terraIncognita)) as path}
 	{#if path.value === 0}
 		<line
 			x1={path.from.x}
@@ -123,9 +127,9 @@
 			stroke-width="0.5"
 			stroke-dasharray="0.5 1"
 			{...getStrokeColorAttributes({
-				mapSettings: $mapSettings,
+				mapSettings: mapSettings.current,
 				colors,
-				colorStack: [path.color, $mapSettings.borderFillColor],
+				colorStack: [path.color, mapSettings.current.borderFillColor],
 			})}
 		/>
 	{:else}
@@ -134,9 +138,9 @@
 			transform="translate({path.from.x} {path.from
 				.y}) rotate({path.angle}) translate(0 {-path.width / 2})"
 			{...getFillColorAttributes({
-				mapSettings: $mapSettings,
+				mapSettings: mapSettings.current,
 				colors,
-				colorStack: [path.color, $mapSettings.borderFillColor],
+				colorStack: [path.color, mapSettings.current.borderFillColor],
 			})}
 		/>
 		<path

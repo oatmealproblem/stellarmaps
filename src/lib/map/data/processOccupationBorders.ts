@@ -1,4 +1,4 @@
-import type { GameState } from '../../GameState';
+import type { GameState } from '../../GameState.svelte';
 import type { MapSettings } from '../../settings';
 import { getCountryMapModeInfo } from './mapModes';
 import { multiPolygonToPath, type PolygonalFeature } from './utils';

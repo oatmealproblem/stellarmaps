@@ -1,40 +1,47 @@
-import { localStorageStore } from '@skeletonlabs/skeleton';
 import { rgb } from 'd3-color';
 import { hsv } from 'd3-hsv';
-import { get, writable } from 'svelte/store';
+import { z } from 'zod';
 
 import { jsonify, tokenize } from '../shared/parseSave';
 import { ADDITIONAL_COLORS } from './colors';
 import { appSettings } from './settings';
+import { PersistedRawState, RawStateWrapper } from './stateUtils.svelte';
 import stellarMapsApi from './stellarMapsApi';
 import { timeItAsync } from './utils';
 
-export const stellarisPathStore = localStorageStore('stellarisPath', '');
-export const stellarisDataPromiseStore = writable(
-	new Promise<Awaited<ReturnType<typeof loadStellarisData>>>(() => {
+export const stellarisPath = new PersistedRawState({
+	name: 'stellarisPath',
+	defaultValue: '',
+	schema: z.string().catch(''),
+});
+
+export const stellarisDataPromise = new RawStateWrapper<
+	ReturnType<typeof loadStellarisDataUnwrapped>
+>(
+	new Promise(() => {
 		// do nothing
 	}),
 );
 
-// reload data if appStellarisLanguage setting changed
-let loadedStellarisLanguage = get(appSettings).appStellarisLanguage;
-appSettings.subscribe((value) => {
-	if (value.appStellarisLanguage !== loadedStellarisLanguage) {
-		loadStellarisData();
-	}
+let loadedLanguage = appSettings.current.appStellarisLanguage;
+$effect.root(() => {
+	$effect(() => {
+		if (loadedLanguage !== appSettings.current.appStellarisLanguage) {
+			loadStellarisData();
+		}
+	});
 });
 
 export function loadStellarisData() {
-	const stellarisDataPromise = loadStellarisDataUnwrapped();
-	stellarisDataPromiseStore.set(stellarisDataPromise);
-	return stellarisDataPromise;
+	stellarisDataPromise.current = loadStellarisDataUnwrapped();
+	return stellarisDataPromise.current;
 }
 
 async function loadStellarisDataUnwrapped() {
-	const path = get(stellarisPathStore) || (await stellarMapsApi.loadStellarisInstallDir());
-	stellarisPathStore.set(path);
-	const language = get(appSettings).appStellarisLanguage;
-	loadedStellarisLanguage = language;
+	const path = stellarisPath.current || (await stellarMapsApi.loadStellarisInstallDir());
+	stellarisPath.current = path;
+	const language = appSettings.current.appStellarisLanguage;
+	loadedLanguage = language;
 	const [colors, loc] = await Promise.all([loadColors(path), loadLoc(path, language)]);
 	return { colors, loc };
 }

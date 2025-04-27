@@ -12,12 +12,12 @@
     "dialog:default",
     {
       "identifier": "fs:allow-read-text-file",
-      "allow": [{ "path": "$APPCONFIG/settings.json" }]
+      "allow": [{ "path": "$APPCONFIG/*.json" }]
     },
     "fs:allow-write-file",
     {
       "identifier": "fs:allow-write-text-file",
-      "allow": [{ "path": "$APPCONFIG/settings.json" }]
+      "allow": [{ "path": "$APPCONFIG/*.json" }]
     },
     "fs:allow-watch",
     "fs:allow-unwatch",

@@ -1,5 +1,5 @@
-import { writable } from 'svelte/store';
+import { RawStateWrapper } from '$lib/stateUtils.svelte';
 
 import type { SelectOption } from '../SelectOption';
 
-export const countryOptions = writable<SelectOption[]>([]);
+export const countryOptions = new RawStateWrapper<SelectOption[]>([]);

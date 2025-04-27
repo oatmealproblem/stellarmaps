@@ -4,7 +4,7 @@
 
 	import { locale, type MessageID, t } from '../../intl';
 	import debug from '../debug';
-	import type { GalacticObject, GameState, LocalizedText } from '../GameState';
+	import type { GalacticObject, GameState, LocalizedText } from '../GameState.svelte';
 	import HeroiconUserMicro from '../icons/HeroiconUserMicro.svelte';
 	import { mapSettings } from '../settings';
 	import { isDefined } from '../utils';
@@ -13,12 +13,16 @@
 	import type { ProcessedSystem } from './data/processSystems';
 	import { resolveColor } from './mapUtils';
 
-	export let x: number;
-	export let y: number;
-	export let system: GalacticObject;
-	export let processedSystem: ProcessedSystem | null | undefined;
-	export let gameState: null | GameState;
-	export let colors: Record<string, string>;
+	interface Props {
+		x: number;
+		y: number;
+		system: GalacticObject;
+		processedSystem: ProcessedSystem | null | undefined;
+		gameState: null | GameState;
+		colors: Record<string, string>;
+	}
+
+	let { x, y, system, processedSystem, gameState, colors }: Props = $props();
 
 	let targetEl: HTMLDivElement;
 	let popupEl: HTMLDivElement;
@@ -57,10 +61,12 @@
 	});
 	onDestroy(() => cleanup?.());
 
-	$: planets = system.colonies
-		.map((planetId) => gameState?.planets.planet[planetId])
-		.filter(isDefined)
-		.sort((a, b) => (b.num_sapient_pops ?? 0) - (a.num_sapient_pops ?? 0));
+	let planets = $derived(
+		system.colonies
+			.map((planetId) => gameState?.planets.planet[planetId])
+			.filter(isDefined)
+			.sort((a, b) => (b.num_sapient_pops ?? 0) - (a.num_sapient_pops ?? 0)),
+	);
 
 	async function localizeValueLabel(
 		message: MessageID | LocalizedText,
@@ -70,7 +76,7 @@
 		for (const [k, v] of Object.entries(data)) {
 			values[k] = await localizeText(v);
 		}
-		return typeof message === 'string' ? $t(message, values) : await localizeText(message);
+		return typeof message === 'string' ? t(message, values) : await localizeText(message);
 	}
 </script>
 
@@ -84,29 +90,29 @@
 
 <div
 	data-popup="map-tooltip"
-	class="pointer-events-none rounded border border-surface-500 bg-surface-600 px-2 py-1 shadow-sm"
+	class="border-surface-500 bg-surface-600 pointer-events-none absolute rounded-sm border px-2 py-1 shadow-xs"
 	bind:this={popupEl}
 >
-	<div class="arrow bg-surface-600" bind:this={arrowEl} />
+	<div class="bg-surface-600 absolute size-2 rotate-45" bind:this={arrowEl}></div>
 	<strong>
 		{#await localizeText(system.name)}
-			{$t('generic.loading')}
+			{t('generic.loading')}
 		{:then name}
 			{name}
 		{/await}
 	</strong>
-	{#if $debug}
+	{#if debug.current}
 		<div>System ID: {system.id}</div>
 		<div>Country ID: {processedSystem?.countryId}</div>
 	{/if}
 	{#if processedSystem?.mapModeCountryLabel}
 		<div class="flex flex-row justify-between gap-1 text-sm">
 			<span>
-				{$t(mapModes[$mapSettings.mapMode]?.tooltipLabel ?? 'generic.NEVER')}:
+				{t(mapModes[mapSettings.current.mapMode]?.tooltipLabel ?? 'generic.NEVER')}:
 			</span>
 			<strong>
 				{#await localizeValueLabel(processedSystem.mapModeCountryLabel)}
-					{$t('generic.loading')}
+					{t('generic.loading')}
 				{:then label}
 					{label}
 				{/await}
@@ -115,7 +121,7 @@
 	{/if}
 	{#if processedSystem?.mapModeValues?.filter((v) => v.value).length}
 		<strong class="mt-2 block">
-			{$t(mapModes[$mapSettings.mapMode]?.tooltipLabel ?? 'generic.NEVER')}
+			{t(mapModes[mapSettings.current.mapMode]?.tooltipLabel ?? 'generic.NEVER')}
 		</strong>
 		<ul class="text-sm">
 			{#each processedSystem.mapModeValues.filter((v) => v.value) as systemValue}
@@ -125,7 +131,7 @@
 							<circle
 								r="0.875"
 								fill={resolveColor({
-									mapSettings: $mapSettings,
+									mapSettings: mapSettings.current,
 									colorStack: [systemValue.color],
 									colors,
 								})}
@@ -134,13 +140,13 @@
 							/>
 						</svg>
 						{#await localizeValueLabel(systemValue.legendLabel, systemValue.legendLabelData)}
-							{$t('generic.loading')}
+							{t('generic.loading')}
 						{:then label}
 							{label}
 						{/await}
 					</span>
 					<strong>
-						{new Intl.NumberFormat($locale, {
+						{new Intl.NumberFormat(locale.current, {
 							notation: 'compact',
 							maximumFractionDigits: 1,
 						}).format(systemValue.value)}
@@ -150,13 +156,13 @@
 		</ul>
 	{/if}
 	{#if planets.length}
-		<strong class="mt-2 block">{$t('map.tooltip.colonies')}</strong>
+		<strong class="mt-2 block">{t('map.tooltip.colonies')}</strong>
 		<ul class="ps-4">
 			{#each planets as planet}
 				<li class="flex flex-row justify-between text-sm">
 					<span>
 						{#await localizeText(planet.name)}
-							{$t('generic.loading')}
+							{t('generic.loading')}
 						{:then name}
 							{name}
 						{/await}
@@ -169,6 +175,6 @@
 		</ul>
 	{/if}
 	<div class="text-sm">
-		{$t('map.click_to_view_system')}
+		{t('map.click_to_view_system')}
 	</div>
 </div>

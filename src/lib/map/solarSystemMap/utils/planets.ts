@@ -1,6 +1,6 @@
 import { scalePow } from 'd3-scale';
 
-import type { Planet } from '../../../GameState';
+import type { Planet } from '../../../GameState.svelte';
 import type { MapSettings } from '../../../settings';
 
 export function isAsteroid(planet: Planet) {

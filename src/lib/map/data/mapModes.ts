@@ -1,5 +1,11 @@
 import type { MessageID } from '../../../intl';
-import type { Country, GalacticObject, GameState, LocalizedText, Species } from '../../GameState';
+import type {
+	Country,
+	GalacticObject,
+	GameState,
+	LocalizedText,
+	Species,
+} from '../../GameState.svelte';
 import type { ColorSetting, MapSettings } from '../../settings';
 import { isDefined, parseNumberEntry } from '../../utils';
 import { getUnionLeaderId } from './utils';

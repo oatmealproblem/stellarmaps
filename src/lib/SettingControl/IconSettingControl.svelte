@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Accordion, AccordionItem } from '@skeletonlabs/skeleton';
+	import { Accordion } from '@skeletonlabs/skeleton-svelte';
 
 	import { t } from '../../intl';
 	import {
@@ -12,12 +12,18 @@
 	import { isDefined } from '../utils';
 	import ColorSettingControl from './ColorSettingControl.svelte';
 
-	export let value: IconSetting;
-	export let config: SettingConfigIcon<Record<string, any>, string>;
-	let color = value.color;
-	$: if (value.color !== color) {
-		value = { ...value, color };
+	interface Props {
+		value: IconSetting;
+		config: SettingConfigIcon<Record<string, any>, string>;
 	}
+
+	let { value = $bindable(), config }: Props = $props();
+	let color = $state.raw(value.color);
+	$effect(() => {
+		if (value.color !== color) {
+			value = { ...value, color };
+		}
+	});
 
 	let groups = Array.from(new Set(iconOptions.map((option) => option.group).filter(isDefined)));
 
@@ -30,36 +36,36 @@
 </script>
 
 {#if !value.enabled}
-	<div class="rounded-lg bg-surface-800 p-2 text-surface-300">{$t('generic.disabled')}</div>
+	<div class="bg-surface-800 text-surface-300 rounded-lg p-2">{t('generic.disabled')}</div>
 {:else}
-	<div class="rounded-lg bg-surface-800">
+	<div class="bg-surface-800 rounded-lg">
 		<div class="p-2 pb-0">
 			<label class="flex items-baseline">
-				<span class="w-24">{$t('control.icon.label')}</span>
+				<span class="w-24">{t('control.icon.label')}</span>
 				<select
 					class="select"
 					value={value.icon}
-					on:change={(e) => {
+					onchange={(e) => {
 						value = { ...value, icon: e.currentTarget.value };
 					}}
 				>
 					{#each groups as group}
-						<optgroup label={$t(group)}>
+						<optgroup label={t(group)}>
 							{#each iconOptions.filter((opt) => opt.group === group) as option (option.id)}
-								<option value={option.id}>{option.literalName ?? $t(option.name)}</option>
+								<option value={option.id}>{option.literalName ?? t(option.name)}</option>
 							{/each}
 						</optgroup>
 					{/each}
 				</select>
 			</label>
 			<label class="mt-2 flex items-baseline">
-				<span class="w-24">{$t('control.icon.size')}</span>
+				<span class="w-24">{t('control.icon.size')}</span>
 				<input
 					class="input"
 					type="number"
 					step="0.5"
 					value={value.size}
-					on:input={(e) => {
+					oninput={(e) => {
 						const parsed = parseFloat(e.currentTarget.value);
 						if (!Number.isNaN(parsed)) {
 							value = { ...value, size: parsed };
@@ -69,60 +75,56 @@
 			</label>
 		</div>
 		{#if !config.noAdvanced}
-			<Accordion
-				regionControl="text-sm text-secondary-300"
-				hover="hover:bg-secondary-700"
-				padding="p-2"
-				spacing="space-y-1"
-				regionPanel="pt-0"
-			>
-				<AccordionItem>
-					<svelte:fragment slot="summary">
-						{$t('control.icon.advanced_options.header')}
-					</svelte:fragment>
-					<div slot="content" class="flex-col space-y-1">
-						<div class="flex items-baseline text-sm">
-							<label for="{config.id}-smoothing" class="ms-1 w-24 cursor-pointer">
-								{$t('control.icon.advanced_options.position')}
-							</label>
-							<select
-								id="{config.id}-position"
-								class="select p-1 text-sm"
-								value={value.position}
-								on:change={(e) => {
-									value = {
-										...value,
-										position: asIconPosition(e.currentTarget.value),
-									};
-								}}
-							>
-								{#each ICON_POSITIONS as position}
-									<option value={position}>{$t(`option.icon_position.${position}`)}</option>
-								{/each}
-							</select>
-						</div>
-						<div class="flex items-baseline text-sm">
-							<label for="{config.id}-smoothing" class="ms-1 w-24 cursor-pointer">
-								{$t('control.icon.advanced_options.priority')}
-							</label>
-							<input
-								id="{config.id}-priority"
-								class="input p-1 text-sm"
-								type="number"
-								value={value.priority}
-								on:change={(e) => {
-									const parsed = parseFloat(e.currentTarget.value);
-									if (Number.isNaN(parsed)) {
+			<Accordion padding="p-2" collapsible>
+				<Accordion.Item value="advanced" panelPadding="p-0" controlPadding="py-1 px-0">
+					{#snippet control()}
+						{t('control.icon.advanced_options.header')}
+					{/snippet}
+					{#snippet panel()}
+						<div class="flex-col space-y-1">
+							<div class="flex items-baseline text-sm">
+								<label for="{config.id}-smoothing" class="ms-1 w-24 cursor-pointer">
+									{t('control.icon.advanced_options.position')}
+								</label>
+								<select
+									id="{config.id}-position"
+									class="select p-1 text-sm"
+									value={value.position}
+									onchange={(e) => {
 										value = {
 											...value,
-											priority: parseInt(e.currentTarget.value),
+											position: asIconPosition(e.currentTarget.value),
 										};
-									}
-								}}
-							/>
+									}}
+								>
+									{#each ICON_POSITIONS as position}
+										<option value={position}>{t(`option.icon_position.${position}`)}</option>
+									{/each}
+								</select>
+							</div>
+							<div class="flex items-baseline text-sm">
+								<label for="{config.id}-smoothing" class="ms-1 w-24 cursor-pointer">
+									{t('control.icon.advanced_options.priority')}
+								</label>
+								<input
+									id="{config.id}-priority"
+									class="input p-1 text-sm"
+									type="number"
+									value={value.priority}
+									onchange={(e) => {
+										const parsed = parseFloat(e.currentTarget.value);
+										if (Number.isNaN(parsed)) {
+											value = {
+												...value,
+												priority: parseInt(e.currentTarget.value),
+											};
+										}
+									}}
+								/>
+							</div>
 						</div>
-					</div>
-				</AccordionItem>
+					{/snippet}
+				</Accordion.Item>
 			</Accordion>
 		{/if}
 		<ColorSettingControl

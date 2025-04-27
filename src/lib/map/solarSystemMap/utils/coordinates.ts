@@ -1,4 +1,4 @@
-import type { Planet } from '../../../GameState';
+import type { Planet } from '../../../GameState.svelte';
 import type { MapSettings } from '../../../settings';
 import { getPlanetRadius, getPrimaryBodies } from './planets';
 

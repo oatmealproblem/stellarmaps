@@ -1,9 +1,14 @@
 {
 	"$schema": "https://unpkg.com/knip@5/schema.json",
-	"entry": ["forge.config.ts", "src/main.ts", "src/electron/main.ts", "src/electron/preload.cjs"],
+	"entry": ["forge.config.js", "src/main.ts", "src/electron/main.ts", "src/electron/preload.cjs"],
 	"project": [
 		"*/*.{js,cjs,mjs,jsx,ts,cts,mts,tsx}",
 		"src/**/*.{js,cjs,mjs,jsx,ts,cts,mts,tsx,svelte}"
 	],
-	"ignoreDependencies": ["@electron-forge/cli", "@electron-forge/shared-types"]
+	"ignoreDependencies": [
+		"@electron-forge/cli",
+		"@skeletonlabs/skeleton",
+		"@tailwindcss/forms",
+		"tailwindcss"
+	]
 }

@@ -1,4 +1,4 @@
-import type { Bypass, GameState } from '../../GameState';
+import type { Bypass, GameState } from '../../GameState.svelte';
 
 export default function processHyperRelays(gameState: GameState) {
 	const relayMegastructures = new Set(

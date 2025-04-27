@@ -4,7 +4,7 @@
 	import { match } from 'ts-pattern';
 
 	import { t } from '../../../intl';
-	import type { GalacticObject, GameState } from '../../GameState';
+	import type { GalacticObject, GameState } from '../../GameState.svelte';
 	import { pathKitPromise } from '../../pathKit';
 	import { type MapSettings, mapSettings } from '../../settings';
 	import { isDefined } from '../../utils';
@@ -42,14 +42,27 @@
 	} from './utils/planets';
 	import { getPathKitShadowPath } from './utils/shadows';
 
-	export let system: GalacticObject;
-	export let gameState: GameState;
-	export let mapData: MapData;
-	export let colors: Record<string, string>;
-	export let id: string;
-	export let exportMode = false;
-	export let previewMode = false;
-	export let onSystemSelected: null | ((system: GalacticObject) => void) = null;
+	interface Props {
+		system: GalacticObject;
+		gameState: GameState;
+		mapData: MapData;
+		colors: Record<string, string>;
+		id: string;
+		exportMode?: boolean;
+		previewMode?: boolean;
+		onSystemSelected?: null | ((system: GalacticObject) => void);
+	}
+
+	let {
+		system,
+		gameState,
+		mapData,
+		colors,
+		id,
+		exportMode = false,
+		previewMode = false,
+		onSystemSelected = null,
+	}: Props = $props();
 
 	let svg: SVGElement;
 	let g: SVGGElement;
@@ -63,39 +76,43 @@
 			// this is the default implementation
 			return (!event.ctrlKey || event.type === 'wheel') && !event.button;
 		});
-	$: if (!exportMode && !previewMode) {
-		select(svg).call(zoomHandler as any);
-	}
+	$effect(() => {
+		if (!exportMode && !previewMode) {
+			select(svg).call(zoomHandler as any);
+		}
+	});
 	function resetZoom() {
 		select(svg).call(zoomHandler.transform as any, zoomIdentity);
 	}
 
-	$: fleets = system.fleet_presence
-		.map((fleetId) => {
-			const fleet = gameState.fleet[fleetId];
-			const country = Object.values(gameState.country).find((country) =>
-				country.fleets_manager?.owned_fleets.some((f) => f.fleet === fleetId),
-			);
-			const countryBorder = mapData.borders.find((b) => b.countryId === country?.id);
-			if (!fleet || !country) return null;
-			return {
-				id: fleet.id,
-				name: fleet.name,
-				owner: country.id,
-				primaryColor: countryBorder?.primaryColor ?? 'black',
-				secondaryColor: countryBorder?.secondaryColor ?? 'black',
-				isMobile: Boolean(fleet.mobile),
-				isMilitary: fleet.military_power > 0,
-				rotation: fleet.mobile
-					? (-fleet.movement_manager.formation.angle / Math.PI) * 180 + 180
-					: 0,
-				coordinate: {
-					x: -fleet.movement_manager.coordinate.x,
-					y: fleet.movement_manager.coordinate.y,
-				},
-			};
-		})
-		.filter(isDefined);
+	let fleets = $derived(
+		system.fleet_presence
+			.map((fleetId) => {
+				const fleet = gameState.fleet[fleetId];
+				const country = Object.values(gameState.country).find((country) =>
+					country.fleets_manager?.owned_fleets.some((f) => f.fleet === fleetId),
+				);
+				const countryBorder = mapData.borders.find((b) => b.countryId === country?.id);
+				if (!fleet || !country) return null;
+				return {
+					id: fleet.id,
+					name: fleet.name,
+					owner: country.id,
+					primaryColor: countryBorder?.primaryColor ?? 'black',
+					secondaryColor: countryBorder?.secondaryColor ?? 'black',
+					isMobile: Boolean(fleet.mobile),
+					isMilitary: fleet.military_power > 0,
+					rotation: fleet.mobile
+						? (-fleet.movement_manager.formation.angle / Math.PI) * 180 + 180
+						: 0,
+					coordinate: {
+						x: -fleet.movement_manager.coordinate.x,
+						y: fleet.movement_manager.coordinate.y,
+					},
+				};
+			})
+			.filter(isDefined),
+	);
 
 	function getFleetIconSetting(fleet: (typeof fleets)[number], settings: MapSettings) {
 		return match(fleet)
@@ -106,64 +123,70 @@
 			.exhaustive();
 	}
 
-	$: ships = system.fleet_presence
-		.flatMap((fleetId) => {
-			const fleet = gameState.fleet[fleetId];
-			const country = Object.values(gameState.country).find((country) =>
-				country.fleets_manager?.owned_fleets.some((f) => f.fleet === fleetId),
-			);
-			const countryBorder = mapData.borders.find((b) => b.countryId === country?.id);
-			if (!fleet || !country) return [];
-			return fleet.ships.map((shipId) => {
-				const ship = gameState.ships[shipId];
-				if (!ship) return null;
-				return {
-					...ship,
-					owner: country.id,
-					primaryColor: countryBorder?.primaryColor ?? 'black',
-					secondaryColor: countryBorder?.secondaryColor ?? 'black',
-				};
-			});
-		})
-		.filter(isDefined);
+	let ships = $derived(
+		system.fleet_presence
+			.flatMap((fleetId) => {
+				const fleet = gameState.fleet[fleetId];
+				const country = Object.values(gameState.country).find((country) =>
+					country.fleets_manager?.owned_fleets.some((f) => f.fleet === fleetId),
+				);
+				const countryBorder = mapData.borders.find((b) => b.countryId === country?.id);
+				if (!fleet || !country) return [];
+				return fleet.ships.map((shipId) => {
+					const ship = gameState.ships[shipId];
+					if (!ship) return null;
+					return {
+						...ship,
+						owner: country.id,
+						primaryColor: countryBorder?.primaryColor ?? 'black',
+						secondaryColor: countryBorder?.secondaryColor ?? 'black',
+					};
+				});
+			})
+			.filter(isDefined),
+	);
 
-	$: planets = system.planet
-		.map((planetId) => gameState.planets.planet[planetId])
-		.filter(isDefined)
-		.filter((planet) => !isFakePlanet(planet));
+	let planets = $derived(
+		system.planet
+			.map((planetId) => gameState.planets.planet[planetId])
+			.filter(isDefined)
+			.filter((planet) => !isFakePlanet(planet)),
+	);
 
-	$: systemConnections = system.hyperlane
-		.map((h) => {
-			const toSystem = gameState.galactic_object[h.to];
-			if (!toSystem) return null;
-			const theta = Math.atan2(
-				toSystem.coordinate.y - system.coordinate.y,
-				// note: inverted x value
-				system.coordinate.x - toSystem.coordinate.x,
-			);
-			const x = 400 * Math.cos(theta);
-			const y = 400 * Math.sin(theta);
-			const trianglePath = `
+	let systemConnections = $derived(
+		system.hyperlane
+			.map((h) => {
+				const toSystem = gameState.galactic_object[h.to];
+				if (!toSystem) return null;
+				const theta = Math.atan2(
+					toSystem.coordinate.y - system.coordinate.y,
+					// note: inverted x value
+					system.coordinate.x - toSystem.coordinate.x,
+				);
+				const x = 400 * Math.cos(theta);
+				const y = 400 * Math.sin(theta);
+				const trianglePath = `
 				M ${x + Math.cos(theta + Math.PI / 2) * 30} ${y + Math.sin(theta + Math.PI / 2) * 30}
 				L ${x - Math.cos(theta + Math.PI / 2) * 30} ${y - Math.sin(theta + Math.PI / 2) * 30}
 				L ${x + Math.cos(theta) * 20} ${y + Math.sin(theta) * 20}
 				Z
 			`;
-			const textPathPoints: [[number, number], [number, number]] = [
-				[
-					x - Math.cos(theta) * 5 + Math.cos(theta + Math.PI / 2) * 500,
-					y - Math.sin(theta) * 5 + Math.sin(theta + Math.PI / 2) * 500,
-				],
-				[
-					x - Math.cos(theta) * 5 - Math.cos(theta + Math.PI / 2) * 500,
-					y - Math.sin(theta) * 5 - Math.sin(theta + Math.PI / 2) * 500,
-				],
-			];
-			if (y < 0) textPathPoints.reverse();
-			const textPath = `M ${textPathPoints[0][0]} ${textPathPoints[0][1]} L ${textPathPoints[1][0]} ${textPathPoints[1][1]}`;
-			return { x, y, system: toSystem, trianglePath, textPath };
-		})
-		.filter(isDefined);
+				const textPathPoints: [[number, number], [number, number]] = [
+					[
+						x - Math.cos(theta) * 5 + Math.cos(theta + Math.PI / 2) * 500,
+						y - Math.sin(theta) * 5 + Math.sin(theta + Math.PI / 2) * 500,
+					],
+					[
+						x - Math.cos(theta) * 5 - Math.cos(theta + Math.PI / 2) * 500,
+						y - Math.sin(theta) * 5 - Math.sin(theta + Math.PI / 2) * 500,
+					],
+				];
+				if (y < 0) textPathPoints.reverse();
+				const textPath = `M ${textPathPoints[0][0]} ${textPathPoints[0][1]} L ${textPathPoints[1][0]} ${textPathPoints[1][1]}`;
+				return { x, y, system: toSystem, trianglePath, textPath };
+			})
+			.filter(isDefined),
+	);
 </script>
 
 <svg
@@ -184,23 +207,23 @@
 		<Icons />
 	</defs>
 	<g bind:this={g}>
-		{#if $mapSettings.systemMapOrbitStroke.enabled}
+		{#if mapSettings.current.systemMapOrbitStroke.enabled}
 			{#each planets.filter((p) => !isAsteroid(p) && p.orbit > 0) as planet (planet.id)}
-				<Glow enabled={$mapSettings.systemMapOrbitStroke.glow}>
+				<Glow enabled={mapSettings.current.systemMapOrbitStroke.glow}>
 					{@const primary = getPrimaryBodies(planet, planets)[0]}
 					{@const primaryCoordinate = primary
-						? getPlanetCoordinate(primary, planets, $mapSettings)
+						? getPlanetCoordinate(primary, planets, mapSettings.current)
 						: { x: 0, y: 0 }}
 					<circle
 						cx={primaryCoordinate.x}
 						cy={primaryCoordinate.y}
-						r={getPlanetOrbitDistance(planet, planets, $mapSettings)}
+						r={getPlanetOrbitDistance(planet, planets, mapSettings.current)}
 						fill="none"
-						{...getStrokeAttributes($mapSettings.systemMapOrbitStroke)}
+						{...getStrokeAttributes(mapSettings.current.systemMapOrbitStroke)}
 						{...getStrokeColorAttributes({
 							colors,
-							mapSettings: $mapSettings,
-							colorStack: [$mapSettings.systemMapOrbitColor],
+							mapSettings: mapSettings.current,
+							colorStack: [mapSettings.current.systemMapOrbitColor],
 						})}
 					/>
 				</Glow>
@@ -209,47 +232,47 @@
 
 		{#each system.asteroid_belts as belt}
 			{@const centralStar = planets.find((p) => p.coordinate.x === 0 && p.coordinate.y === 0)}
-			{@const centralStarR = centralStar ? getPlanetRadius(centralStar, $mapSettings) : 0}
+			{@const centralStarR = centralStar ? getPlanetRadius(centralStar, mapSettings.current) : 0}
 			{@const beltDistance =
-				getScaledDistance(belt.inner_radius - centralStarR, $mapSettings) + centralStarR}
+				getScaledDistance(belt.inner_radius - centralStarR, mapSettings.current) + centralStarR}
 			<circle
 				fill="none"
 				stroke={getBeltColor(belt.type, colors)}
-				stroke-width={2 / $mapSettings.systemMapOrbitDistanceExponent}
+				stroke-width={2 / mapSettings.current.systemMapOrbitDistanceExponent}
 				stroke-opacity={0.2}
 				r={beltDistance}
 			/>
 			<circle
 				fill="none"
 				stroke={getBeltColor(belt.type, colors)}
-				stroke-width={4 / $mapSettings.systemMapOrbitDistanceExponent}
+				stroke-width={4 / mapSettings.current.systemMapOrbitDistanceExponent}
 				stroke-opacity={0.05}
-				r={beltDistance + 5 / $mapSettings.systemMapOrbitDistanceExponent}
+				r={beltDistance + 5 / mapSettings.current.systemMapOrbitDistanceExponent}
 			/>
 			<circle
 				fill="none"
 				stroke={getBeltColor(belt.type, colors)}
-				stroke-width={4 / $mapSettings.systemMapOrbitDistanceExponent}
+				stroke-width={4 / mapSettings.current.systemMapOrbitDistanceExponent}
 				stroke-opacity={0.05}
-				r={beltDistance - 5 / $mapSettings.systemMapOrbitDistanceExponent}
+				r={beltDistance - 5 / mapSettings.current.systemMapOrbitDistanceExponent}
 			/>
 			<circle
 				fill="none"
 				stroke={getBeltColor(belt.type, colors)}
-				stroke-width={1 / $mapSettings.systemMapOrbitDistanceExponent}
+				stroke-width={1 / mapSettings.current.systemMapOrbitDistanceExponent}
 				stroke-opacity={0.1}
-				r={beltDistance + 10 / $mapSettings.systemMapOrbitDistanceExponent}
+				r={beltDistance + 10 / mapSettings.current.systemMapOrbitDistanceExponent}
 			/>
 			<circle
 				fill="none"
 				stroke={getBeltColor(belt.type, colors)}
-				stroke-width={1 / $mapSettings.systemMapOrbitDistanceExponent}
+				stroke-width={1 / mapSettings.current.systemMapOrbitDistanceExponent}
 				stroke-opacity={0.1}
-				r={beltDistance - 10 / $mapSettings.systemMapOrbitDistanceExponent}
+				r={beltDistance - 10 / mapSettings.current.systemMapOrbitDistanceExponent}
 			/>
 		{/each}
 		{#each planets as planet (planet.id)}
-			{@const coordinate = getPlanetCoordinate(planet, planets, $mapSettings)}
+			{@const coordinate = getPlanetCoordinate(planet, planets, mapSettings.current)}
 			{#if isStar(planet)}
 				<defs>
 					<radialGradient id="star-gradient-{planet.id}">
@@ -260,18 +283,18 @@
 				</defs>
 				<circle
 					fill="url(#star-gradient-{planet.id})"
-					r={getPlanetRadius(planet, $mapSettings) * 4}
+					r={getPlanetRadius(planet, mapSettings.current) * 4}
 					cx={coordinate.x}
 					cy={coordinate.y}
 				/>
 				<circle
 					fill={getPlanetColor(planet, colors)}
-					r={getPlanetRadius(planet, $mapSettings)}
+					r={getPlanetRadius(planet, mapSettings.current)}
 					cx={coordinate.x}
 					cy={coordinate.y}
 				/>
 			{:else}
-				{@const radius = getPlanetRadius(planet, $mapSettings)}
+				{@const radius = getPlanetRadius(planet, mapSettings.current)}
 				<circle
 					fill={getPlanetColor(planet, colors)}
 					r={radius}
@@ -287,9 +310,11 @@
 							r={radius * ring.radiusMultiplier}
 							stroke-width={radius * ring.width}
 							{...getStrokeColorAttributes({
-								mapSettings: $mapSettings,
+								mapSettings: mapSettings.current,
 								colors,
-								colorStack: [multiplyOpacity($mapSettings.systemMapPlanetRingColor, ring.opacity)],
+								colorStack: [
+									multiplyOpacity(mapSettings.current.systemMapPlanetRingColor, ring.opacity),
+								],
 								planetColor: getPlanetColor(planet, colors),
 							})}
 						/>
@@ -299,29 +324,29 @@
 		{/each}
 		{#each planets.filter((p) => isPlanetarySystemPrimaryBody(p, planets)) as planet (planet.id)}
 			{#await pathKitPromise then PathKit}
-				{#each getPathKitShadowPath(planet, planets, $mapSettings, PathKit) as d}
+				{#each getPathKitShadowPath(planet, planets, mapSettings.current, PathKit) as d}
 					<path {d} fill="#000000" opacity={0.5} />
 				{/each}
 			{/await}
 		{/each}
-		{#each planets.filter((p) => isPlanetLabeled(p, $mapSettings)) as planet (planet.id)}
+		{#each planets.filter((p) => isPlanetLabeled(p, mapSettings.current)) as planet (planet.id)}
 			<defs>
 				<path
 					id="planetLabelPath{planet.id}"
-					{...getPlanetLabelPathAttributes(planet, planets, $mapSettings)}
+					{...getPlanetLabelPathAttributes(planet, planets, mapSettings.current)}
 				/>
 			</defs>
 			<text
-				font-family={$mapSettings.systemMapLabelPlanetsFont}
-				font-size={$mapSettings.systemMapLabelPlanetsFontSize}
+				font-family={mapSettings.current.systemMapLabelPlanetsFont}
+				font-size={mapSettings.current.systemMapLabelPlanetsFontSize}
 				fill="#FFFFFF"
 			>
 				<textPath
 					href="#planetLabelPath{planet.id}"
-					{...getPlanetLabelTextPathAttributes(planet, $mapSettings)}
+					{...getPlanetLabelTextPathAttributes(planet, mapSettings.current)}
 				>
 					{#await localizeText(planet.name)}
-						{$t('generic.loading')}
+						{t('generic.loading')}
 					{:then planetName}
 						{planetName}
 					{/await}
@@ -339,10 +364,10 @@
 				{...getFillColorAttributes({
 					colors,
 					countryColors: ship,
-					mapSettings: $mapSettings,
+					mapSettings: mapSettings.current,
 					colorStack: [
 						{
-							...$mapSettings.borderColor,
+							...mapSettings.current.borderColor,
 							colorAdjustments: [{ type: 'MIN_CONTRAST', value: 0.35 }],
 						},
 					],
@@ -350,8 +375,8 @@
 			/>
 		{/each}
 		{#each fleets as fleet (fleet.id)}
-			{@const icon = getFleetIconSetting(fleet, $mapSettings)}
-			{@const coordinate = getFleetCoordinate(fleet, planets, $mapSettings)}
+			{@const icon = getFleetIconSetting(fleet, mapSettings.current)}
+			{@const coordinate = getFleetCoordinate(fleet, planets, mapSettings.current)}
 			{#if icon.enabled}
 				<use
 					href="#{icon.icon}"
@@ -361,32 +386,32 @@
 					width={icon.size}
 					height={icon.size}
 					{...getFillColorAttributes({
-						mapSettings: $mapSettings,
+						mapSettings: mapSettings.current,
 						colors,
 						countryColors: fleet,
 						colorStack: [icon.color],
 					})}
 					stroke-width="10"
 					{...getStrokeColorAttributes({
-						mapSettings: $mapSettings,
+						mapSettings: mapSettings.current,
 						colors,
-						colorStack: [$mapSettings.backgroundColor],
+						colorStack: [mapSettings.current.backgroundColor],
 					})}
 				/>
-				{#if $mapSettings.systemMapLabelFleetsEnabled}
-					{@const fontSize = $mapSettings.systemMapLabelFleetsFontSize}
+				{#if mapSettings.current.systemMapLabelFleetsEnabled}
+					{@const fontSize = mapSettings.current.systemMapLabelFleetsFontSize}
 					<text
 						x={coordinate.x}
 						y={coordinate.y}
-						text-anchor={match($mapSettings.systemMapLabelFleetsPosition)
+						text-anchor={match(mapSettings.current.systemMapLabelFleetsPosition)
 							.with('right', () => 'start')
 							.with('left', () => 'end')
 							.otherwise(() => 'middle')}
-						dominant-baseline={match($mapSettings.systemMapLabelFleetsPosition)
+						dominant-baseline={match(mapSettings.current.systemMapLabelFleetsPosition)
 							.with('top', () => 'auto')
 							.with('bottom', () => 'hanging')
 							.otherwise(() => 'middle')}
-						transform={match($mapSettings.systemMapLabelFleetsPosition)
+						transform={match(mapSettings.current.systemMapLabelFleetsPosition)
 							.with('right', () => `translate(${icon.size / 2} 0)`)
 							.with('left', () => `translate(${-icon.size / 2} 0)`)
 							.with('top', () => `translate(0 ${-icon.size / 2})`)
@@ -394,10 +419,10 @@
 							.otherwise(() => '')}
 						font-size={fontSize}
 						fill="white"
-						font-family={$mapSettings.systemMapLabelPlanetsFont}
+						font-family={mapSettings.current.systemMapLabelPlanetsFont}
 					>
 						{#await localizeText(fleet.name)}
-							{$t('generic.loading')}
+							{t('generic.loading')}
 						{:then name}
 							{name}
 						{/await}
@@ -405,14 +430,14 @@
 				{/if}
 			{/if}
 		{/each}
-		{#if $mapSettings.systemMapHyperlanesEnabled}
+		{#if mapSettings.current.systemMapHyperlanesEnabled}
 			{#each systemConnections as connection}
-				<!-- svelte-ignore a11y-click-events-have-key-events -->
-				<!-- svelte-ignore a11y-no-static-element-interactions -->
+				<!-- svelte-ignore a11y_click_events_have_key_events -->
+				<!-- svelte-ignore a11y_no_static_element_interactions -->
 				<g
 					style={!previewMode && !exportMode ? 'cursor: pointer;' : undefined}
 					fill={colors.dark_teal}
-					on:click={() => {
+					onclick={() => {
 						if (previewMode || exportMode) return;
 						resetZoom();
 						onSystemSelected?.(connection.system);
@@ -427,8 +452,8 @@
 						/>
 					</defs>
 					<text
-						font-family={$mapSettings.systemMapLabelPlanetsFont}
-						font-size={$mapSettings.systemMapLabelPlanetsFontSize}
+						font-family={mapSettings.current.systemMapLabelPlanetsFont}
+						font-size={mapSettings.current.systemMapLabelPlanetsFontSize}
 					>
 						<textPath
 							href="#connectionLabelPath{connection.system.id}"
@@ -437,7 +462,7 @@
 							dominant-baseline={connection.y < 0 ? 'hanging' : 'auto'}
 						>
 							{#await localizeText(connection.system.name)}
-								{$t('generic.loading')}
+								{t('generic.loading')}
 							{:then systemName}
 								{systemName}
 							{/await}

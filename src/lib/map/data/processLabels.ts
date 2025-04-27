@@ -1,7 +1,7 @@
 import * as turf from '@turf/turf';
 import polylabel from 'polylabel';
 
-import type { GameState } from '../../GameState';
+import type { GameState } from '../../GameState.svelte';
 import type { MapSettings } from '../../settings';
 import { removeColorAndIconCodes } from './locUtils';
 import type processBorders from './processBorders';

@@ -3,13 +3,17 @@
 	import { lastProcessedMapSettings, mapSettings } from '../settings';
 	import type { MapData } from './data/processMapData';
 
-	export let data: MapData;
+	interface Props {
+		data: MapData;
+	}
+
+	let { data }: Props = $props();
 </script>
 
-{#each data.labels.filter((label) => label.isKnown || !$mapSettings.terraIncognita) as label}
+{#each data.labels.filter((label) => label.isKnown || !mapSettings.current.terraIncognita) as label}
 	{#each label.labelPoints as { point, emblemWidth, emblemHeight, textWidth, textHeight }}
-		{#if $debug}<circle cx={point[0]} cy={point[1]} r={3} fill="#F0F" />{/if}
-		{#if $debug && emblemWidth != null && emblemHeight != null}
+		{#if debug.current}<circle cx={point[0]} cy={point[1]} r={3} fill="#F0F" />{/if}
+		{#if debug.current && emblemWidth != null && emblemHeight != null}
 			<rect
 				stroke-width={1}
 				stroke="#F0F"
@@ -28,20 +32,20 @@
 				height={emblemHeight}
 				xlink:href={data.emblems[label.emblemKey]}
 			/>
-			{#if label.isUnionLeader && $mapSettings.unionLeaderSymbol !== 'none'}
+			{#if label.isUnionLeader && mapSettings.current.unionLeaderSymbol !== 'none'}
 				<text
 					transform="translate({point[0]},{point[1] -
 						(textHeight != null ? emblemHeight : emblemHeight / 2)})"
 					fill="white"
 					text-anchor="middle"
 					dominant-baseline="bottom"
-					font-size={emblemHeight * $mapSettings.unionLeaderSymbolSize}
+					font-size={emblemHeight * mapSettings.current.unionLeaderSymbolSize}
 				>
-					{$mapSettings.unionLeaderSymbol}
+					{mapSettings.current.unionLeaderSymbol}
 				</text>
 			{/if}
 		{/if}
-		{#if $debug && textWidth != null && textHeight != null}
+		{#if debug.current && textWidth != null && textHeight != null}
 			<rect
 				stroke-width={1}
 				stroke="#F0F"
@@ -60,10 +64,10 @@
 				dominant-baseline="middle"
 				font-size={textHeight}
 				fill="white"
-				font-family={$lastProcessedMapSettings.countryNamesFont}
+				font-family={lastProcessedMapSettings.current.countryNamesFont}
 				textLength={textWidth}
 				lengthAdjust="spacingAndGlyphs"
-				text-decoration={label.isUnionLeader && $mapSettings.unionLeaderUnderline
+				text-decoration={label.isUnionLeader && mapSettings.current.unionLeaderUnderline
 					? 'underline'
 					: ''}
 				style:text-shadow="0px 0px 3px black"
@@ -76,12 +80,15 @@
 				x={point[0]}
 				y={point[1] +
 					(emblemHeight != null ? textHeight / 2 : 0) +
-					textHeight * ($lastProcessedMapSettings.countryNamesSecondaryRelativeSize ?? 1) * 1.25}
+					textHeight *
+						(lastProcessedMapSettings.current.countryNamesSecondaryRelativeSize ?? 1) *
+						1.25}
 				text-anchor="middle"
 				dominant-baseline="middle"
-				font-size={textHeight * ($lastProcessedMapSettings.countryNamesSecondaryRelativeSize ?? 1)}
+				font-size={textHeight *
+					(lastProcessedMapSettings.current.countryNamesSecondaryRelativeSize ?? 1)}
 				fill="white"
-				font-family={$lastProcessedMapSettings.countryNamesFont}
+				font-family={lastProcessedMapSettings.current.countryNamesFont}
 				style:text-shadow="0px 0px 3px black"
 			>
 				{label.secondaryName}

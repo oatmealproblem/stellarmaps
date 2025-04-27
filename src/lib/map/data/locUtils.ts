@@ -1,28 +1,66 @@
 import { romanize } from 'romans';
-import { get } from 'svelte/store';
 
-import type { LocalizedText } from '../../GameState';
-import { stellarisDataPromiseStore } from '../../loadStellarisData';
-import { appStellarisLanguageCode, appStellarisLanguageOrdinals } from '../../settings';
+import type { LocalizedText } from '../../GameState.svelte';
+import { stellarisDataPromise } from '../../loadStellarisData.svelte';
+import { appSettings, type StellarisLanguage } from '../../settings';
 import { isDefined } from '../../utils';
 
+function getStellarisLanguageCode(stellarisLanguage: StellarisLanguage) {
+	const stellarisLanguageToCode: Record<StellarisLanguage, string> = {
+		l_english: 'en-US',
+		l_braz_por: 'pt-BR',
+		l_german: 'de-DE',
+		l_french: 'fr-FR',
+		l_spanish: 'es-ES',
+		l_polish: 'pl-PL',
+		l_russian: 'ru-RU',
+		l_simp_chinese: 'zh-CN',
+		l_japanese: 'ja-JP',
+		l_korean: 'ko-KR',
+	};
+	return stellarisLanguageToCode[stellarisLanguage];
+}
+
+function getStellarisLanguageOrdinals(stellarisLanguage: string): Record<string, string> {
+	return (
+		{
+			l_english: { one: 'st', two: 'nd', few: 'rd', other: 'th' },
+			// TODO? implement other languages
+		}[stellarisLanguage] ?? {}
+	);
+}
+
 const formatOrdinals = (n: number) => {
-	const enOrdinalRules = new Intl.PluralRules(get(appStellarisLanguageCode), { type: 'ordinal' });
+	const enOrdinalRules = new Intl.PluralRules(
+		getStellarisLanguageCode(appSettings.current.appStellarisLanguage),
+		{ type: 'ordinal' },
+	);
 	const rule = enOrdinalRules.select(n);
-	const suffix = get(appStellarisLanguageOrdinals)[rule] ?? '';
-	return `${new Intl.NumberFormat(get(appStellarisLanguageCode)).format(n)}${suffix}`;
+	const suffix = getStellarisLanguageOrdinals(appSettings.current.appStellarisLanguage)[rule] ?? '';
+	return `${new Intl.NumberFormat(getStellarisLanguageCode(appSettings.current.appStellarisLanguage)).format(n)}${suffix}`;
 };
 
 const numFormatters = {
-	CARD: (n: number) => new Intl.NumberFormat(get(appStellarisLanguageCode)).format(n),
+	CARD: (n: number) =>
+		new Intl.NumberFormat(
+			getStellarisLanguageCode(appSettings.current.appStellarisLanguage),
+		).format(n),
 	C: (n: number) =>
-		new Intl.NumberFormat(get(appStellarisLanguageCode), { minimumIntegerDigits: 1 }).format(n),
+		new Intl.NumberFormat(getStellarisLanguageCode(appSettings.current.appStellarisLanguage), {
+			minimumIntegerDigits: 1,
+		}).format(n),
 	CC: (n: number) =>
-		new Intl.NumberFormat(get(appStellarisLanguageCode), { minimumIntegerDigits: 2 }).format(n),
+		new Intl.NumberFormat(getStellarisLanguageCode(appSettings.current.appStellarisLanguage), {
+			minimumIntegerDigits: 2,
+		}).format(n),
 	CCC: (n: number) =>
-		new Intl.NumberFormat(get(appStellarisLanguageCode), { minimumIntegerDigits: 3 }).format(n),
+		new Intl.NumberFormat(getStellarisLanguageCode(appSettings.current.appStellarisLanguage), {
+			minimumIntegerDigits: 3,
+		}).format(n),
 	CC0: (n: number) =>
-		new Intl.NumberFormat(get(appStellarisLanguageCode), { minimumIntegerDigits: 2 }).format(n - 1),
+		new Intl.NumberFormat(getStellarisLanguageCode(appSettings.current.appStellarisLanguage), {
+			minimumIntegerDigits: 2,
+		}).format(n - 1),
 	ORD: formatOrdinals,
 	ORD0: (n: number) => formatOrdinals(n - 1),
 	R: (n: number) => romanize(n),
@@ -30,7 +68,7 @@ const numFormatters = {
 };
 
 export function localizeText(text: LocalizedText) {
-	return get(stellarisDataPromiseStore).then(({ loc }) => localizeTextSync(text, loc));
+	return stellarisDataPromise.current.then(({ loc }) => localizeTextSync(text, loc));
 }
 
 export function localizeTextSync(
@@ -48,7 +86,7 @@ export function localizeTextSync(
 					.flatMap((s, i, a) => (i < a.length - 1 ? [s[0]] : [s[0], s[s.length - 1]]))
 					.filter(isDefined)
 					.join('')
-					.toLocaleUpperCase(get(appStellarisLanguageCode))
+					.toLocaleUpperCase(getStellarisLanguageCode(appSettings.current.appStellarisLanguage))
 			: '';
 	} else if (text.key === '%SEQ%') {
 		const fmt = text.variables?.find((v) => v.key === 'fmt')?.value;

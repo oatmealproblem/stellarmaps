@@ -1,15 +1,15 @@
-import { derived } from 'svelte/store';
+import { RawStateWrapper } from '$lib/stateUtils.svelte';
 
 import { ADDITIONAL_COLORS } from '../../colors';
-import { stellarisDataPromiseStore } from '../../loadStellarisData';
+import { stellarisDataPromise } from '../../loadStellarisData.svelte';
 import type { SelectOption } from '../SelectOption';
 
-export const colorDynamicOptions = derived<typeof stellarisDataPromiseStore, SelectOption[]>(
-	stellarisDataPromiseStore,
-	(stellarisDataPromise, set) => {
-		stellarisDataPromise.then(({ colors }) =>
-			set(
-				Object.keys(colors).map((c) => ({
+export const colorDynamicOptions = new RawStateWrapper<SelectOption[]>([]);
+$effect.root(() => {
+	$effect(() => {
+		stellarisDataPromise.current.then(
+			({ colors }) =>
+				(colorDynamicOptions.current = Object.keys(colors).map((c) => ({
 					id: c,
 					group:
 						c in ADDITIONAL_COLORS
@@ -20,9 +20,7 @@ export const colorDynamicOptions = derived<typeof stellarisDataPromiseStore, Sel
 						.filter((word) => word.length > 0)
 						.map((word) => `${word.substring(0, 1).toUpperCase()}${word.substring(1)}`)
 						.join(' '),
-				})),
-			),
+				}))),
 		);
-	},
-	[],
-);
+	});
+});

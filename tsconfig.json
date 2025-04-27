@@ -1,24 +1,15 @@
 {
-	"include": ["*.ts", "src/**/*", "src/**/*.svelte"],
+	"extends": "./.svelte-kit/tsconfig.json",
 	"compilerOptions": {
-		"target": "ESNext",
-		"module": "ESNext",
-		"noUnusedParameters": false,
-		"noUnusedLocals": false,
-		"verbatimModuleSyntax": true,
-		"noImplicitAny": true,
-		"noUncheckedIndexedAccess": true,
-		"useDefineForClassFields": true,
-		"strict": true,
 		"allowJs": true,
 		"checkJs": true,
-		"lib": ["ESNext", "DOM", "DOM.Iterable"],
-		"skipLibCheck": true,
 		"esModuleInterop": true,
+		"forceConsistentCasingInFileNames": true,
+		"noUncheckedIndexedAccess": true,
+		"resolveJsonModule": true,
+		"skipLibCheck": true,
 		"sourceMap": true,
-		"baseUrl": ".",
-		"outDir": "dist",
-		"moduleResolution": "node",
-		"resolveJsonModule": true
+		"strict": true,
+		"moduleResolution": "bundler"
 	}
 }

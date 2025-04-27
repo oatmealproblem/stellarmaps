@@ -14,8 +14,12 @@
 	import type { ProcessedSystem } from './data/processSystems';
 	import { getFillColorAttributes } from './mapUtils';
 
-	export let data: MapData;
-	export let colors: Record<string, string>;
+	interface Props {
+		data: MapData;
+		colors: Record<string, string>;
+	}
+
+	let { data, colors }: Props = $props();
 
 	interface IconSettingMetadata {
 		systemProperty?: keyof PickByValue<ProcessedSystem, boolean>;
@@ -119,21 +123,22 @@
 	}
 
 	function shouldShowLabel(system: MapData['systems'][number]) {
-		if ($mapSettings.systemNames === 'none') return false;
-		if ($mapSettings.systemNames === 'all') return true;
-		if ($mapSettings.systemNames === 'countryCapitals' && system.isCountryCapital) return true;
+		if (mapSettings.current.systemNames === 'none') return false;
+		if (mapSettings.current.systemNames === 'all') return true;
+		if (mapSettings.current.systemNames === 'countryCapitals' && system.isCountryCapital)
+			return true;
 		if (
-			$mapSettings.systemNames === 'sectorCapitals' &&
+			mapSettings.current.systemNames === 'sectorCapitals' &&
 			(system.isCountryCapital || system.isSectorCapital)
 		)
 			return true;
-		if ($mapSettings.systemNames === 'colonized' && system.isColonized) return true;
+		if (mapSettings.current.systemNames === 'colonized' && system.isColonized) return true;
 		return false;
 	}
 
 	function getMapModeIcons(systems: MapData['systems']) {
 		const max = Math.max(...systems.map((s) => s.mapModeTotalValue ?? 0));
-		const scale = (100 / max) * (mapModes[$mapSettings.mapMode]?.system?.scale ?? 1);
+		const scale = (100 / max) * (mapModes[mapSettings.current.mapMode]?.system?.scale ?? 1);
 		return systems
 			.filter((system) => system.mapModeTotalValue)
 			.map((system) => {
@@ -160,8 +165,8 @@
 </script>
 
 {#each data.systems
-	.filter((s) => s.systemIsKnown || !$mapSettings.terraIncognita)
-	.map((s) => getSystemIcons(s, $mapSettings)) as systemIcons}
+	.filter((s) => s.systemIsKnown || !mapSettings.current.terraIncognita)
+	.map((s) => getSystemIcons(s, mapSettings.current)) as systemIcons}
 	{#each [...(systemIcons.center ? [systemIcons.center] : []), ...systemIcons.left, ...systemIcons.right, ...systemIcons.top, ...systemIcons.bottom] as systemIcon}
 		<use
 			href="#{systemIcon.icon}"
@@ -170,22 +175,22 @@
 			width={systemIcon.size}
 			height={systemIcon.size}
 			{...getFillColorAttributes({
-				mapSettings: $mapSettings,
+				mapSettings: mapSettings.current,
 				colors,
 				countryColors: systemIcons.system,
-				colorStack: [systemIcon.color, $mapSettings.borderFillColor],
+				colorStack: [systemIcon.color, mapSettings.current.borderFillColor],
 			})}
 		/>
 	{/each}
 	{#if shouldShowLabel(systemIcons.system)}
 		<text
 			x={systemIcons.system.x}
-			y={getIconsBottom(systemIcons) + $mapSettings.systemNamesFontSize / 4}
+			y={getIconsBottom(systemIcons) + mapSettings.current.systemNamesFontSize / 4}
 			text-anchor="middle"
 			dominant-baseline="hanging"
-			font-size={$mapSettings.systemNamesFontSize}
+			font-size={mapSettings.current.systemNamesFontSize}
 			fill="white"
-			font-family={$mapSettings.systemNamesFont}
+			font-family={mapSettings.current.systemNamesFont}
 			style:text-shadow="0px 0px 3px black"
 		>
 			{systemIcons.system.name}
@@ -193,19 +198,19 @@
 	{/if}
 {/each}
 
-{#each getMapModeIcons(data.systems.filter((s) => s.systemIsKnown || !$mapSettings.terraIncognita)) as system}
+{#each getMapModeIcons(data.systems.filter((s) => s.systemIsKnown || !mapSettings.current.terraIncognita)) as system}
 	{#if system.arcs.length <= 1}
 		<circle
 			cx={system.x}
 			cy={system.y}
 			r={system.r}
 			{...getFillColorAttributes({
-				mapSettings: $mapSettings,
+				mapSettings: mapSettings.current,
 				colors,
 				countryColors: system,
 				colorStack: [
 					system.arcs[0]?.color ?? { color: 'black', colorAdjustments: [] },
-					$mapSettings.borderFillColor,
+					mapSettings.current.borderFillColor,
 				],
 			})}
 		/>
@@ -220,10 +225,10 @@
 				})}
 				transform="translate({system.x},{system.y})"
 				{...getFillColorAttributes({
-					mapSettings: $mapSettings,
+					mapSettings: mapSettings.current,
 					colors,
 					countryColors: system,
-					colorStack: [arc.color, $mapSettings.borderFillColor],
+					colorStack: [arc.color, mapSettings.current.borderFillColor],
 				})}
 			/>
 		{/each}
@@ -239,17 +244,17 @@
 {/each}
 
 {#each data.systems
-	.filter((s) => s.systemIsKnown || !$mapSettings.terraIncognita)
+	.filter((s) => s.systemIsKnown || !mapSettings.current.terraIncognita)
 	.filter(shouldShowLabel)
-	.map((s) => getSystemIcons(s, $mapSettings)) as systemIcons}
+	.map((s) => getSystemIcons(s, mapSettings.current)) as systemIcons}
 	<text
 		x={systemIcons.system.x}
-		y={getIconsBottom(systemIcons) + $mapSettings.systemNamesFontSize / 4}
+		y={getIconsBottom(systemIcons) + mapSettings.current.systemNamesFontSize / 4}
 		text-anchor="middle"
 		dominant-baseline="hanging"
-		font-size={$mapSettings.systemNamesFontSize}
+		font-size={mapSettings.current.systemNamesFontSize}
 		fill="white"
-		font-family={$mapSettings.systemNamesFont}
+		font-family={mapSettings.current.systemNamesFont}
 		style:text-shadow="0px 0px 3px black"
 	>
 		{systemIcons.system.name}

@@ -5,7 +5,7 @@ import * as topojsonServer from 'topojson-server';
 import * as topojsonSimplify from 'topojson-simplify';
 import type { MultiPolygon, Objects, Polygon, Topology } from 'topojson-specification';
 
-import type { GameState } from '../../GameState';
+import type { GameState } from '../../GameState.svelte';
 import type { MapSettings } from '../../settings';
 import { getOrDefault, isDefined, parseNumberEntry } from '../../utils';
 import {

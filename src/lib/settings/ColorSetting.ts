@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const colorSettingSchema = z.object({
+export const zColorSetting = z.object({
 	color: z.string(),
 	colorAdjustments: z.array(
 		z.object({
@@ -11,8 +11,8 @@ export const colorSettingSchema = z.object({
 		}),
 	),
 });
-export type ColorSetting = z.infer<typeof colorSettingSchema>;
+export type ColorSetting = z.infer<typeof zColorSetting>;
 export type ColorSettingAdjustment = ColorSetting['colorAdjustments'][number];
 export type ColorSettingAdjustmentType = NonNullable<ColorSettingAdjustment['type']>;
 export const COLOR_SETTING_ADJUSTMENT_TYPES =
-	colorSettingSchema.shape.colorAdjustments.element.shape.type.unwrap().unwrap().options;
+	zColorSetting.shape.colorAdjustments.element.shape.type.unwrap().unwrap().options;

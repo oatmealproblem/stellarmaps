@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const strokeSettingSchema = z.object({
+export const zStrokeSetting = z.object({
 	enabled: z.boolean(),
 	width: z.number(),
 	smoothing: z.boolean(),
@@ -8,4 +8,4 @@ export const strokeSettingSchema = z.object({
 	dashArray: z.string(),
 	glow: z.boolean(),
 });
-export type StrokeSetting = z.infer<typeof strokeSettingSchema>;
+export type StrokeSetting = z.infer<typeof zStrokeSetting>;

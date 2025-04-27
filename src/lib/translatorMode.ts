@@ -1,20 +1,19 @@
-import type { ToastStore } from '@skeletonlabs/skeleton';
 import { path } from '@tauri-apps/api';
 import type { UnlistenFn } from '@tauri-apps/api/event';
 import * as dialog from '@tauri-apps/plugin-dialog';
 import { readTextFile } from '@tauri-apps/plugin-fs';
 import { watch, type WatchEvent } from '@tauri-apps/plugin-fs';
 import type { ObjectExpression } from 'acorn';
-import { writable } from 'svelte/store';
 
 import { locale, translatorModeMessages } from '../intl';
+import { RawStateWrapper } from './stateUtils.svelte';
 import { debounce, toastError } from './utils';
 
 let enabled = false;
 
-export const translatorModeFilePath = writable<null | string>(null);
+export const translatorModeFilePath = new RawStateWrapper<string | null>(null);
 let unwatch: null | UnlistenFn = null;
-export async function selectTranslatorModeFile(toastStore: ToastStore) {
+export async function selectTranslatorModeFile() {
 	const filePath = await dialog.open({
 		directory: false,
 		multiple: false,
@@ -24,7 +23,7 @@ export async function selectTranslatorModeFile(toastStore: ToastStore) {
 	if (typeof filePath === 'string') {
 		unwatch?.();
 		const { parse } = await import('acorn');
-		translatorModeFilePath.set(filePath);
+		translatorModeFilePath.current = filePath;
 
 		const readFileAndExtractMessages = debounce(() => {
 			readTextFile(filePath as string).then((contents) => {
@@ -86,11 +85,10 @@ export async function selectTranslatorModeFile(toastStore: ToastStore) {
 							`${getLineColMessagePrefix(declaration.start)} Expected ObjectExpression, found ${declaration.type}`,
 						);
 					const messages = extractMessages(declaration, {}, '');
-					translatorModeMessages.set(messages);
+					translatorModeMessages.current = messages;
 				} catch (error) {
 					console.error(error);
 					toastError({
-						toastStore,
 						title: 'Failed to parse translation file',
 						defaultValue: null,
 					})(error);
@@ -110,13 +108,14 @@ export async function selectTranslatorModeFile(toastStore: ToastStore) {
 
 function keydownListener(event: KeyboardEvent) {
 	if (event.key === 'Alt') {
-		locale.set('MessageID');
+		locale.current = 'MessageID';
 	}
 }
 
 function keyupListener(event: KeyboardEvent) {
 	if (event.key === 'Alt') {
-		locale.set(JSON.parse(localStorage.getItem('appSettings') ?? '{}')['appLocale'] ?? 'en-US');
+		locale.current =
+			JSON.parse(localStorage.getItem('appSettings') ?? '{}')['appLocale'] ?? 'en-US';
 	}
 }
 
@@ -130,9 +129,9 @@ export function enableTranslatorMode() {
 
 export function disableTranslatorMode() {
 	enabled = false;
-	translatorModeFilePath.set(null);
+	translatorModeFilePath.current = null;
 	unwatch?.();
 	window.removeEventListener('keydown', keydownListener);
 	window.removeEventListener('keyup', keyupListener);
-	translatorModeMessages.set({});
+	translatorModeMessages.current = {};
 }

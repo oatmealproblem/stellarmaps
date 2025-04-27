@@ -4,7 +4,7 @@
 		"beforeBuildCommand": "npx vite build",
 		"beforeDevCommand": "npx vite dev",
 		"devUrl": "http://localhost:5173",
-		"frontendDist": "../.vite/build"
+		"frontendDist": "../.vite/renderer/main_window"
 	},
 	"bundle": {
 		"active": true,
