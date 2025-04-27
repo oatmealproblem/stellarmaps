@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Slider, Switch, Tooltip } from '@skeletonlabs/skeleton-svelte';
+	import { Predicate } from 'effect';
 	import { slide } from 'svelte/transition';
 
 	import { t } from '../../intl';
@@ -10,7 +11,6 @@
 		type UnknownSettingConfig,
 		validateSetting,
 	} from '../settings';
-	import { isDefined } from '../utils';
 	import ColorSettingControl from './ColorSettingControl.svelte';
 	import IconSettingControl from './IconSettingControl.svelte';
 	import StrokeSettingControl from './StrokeSettingControl.svelte';
@@ -67,7 +67,7 @@
 		config.type === 'select' ? [...config.options, ...dynamicOptions.current] : [],
 	);
 	let groups = $derived(
-		Array.from(new Set(options.map((option) => option.group).filter(isDefined))),
+		Array.from(new Set(options.map((option) => option.group).filter(Predicate.isNotNullable))),
 	);
 
 	let [valid, invalidMessage, invalidMessageValues] = $derived(validateSetting(value, config));

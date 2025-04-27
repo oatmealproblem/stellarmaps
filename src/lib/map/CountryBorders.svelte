@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { match } from 'ts-pattern';
+	import { Match } from 'effect';
 
 	import { mapSettings } from '../settings';
 	import type { SectorBorderPath } from './data/processBorders';
@@ -19,30 +19,33 @@
 	let { data, colors }: Props = $props();
 
 	function getSectorBorderColorSetting(sectorBorder: SectorBorderPath) {
-		return match(sectorBorder)
-			.with({ type: 'union' }, () => mapSettings.current.unionBorderColor)
-			.with({ type: 'core' }, () => mapSettings.current.sectorCoreBorderColor)
-			.with({ type: 'standard' }, () => mapSettings.current.sectorBorderColor)
-			.with({ type: 'frontier' }, () => mapSettings.current.sectorFrontierBorderColor)
-			.exhaustive();
+		return Match.value(sectorBorder.type).pipe(
+			Match.when('union', () => mapSettings.current.unionBorderColor),
+			Match.when('core', () => mapSettings.current.sectorCoreBorderColor),
+			Match.when('standard', () => mapSettings.current.sectorBorderColor),
+			Match.when('frontier', () => mapSettings.current.sectorFrontierBorderColor),
+			Match.exhaustive,
+		);
 	}
 
 	function getSectorBorderStrokeSetting(sectorBorder: SectorBorderPath) {
-		return match(sectorBorder)
-			.with({ type: 'union' }, () => mapSettings.current.unionBorderStroke)
-			.with({ type: 'core' }, () => mapSettings.current.sectorCoreBorderStroke)
-			.with({ type: 'standard' }, () => mapSettings.current.sectorBorderStroke)
-			.with({ type: 'frontier' }, () => mapSettings.current.sectorFrontierBorderStroke)
-			.exhaustive();
+		return Match.value(sectorBorder.type).pipe(
+			Match.when('union', () => mapSettings.current.unionBorderStroke),
+			Match.when('core', () => mapSettings.current.sectorCoreBorderStroke),
+			Match.when('standard', () => mapSettings.current.sectorBorderStroke),
+			Match.when('frontier', () => mapSettings.current.sectorFrontierBorderStroke),
+			Match.exhaustive,
+		);
 	}
 
 	function getSectorBorderSortValue(sectorBorder: SectorBorderPath) {
-		return match(sectorBorder)
-			.with({ type: 'union' }, () => 0)
-			.with({ type: 'core' }, () => 1)
-			.with({ type: 'standard' }, () => 2)
-			.with({ type: 'frontier' }, () => 3)
-			.exhaustive();
+		return Match.value(sectorBorder.type).pipe(
+			Match.when('union', () => 0),
+			Match.when('core', () => 1),
+			Match.when('standard', () => 2),
+			Match.when('frontier', () => 3),
+			Match.exhaustive,
+		);
 	}
 
 	function filterSectorBorders(sectorBorder: SectorBorderPath) {

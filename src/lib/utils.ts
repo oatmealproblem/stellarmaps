@@ -34,10 +34,6 @@ export function parseNumberEntry<T>(entry: [string, T]): [number, T] {
 	return [parseInt(entry[0]), entry[1]];
 }
 
-export function isDefined<T>(value: T | null | undefined): value is T {
-	return value != null;
-}
-
 export function saveToWindow<T>(key: string, value: T): T {
 	(window as any)[key] = value;
 	return value;
@@ -99,13 +95,4 @@ export function getOrDefault<T>(
 	defaultValue: NonNullable<T>,
 ): NonNullable<T> {
 	return record[key] ?? defaultValue;
-}
-
-export function isEmptyObject(value: unknown) {
-	return (
-		value != null &&
-		typeof value === 'object' &&
-		!Array.isArray(value) &&
-		Object.keys(value).length === 0
-	);
 }

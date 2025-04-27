@@ -1,3 +1,5 @@
+import { Predicate } from 'effect';
+
 import type { MessageID } from '../../../intl';
 import type {
 	Country,
@@ -7,7 +9,7 @@ import type {
 	Species,
 } from '../../GameState.svelte';
 import type { ColorSetting, MapSettings } from '../../settings';
-import { isDefined, parseNumberEntry } from '../../utils';
+import { parseNumberEntry } from '../../utils';
 import { getUnionLeaderId } from './utils';
 
 interface MapMode {
@@ -124,7 +126,7 @@ export const mapModes: Record<string, MapMode> = {
 			getValues: (gameState, system) => {
 				const planets = system.colonies
 					.map((planetId) => gameState.planets.planet[planetId])
-					.filter(isDefined);
+					.filter(Predicate.isNotNullable);
 				const population = planets.reduce(
 					(totalPopulation, planet) => totalPopulation + (planet.num_sapient_pops ?? 0),
 					0,
@@ -156,7 +158,7 @@ export const mapModes: Record<string, MapMode> = {
 			getValues: (gameState, system) => {
 				const planets = system.colonies
 					.map((planetId) => gameState.planets.planet[planetId])
-					.filter(isDefined);
+					.filter(Predicate.isNotNullable);
 				const populationByCountry: Map<number, number> = planets.reduce<Map<number, number>>(
 					(acc, planet) => {
 						if (planet.owner != null && planet.num_sapient_pops != null) {
@@ -204,7 +206,7 @@ export const mapModes: Record<string, MapMode> = {
 			getValues: (gameState, system, _, selectedSpecies) => {
 				const planets = system.colonies
 					.map((planetId) => gameState.planets.planet[planetId])
-					.filter(isDefined);
+					.filter(Predicate.isNotNullable);
 				const population = planets.reduce(
 					(totalPopulation, planet) => totalPopulation + (planet.num_sapient_pops ?? 0),
 					0,

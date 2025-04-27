@@ -5,12 +5,11 @@ import 'pixi.js/unsafe-eval';
 
 import alea from 'alea';
 import { rgb } from 'd3-color';
+import { Array, Predicate } from 'effect';
 import * as PIXI from 'pixi.js';
-import * as R from 'rambda';
 
 import type { GameState } from '../../GameState.svelte';
 import type { ColorSetting, MapSettings } from '../../settings';
-import { isDefined } from '../../utils';
 import { resolveColor } from '../mapUtils';
 import shaderString from './noiseShader.glsl?raw';
 
@@ -137,7 +136,7 @@ export default async function renderStarScape(
 	const nebulaCoords = gameState.nebula.flatMap((nebula) =>
 		nebula.galactic_object
 			.map((system) => gameState.galactic_object[system])
-			.filter(isDefined)
+			.filter(Predicate.isNotNullable)
 			.map((system) => mapCoordToCanvasCoord(system.coordinate.x, system.coordinate.y)),
 	);
 
@@ -327,7 +326,10 @@ export default async function renderStarScape(
 							type: 'f32',
 							value:
 								1 /
-								R.range(0, layer.octaves).reduce((acc, cur) => acc + (layer.gain ?? 0.5) ** cur, 0),
+								Array.range(0, layer.octaves - 1).reduce(
+									(acc, cur) => acc + (layer.gain ?? 0.5) ** cur,
+									0,
+								),
 						},
 						uGain: { type: 'f32', value: layer.gain ?? 0.5 },
 						uLacunarity: { type: 'f32', value: layer.lacunarity ?? 2.0 },

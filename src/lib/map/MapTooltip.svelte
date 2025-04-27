@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { arrow, autoUpdate, computePosition, flip, offset, shift } from '@floating-ui/dom';
+	import { Predicate } from 'effect';
 	import { onDestroy, onMount } from 'svelte';
 
 	import { locale, type MessageID, t } from '../../intl';
@@ -7,7 +8,6 @@
 	import type { GalacticObject, GameState, LocalizedText } from '../GameState.svelte';
 	import HeroiconUserMicro from '../icons/HeroiconUserMicro.svelte';
 	import { mapSettings } from '../settings';
-	import { isDefined } from '../utils';
 	import { localizeText } from './data/locUtils';
 	import { mapModes } from './data/mapModes';
 	import type { ProcessedSystem } from './data/processSystems';
@@ -64,7 +64,7 @@
 	let planets = $derived(
 		system.colonies
 			.map((planetId) => gameState?.planets.planet[planetId])
-			.filter(isDefined)
+			.filter(Predicate.isNotNullable)
 			.sort((a, b) => (b.num_sapient_pops ?? 0) - (a.num_sapient_pops ?? 0)),
 	);
 

@@ -1,5 +1,6 @@
+import { Predicate } from 'effect';
+
 import type { GameState } from '../../GameState.svelte';
-import { isDefined } from '../../utils';
 
 export default function processBypassLinks(
 	gameState: GameState,
@@ -24,7 +25,9 @@ export default function processBypassLinks(
 		const [fromX, fromY] = getSystemCoordinates(system.id, { invertX: true });
 
 		const bypassTypes = new Set(
-			system.bypasses.map((bypassId) => gameState.bypasses[bypassId]?.type).filter(isDefined),
+			system.bypasses
+				.map((bypassId) => gameState.bypasses[bypassId]?.type)
+				.filter(Predicate.isNotNullable),
 		);
 
 		const wormholeBypass = system.bypasses

@@ -1,13 +1,12 @@
 <script lang="ts">
 	import { select } from 'd3-selection';
 	import { zoom, zoomIdentity } from 'd3-zoom';
-	import { match } from 'ts-pattern';
+	import { Match, Predicate } from 'effect';
 
 	import { t } from '../../../intl';
 	import type { GalacticObject, GameState } from '../../GameState.svelte';
 	import { pathKitPromise } from '../../pathKit';
 	import { type MapSettings, mapSettings } from '../../settings';
-	import { isDefined } from '../../utils';
 	import { localizeText } from '../data/locUtils';
 	import type { MapData } from '../data/processMapData';
 	import Glow from '../Glow.svelte';
@@ -111,16 +110,23 @@
 					},
 				};
 			})
-			.filter(isDefined),
+			.filter(Predicate.isNotNullable),
 	);
 
 	function getFleetIconSetting(fleet: (typeof fleets)[number], settings: MapSettings) {
-		return match(fleet)
-			.with({ isMobile: true, isMilitary: false }, () => settings.systemMapCivilianFleetIcon)
-			.with({ isMobile: false, isMilitary: false }, () => settings.systemMapCivilianStationIcon)
-			.with({ isMobile: true, isMilitary: true }, () => settings.systemMapMilitaryFleetIcon)
-			.with({ isMobile: false, isMilitary: true }, () => settings.systemMapMilitaryStationIcon)
-			.exhaustive();
+		return Match.value(fleet).pipe(
+			Match.when({ isMobile: true, isMilitary: false }, () => settings.systemMapCivilianFleetIcon),
+			Match.when(
+				{ isMobile: false, isMilitary: false },
+				() => settings.systemMapCivilianStationIcon,
+			),
+			Match.when({ isMobile: true, isMilitary: true }, () => settings.systemMapMilitaryFleetIcon),
+			Match.when(
+				{ isMobile: false, isMilitary: true },
+				() => settings.systemMapMilitaryStationIcon,
+			),
+			Match.exhaustive,
+		);
 	}
 
 	let ships = $derived(
@@ -143,13 +149,13 @@
 					};
 				});
 			})
-			.filter(isDefined),
+			.filter(Predicate.isNotNullable),
 	);
 
 	let planets = $derived(
 		system.planet
 			.map((planetId) => gameState.planets.planet[planetId])
-			.filter(isDefined)
+			.filter(Predicate.isNotNullable)
 			.filter((planet) => !isFakePlanet(planet)),
 	);
 
@@ -185,7 +191,7 @@
 				const textPath = `M ${textPathPoints[0][0]} ${textPathPoints[0][1]} L ${textPathPoints[1][0]} ${textPathPoints[1][1]}`;
 				return { x, y, system: toSystem, trianglePath, textPath };
 			})
-			.filter(isDefined),
+			.filter(Predicate.isNotNullable),
 	);
 </script>
 
@@ -403,20 +409,23 @@
 					<text
 						x={coordinate.x}
 						y={coordinate.y}
-						text-anchor={match(mapSettings.current.systemMapLabelFleetsPosition)
-							.with('right', () => 'start')
-							.with('left', () => 'end')
-							.otherwise(() => 'middle')}
-						dominant-baseline={match(mapSettings.current.systemMapLabelFleetsPosition)
-							.with('top', () => 'auto')
-							.with('bottom', () => 'hanging')
-							.otherwise(() => 'middle')}
-						transform={match(mapSettings.current.systemMapLabelFleetsPosition)
-							.with('right', () => `translate(${icon.size / 2} 0)`)
-							.with('left', () => `translate(${-icon.size / 2} 0)`)
-							.with('top', () => `translate(0 ${-icon.size / 2})`)
-							.with('bottom', () => `translate(0 ${icon.size / 2})`)
-							.otherwise(() => '')}
+						text-anchor={Match.value(mapSettings.current.systemMapLabelFleetsPosition).pipe(
+							Match.when('right', () => 'start'),
+							Match.when('left', () => 'end'),
+							Match.orElse(() => 'middle'),
+						)}
+						dominant-baseline={Match.value(mapSettings.current.systemMapLabelFleetsPosition).pipe(
+							Match.when('top', () => 'auto'),
+							Match.when('bottom', () => 'hanging'),
+							Match.orElse(() => 'middle'),
+						)}
+						transform={Match.value(mapSettings.current.systemMapLabelFleetsPosition).pipe(
+							Match.when('right', () => `translate(${icon.size / 2} 0)`),
+							Match.when('left', () => `translate(${-icon.size / 2} 0)`),
+							Match.when('top', () => `translate(0 ${-icon.size / 2})`),
+							Match.when('bottom', () => `translate(0 ${icon.size / 2})`),
+							Match.orElse(() => ''),
+						)}
 						font-size={fontSize}
 						fill="white"
 						font-family={mapSettings.current.systemMapLabelPlanetsFont}
