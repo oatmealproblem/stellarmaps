@@ -1,5 +1,6 @@
 import * as turf from '@turf/turf';
 import { Delaunay, Voronoi } from 'd3-delaunay';
+import { Predicate } from 'effect';
 import * as topojsonClient from 'topojson-client';
 import * as topojsonServer from 'topojson-server';
 import * as topojsonSimplify from 'topojson-simplify';
@@ -7,7 +8,7 @@ import type { MultiPolygon, Objects, Polygon, Topology } from 'topojson-specific
 
 import type { GameState } from '../../GameState.svelte';
 import type { MapSettings } from '../../settings';
-import { getOrDefault, isDefined, parseNumberEntry } from '../../utils';
+import { getOrDefault, parseNumberEntry } from '../../utils';
 import {
 	closeRings,
 	getAllPositionArrays,
@@ -203,7 +204,7 @@ function topologicallyMergeDelaunayPolygons(
 	systemPolygons: (Delaunay.Polygon | null | undefined)[],
 ) {
 	const nonNullishPolygons = systemPolygons
-		.filter(isDefined)
+		.filter(Predicate.isNotNullable)
 		.filter((points) => points.length >= 4);
 	if (nonNullishPolygons.length === 0) return null;
 	const geojsonPolygons = nonNullishPolygons.map((points) =>

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import * as R from 'rambda';
+	import { Array } from 'effect';
 
 	let viewBox = '-100 -100 200 200';
 
@@ -14,14 +14,14 @@
 	}
 
 	function makeRegularPolygonPath(n: number, { flatTop }: { flatTop: boolean }) {
-		const points = R.range(0, n).map((i) =>
+		const points = Array.range(0, n - 1).map((i) =>
 			pointOnCircle(i / n - 0.25 - (flatTop ? 0.5 / n : 0), 90),
 		);
 		return pointsToSvgPath(points);
 	}
 
 	function makeStarPath(n: number) {
-		const points = R.range(0, n).flatMap((i) => [
+		const points = Array.range(0, n - 1).flatMap((i) => [
 			pointOnCircle(i / n - 0.25, 90),
 			pointOnCircle((i * 2 + 1) / (n * 2) - 0.25, 30),
 		]);

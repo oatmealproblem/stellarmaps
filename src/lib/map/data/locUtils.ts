@@ -1,9 +1,9 @@
+import { Predicate } from 'effect';
 import { romanize } from 'romans';
 
 import type { LocalizedText } from '../../GameState.svelte';
 import { stellarisDataPromise } from '../../loadStellarisData.svelte';
 import { appSettings, type StellarisLanguage } from '../../settings';
-import { isDefined } from '../../utils';
 
 function getStellarisLanguageCode(stellarisLanguage: StellarisLanguage) {
 	const stellarisLanguageToCode: Record<StellarisLanguage, string> = {
@@ -84,7 +84,7 @@ export function localizeTextSync(
 					.filter((s) => s.length > 0)
 					// first char of each word + last char of final word (cause that's how acronyms work in Stellaris *shrug*)
 					.flatMap((s, i, a) => (i < a.length - 1 ? [s[0]] : [s[0], s[s.length - 1]]))
-					.filter(isDefined)
+					.filter(Predicate.isNotNullable)
 					.join('')
 					.toLocaleUpperCase(getStellarisLanguageCode(appSettings.current.appStellarisLanguage))
 			: '';

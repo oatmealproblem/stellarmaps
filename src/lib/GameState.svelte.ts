@@ -1,7 +1,8 @@
+import { Record } from 'effect';
 import { z } from 'zod';
 
 import { RawStateWrapper } from './stateUtils.svelte';
-import { isEmptyObject, saveToWindow } from './utils';
+import { saveToWindow } from './utils';
 
 type WithId<T> = T & { id: number };
 
@@ -16,7 +17,10 @@ $effect.root(() => {
 });
 
 function preprocessedArray<T extends z.ZodTypeAny>(schema: T) {
-	return z.preprocess((val) => (val == null || isEmptyObject(val) ? [] : val), z.array(schema));
+	return z.preprocess(
+		(val) => (val == null || Record.isEmptyRecord(val) ? [] : val),
+		z.array(schema),
+	);
 }
 
 // zod can't infer recursive types

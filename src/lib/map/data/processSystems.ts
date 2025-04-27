@@ -1,6 +1,7 @@
+import { Predicate } from 'effect';
+
 import type { GameState } from '../../GameState.svelte';
 import type { MapSettings } from '../../settings';
-import { isDefined } from '../../utils';
 import {
 	defaultCountryMapModeInfo,
 	getCountryMapModeInfo,
@@ -85,7 +86,9 @@ export default function processSystems(
 		const systemIsKnown = knownSystems.has(system.id);
 
 		const bypassTypes = new Set(
-			system.bypasses.map((bypassId) => gameState.bypasses[bypassId]?.type).filter(isDefined),
+			system.bypasses
+				.map((bypassId) => gameState.bypasses[bypassId]?.type)
+				.filter(Predicate.isNotNullable),
 		);
 		const hasWormhole = bypassTypes.has('wormhole') || bypassTypes.has('strange_wormhole');
 		const hasGateway = bypassTypes.has('gateway');

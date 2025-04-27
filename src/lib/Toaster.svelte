@@ -13,26 +13,28 @@
 </script>
 
 <script lang="ts">
+	import { Match } from 'effect';
 	import { Toaster } from 'melt/builders';
 	import { fade, fly } from 'svelte/transition';
-	import { match } from 'ts-pattern';
 
 	function getKindClass(data: ToastData) {
-		return match(data.kind)
-			.with('error', () => 'preset-filled-error-500')
-			.with('warning', () => 'preset-filled-warning-500')
-			.with('success', () => 'preset-filled-success-500')
-			.with('info', () => 'preset-filled-secondary-500')
-			.exhaustive();
+		return Match.value(data.kind).pipe(
+			Match.when('error', () => 'preset-filled-error-500'),
+			Match.when('warning', () => 'preset-filled-warning-500'),
+			Match.when('success', () => 'preset-filled-success-500'),
+			Match.when('info', () => 'preset-filled-secondary-500'),
+			Match.exhaustive,
+		);
 	}
 
 	function getKindActionClass(data: ToastData) {
-		return match(data.kind)
-			.with('error', () => 'preset-filled-error-950-50')
-			.with('warning', () => 'preset-filled-warning-950-50')
-			.with('success', () => 'preset-filled-success-950-50')
-			.with('info', () => 'preset-filled-secondary-950-50')
-			.exhaustive();
+		return Match.value(data.kind).pipe(
+			Match.when('error', () => 'preset-filled-error-950-50'),
+			Match.when('warning', () => 'preset-filled-warning-950-50'),
+			Match.when('success', () => 'preset-filled-success-950-50'),
+			Match.when('info', () => 'preset-filled-secondary-950-50'),
+			Match.exhaustive,
+		);
 	}
 </script>
 

@@ -1,5 +1,5 @@
+import { dequal as deepEquals } from 'dequal/lite';
 import type { PrimitiveType } from 'intl-messageformat';
-import * as R from 'rambda';
 
 import type { MessageID } from '../../intl';
 import type { AppSettings } from './appSettings.svelte';
@@ -165,6 +165,6 @@ export function settingsAreDifferent(
 						throw new Error(`Unhandled setting type: ${settingType}`);
 				}
 			}
-			return !R.equals(a[setting.id], b[setting.id]);
+			return deepEquals(a[setting.id], b[setting.id]);
 		});
 }

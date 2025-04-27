@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Accordion } from '@skeletonlabs/skeleton-svelte';
+	import { Predicate } from 'effect';
 
 	import { t } from '../../intl';
 	import {
@@ -9,7 +10,6 @@
 		type SelectOption,
 		type SettingConfigColor,
 	} from '../settings';
-	import { isDefined } from '../utils';
 	import ColorSettingAdjustmentControl from './ColorSettingAdjustmentControl.svelte';
 
 	interface Props {
@@ -25,7 +25,7 @@
 			new Set(
 				options
 					.map((option) => option.group)
-					.filter(isDefined)
+					.filter(Predicate.isNotNullable)
 					.filter(
 						// don't show dynamic colors group if no dynamic colors are allowed
 						(group) =>

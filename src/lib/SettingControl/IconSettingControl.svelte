@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Accordion } from '@skeletonlabs/skeleton-svelte';
+	import { Predicate } from 'effect';
 
 	import { t } from '../../intl';
 	import {
@@ -9,7 +10,6 @@
 		type IconSetting,
 		type SettingConfigIcon,
 	} from '../settings';
-	import { isDefined } from '../utils';
 	import ColorSettingControl from './ColorSettingControl.svelte';
 
 	interface Props {
@@ -25,7 +25,9 @@
 		}
 	});
 
-	let groups = Array.from(new Set(iconOptions.map((option) => option.group).filter(isDefined)));
+	let groups = Array.from(
+		new Set(iconOptions.map((option) => option.group).filter(Predicate.isNotNullable)),
+	);
 
 	function asIconPosition(s: string) {
 		return s as IconPosition;

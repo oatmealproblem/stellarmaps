@@ -1,8 +1,9 @@
 import * as turf from '@turf/turf';
+import { Predicate } from 'effect';
 
 import type { GameState, Sector } from '../../GameState.svelte';
 import type { MapSettings } from '../../settings';
-import { getOrDefault, getOrSetDefault, isDefined, parseNumberEntry } from '../../utils';
+import { getOrDefault, getOrSetDefault, parseNumberEntry } from '../../utils';
 import { getCountryMapModeInfo } from './mapModes';
 import type processCircularGalaxyBorders from './processCircularGalaxyBorder';
 import type { BorderCircle } from './processCircularGalaxyBorder';
@@ -98,7 +99,7 @@ export default function processBorders(
 			}
 			const sectorOuterPolygons = countrySectors
 				.map((sector) => sectorToGeojson[sector.id])
-				.filter(isDefined);
+				.filter(Predicate.isNotNullable);
 
 			const lineStringToSectors: Record<string, Set<Sector>> = {};
 			countrySectors.forEach((sector, i) => {
@@ -341,7 +342,7 @@ export default function processBorders(
 				isKnown: knownCountries.has(countryId),
 			};
 		})
-		.filter(isDefined);
+		.filter(Predicate.isNotNullable);
 
 	const unionLeaderToPositionStrings: Record<number, Set<string>> = Object.fromEntries(
 		borders.map((border) => [

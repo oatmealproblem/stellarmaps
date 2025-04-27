@@ -1,4 +1,4 @@
-import * as R from 'rambda';
+import { dequal as deepEquals } from 'dequal/lite';
 
 import debug from '../../debug';
 import type { GameState } from '../../GameState.svelte';
@@ -263,7 +263,7 @@ function pickSettings<K extends keyof MapSettings>(
 ): Pick<MapSettings, K> {
 	const memoKey = keys.toSorted().join();
 	const memoValue = pickSettingsMemo[memoKey];
-	if (memoValue && keys.every((key) => R.equals(memoValue[key], settings[key]))) {
+	if (memoValue && keys.every((key) => deepEquals(memoValue[key], settings[key]))) {
 		return memoValue as Pick<MapSettings, K>;
 	} else {
 		const value = Object.fromEntries(keys.map((key) => [key, settings[key]])) as Pick<
