@@ -5,6 +5,10 @@
 	import { z } from 'zod';
 
 	import { t } from '../intl';
+	import {
+		analyzeStellarisGameStateShape,
+		condenseShapeAnalysis,
+	} from './analyzeStellarisGameStateShape';
 	import ApplyChangesButton from './ApplyChangesButton.svelte';
 	import debug from './debug';
 	import { gameStatePromise, gameStateSchema } from './GameState.svelte';
@@ -74,7 +78,12 @@
 			.then(() => timeItAsync('loadSave', stellarMapsApi.loadSave, path))
 			.then((unvalidated) =>
 				timeIt('validateSave', () => {
-					if (debug.current) saveToWindow('unvalidatedGameState', unvalidated);
+					if (debug.current) {
+						saveToWindow('unvalidatedGameState', unvalidated);
+						const shape = analyzeStellarisGameStateShape(unvalidated);
+						console.log(condenseShapeAnalysis(shape));
+						saveToWindow('gameStateShape', shape);
+					}
 					return gameStateSchema.parse(unvalidated);
 				}),
 			);
