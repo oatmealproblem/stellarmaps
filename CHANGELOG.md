@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.12.4](https://github.com/MichaelMakesGames/stellarmaps/compare/stellarmaps-v0.12.3...stellarmaps-v0.12.4) (2025-04-26)
+
+### Bug Fixes
+
+- **data:** fix processing saves with missing country types, trade hubs, or planet species population ([4529461](https://github.com/MichaelMakesGames/stellarmaps/commit/452946142136573c3ec50e1b172f04b16e30c03f))
+
 ## [0.12.3](https://github.com/MichaelMakesGames/stellarmaps/compare/stellarmaps-v0.12.2...stellarmaps-v0.12.3) (2024-11-30)
 
 ### Bug Fixes

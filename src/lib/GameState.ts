@@ -65,12 +65,14 @@ const galacticObjectSchema = z
 			.optional(),
 		planet: z.number().optional(),
 		fleet_presence: z.array(z.number()).default([]),
-		trade_hub: z.object({
-			collected: z.number().optional(), // this does NOT include value delivered by other trade routes
-			destination: z.number().optional(), // trade_route ID
-			collected_from: z.array(z.number()).optional(), // galactic_object IDs
-			sources: z.array(z.number()).optional(), // trade_route IDs
-		}),
+		trade_hub: z
+			.object({
+				collected: z.number().optional(), // this does NOT include value delivered by other trade routes
+				destination: z.number().optional(), // trade_route ID
+				collected_from: z.array(z.number()).optional(), // galactic_object IDs
+				sources: z.array(z.number()).optional(), // trade_route IDs
+			})
+			.optional(), // pre-4.0 only
 		asteroid_belts: z
 			.array(
 				z.object({
@@ -101,7 +103,10 @@ const planetSchema = z.object({
 	owner: z.number().optional(),
 	num_sapient_pops: z.number().optional(),
 	species_information: z
-		.record(z.string(), z.object({ num_pops: z.number(), num_enslaved: z.number().optional() }))
+		.record(
+			z.string(),
+			z.object({ num_pops: z.number().optional(), num_enslaved: z.number().optional() }),
+		)
 		.optional(),
 	planet_size: z.number(),
 	planet_class: z.string(),
@@ -165,7 +170,7 @@ const relationSchema = z.object({
 export type Relation = z.infer<typeof relationSchema>;
 
 const countrySchema = z.object({
-	type: z.string(),
+	type: z.string().default('unknown'),
 	name: localizedTextSchema,
 	flag: z
 		.object({
