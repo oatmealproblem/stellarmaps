@@ -33,7 +33,7 @@ export interface BorderCircle {
 }
 
 export const processCircularGalaxyBordersDeps = [
-	'circularGalaxyBorders',
+	'galaxyBorderStyle',
 ] satisfies (keyof MapSettings)[];
 
 export default function processCircularGalaxyBorders(
@@ -117,11 +117,7 @@ export default function processCircularGalaxyBorders(
 	const mainCluster = clusters.find((cluster) =>
 		clusters.every((otherCluster) => cluster.systems.size >= otherCluster.systems.size),
 	);
-	// TODO detect starburst shape
-	function isStarburst(_snapshot: Snapshot) {
-		return false;
-	}
-	if (mainCluster && isStarburst(snapshot) && settings.circularGalaxyBorders) {
+	if (mainCluster && settings.galaxyBorderStyle === 'snail-shell') {
 		let outerRadii: number[] = [];
 		let innerRadii: number[] = [];
 		for (let i = 0; i < STARBURST_NUM_SLICES; i++) {
@@ -251,7 +247,7 @@ export default function processCircularGalaxyBorders(
 		.sort((a, b) => b[0].r - a[0].r)
 		.flat();
 
-	if (!settings.circularGalaxyBorders) {
+	if (!['circular', 'snail-shell'].includes(settings.galaxyBorderStyle)) {
 		return {
 			galaxyBorderCircles,
 			galaxyBorderCirclesGeoJSON: null,

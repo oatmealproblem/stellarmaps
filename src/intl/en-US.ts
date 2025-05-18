@@ -196,6 +196,11 @@ export default {
 			top: 'Top',
 			bottom: 'Bottom',
 		},
+		galaxy_border_style: {
+			blobs: 'Blobs',
+			circular: 'Circular',
+			snail_shell: 'Snail Shell',
+		},
 		glyph: {
 			none: 'None',
 			star_4_pointed: '✦ 4-Pointed Star',
@@ -362,10 +367,10 @@ export default {
 		terraIncognitaBrightness: 'Brightness',
 		backgroundColor: 'Background Color',
 		alignStarsToGrid: 'Align Solar Systems to Grid',
-		circularGalaxyBorders: 'Circular Galaxy Borders',
-		circularGalaxyBorders_tooltip: `<ul>
-			<li>When enabled, the overall border of the galaxy will be circular in shape, and there will be no "holes" between systems.</li>
-			<li>If the galaxy is a "Starburst", a special spiral shape will be used instead of a circle.</li>
+		galaxyBorderStyle: 'Galaxy Border Style',
+		galaxyBorderStyle_tooltip: `<ul>
+			<li>Sets the overall shape formed by all borders in the galaxy.</li>
+			<li>Snail shell works best with Stellaris "Starburst" galaxies.</li>
 		</ul>`,
 		borderGap: 'Border Gap',
 		borderGap_tooltip: 'Adds blank space between country borders',

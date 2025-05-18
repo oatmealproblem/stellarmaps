@@ -566,10 +566,15 @@ export const mapSettingsConfig: MapSettingConfigGroup[] = [
 		name: 'setting.group.advancedBorder',
 		settings: [
 			{
-				id: 'circularGalaxyBorders',
+				id: 'galaxyBorderStyle',
 				requiresReprocessing: true,
-				type: 'toggle',
-				tooltip: 'setting.circularGalaxyBorders_tooltip',
+				type: 'select',
+				options: [
+					{ id: 'blobs', name: 'option.galaxy_border_style.blobs' },
+					{ id: 'circular', name: 'option.galaxy_border_style.circular' },
+					{ id: 'snail-shell', name: 'option.galaxy_border_style.snail_shell' },
+				],
+				tooltip: 'setting.galaxyBorderStyle_tooltip',
 			},
 			{
 				id: 'borderGap',

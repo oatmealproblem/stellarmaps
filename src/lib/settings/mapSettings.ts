@@ -36,6 +36,7 @@ export type NumberOptionalMapSettings =
 export type StringMapSettings =
 	| 'countryNamesFont'
 	| 'countryNamesType'
+	| 'galaxyBorderStyle'
 	| 'labelsAvoidHoles'
 	| 'mapMode'
 	| 'mapModePointOfView'
@@ -56,7 +57,6 @@ export type StringMapSettings =
 
 export type BooleanMapSettings =
 	| 'alignStarsToGrid'
-	| 'circularGalaxyBorders'
 	| 'countryEmblems'
 	| 'countryNames'
 	| 'hyperlaneMetroStyle'
@@ -345,7 +345,7 @@ export const zMapSettings: z.Schema<MapSettings, z.ZodTypeDef, unknown> = z.obje
 	terraIncognitaPerspectiveCountry: z.string().catch('player'),
 	terraIncognitaStyle: z.string().catch('striped'),
 	terraIncognitaBrightness: z.number().catch(50),
-	circularGalaxyBorders: z.boolean().catch(false),
+	galaxyBorderStyle: z.string().catch('blobs'),
 	alignStarsToGrid: z.boolean().catch(false),
 	hyperlaneMetroStyle: z.boolean().catch(false),
 	wormholeStroke: zStrokeSetting.catch({

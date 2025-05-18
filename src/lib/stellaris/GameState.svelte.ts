@@ -411,7 +411,7 @@ export const gameStateSchema = z
 		war: stellarisDb(warSchema),
 		agreements: z.object({ agreements: stellarisDb(agreementSchema) }).default({}),
 		player: preprocessedArray(z.object({ name: z.coerce.string(), country: z.number() })),
-		galaxy: z.object({ shape: z.string(), core_radius: z.number() }),
+		galaxy: z.object({ core_radius: z.number() }),
 		planets: z.object({ planet: stellarisDb(planetSchema) }).default({}),
 		species_db: stellarisDb(speciesSchema),
 		trade_routes: stellarisDb(tradeRouteSchema),

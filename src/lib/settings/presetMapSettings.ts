@@ -26,7 +26,7 @@ export const presetMapSettings: SavedMapSettings[] = [
 		name: 'Circular',
 		settings: {
 			...defaultMapSettings,
-			circularGalaxyBorders: true,
+			galaxyBorderStyle: 'circular',
 		},
 	},
 	{

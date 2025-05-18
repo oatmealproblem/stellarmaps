@@ -12,7 +12,7 @@ export const processVoronoiDeps = [
 	'hyperlaneSensitiveBorders',
 	'voronoiGridSize',
 	'alignStarsToGrid',
-	'circularGalaxyBorders',
+	'galaxyBorderStyle',
 ] satisfies (keyof MapSettings)[];
 
 export const SYSTEMLESS_VORONOI_POINTS = SystemId.parse('SYSTEMLESS_VORONOI_POINTS');
@@ -84,7 +84,7 @@ export default function processVoronoi(
 			}
 		}
 	}
-	if (!settings.circularGalaxyBorders) {
+	if (settings.galaxyBorderStyle === 'blobs') {
 		// using points.push(...extraPoints) can cause a stack overflow when the grid size is small
 		for (const point of extraPoints) {
 			points.push(point);
