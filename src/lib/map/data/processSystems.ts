@@ -1,6 +1,5 @@
-import { Predicate } from 'effect';
+import type { FactionId, Snapshot, SystemId } from '$lib/project/snapshot';
 
-import type { GameState } from '../../GameState.svelte';
 import type { MapSettings } from '../../settings';
 import {
 	defaultCountryMapModeInfo,
@@ -12,8 +11,8 @@ import {
 import type processSystemOwnership from './processSystemOwnership';
 
 export interface ProcessedSystem extends MapModeCountryInfo {
-	id: number;
-	countryId?: number;
+	id: SystemId;
+	countryId?: FactionId;
 	isColonized: boolean;
 	isSectorCapital: boolean;
 	isCountryCapital: boolean;
@@ -43,63 +42,64 @@ export const processSystemsDeps = [
 ] satisfies (keyof MapSettings)[];
 
 export default function processSystems(
-	gameState: GameState,
+	snapshot: Snapshot,
 	settings: Pick<MapSettings, (typeof processSystemsDeps)[number]>,
 	systemIdToCountry: ReturnType<typeof processSystemOwnership>['systemIdToCountry'],
-	knownCountries: Set<number>,
-	knownSystems: Set<number>,
-	getSystemCoordinates: (id: number, options?: { invertX?: boolean }) => [number, number],
-	systemNames: Record<number, string>,
+	knownCountries: Set<FactionId>,
+	knownSystems: Set<SystemId>,
+	getSystemCoordinates: (id: SystemId) => [number, number],
 ) {
-	const playerCountryId = gameState.player.filter((p) => gameState.country[p.country])[0]?.country;
+	const playerCountryId = undefined as FactionId | undefined; // TODO gameState.player.filter((p) => gameState.country[p.country])[0]?.country;
 	const povCountryId =
 		settings.mapModePointOfView === 'player'
 			? playerCountryId
 			: parseInt(settings.mapModePointOfView);
-	const povCountry = povCountryId == null ? null : gameState.country[povCountryId];
-	const selectedSpeciesId =
-		settings.mapModeSpecies === 'player'
-			? playerCountryId == null
-				? null
-				: gameState.country[playerCountryId]?.founder_species_ref
-			: parseInt(settings.mapModeSpecies);
-	const selectedSpecies =
-		selectedSpeciesId == null ? null : gameState.species_db[selectedSpeciesId];
+	const povCountry = povCountryId == null ? null : snapshot.factions[povCountryId];
+	// TODO
+	// const selectedSpeciesId =
+	// 	settings.mapModeSpecies === 'player'
+	// 		? playerCountryId == null
+	// 			? null
+	// 			: snapshot.factions[playerCountryId]?.founder_species_ref
+	// 		: parseInt(settings.mapModeSpecies);
+	// const selectedSpecies =
+	// 	selectedSpeciesId == null ? null : gameState.species_db[selectedSpeciesId];
 
-	const systems = Object.values(gameState.galactic_object).map<ProcessedSystem>((system) => {
+	const systems = Object.values(snapshot.systems).map<ProcessedSystem>((system) => {
 		const countryId = systemIdToCountry[system.id];
-		const country = countryId != null ? gameState.country[countryId] : null;
+		const country = countryId != null ? snapshot.factions[countryId] : null;
 		const mapModeInfo =
 			countryId != null
-				? getCountryMapModeInfo(countryId, gameState, settings)
+				? getCountryMapModeInfo(countryId, snapshot, settings)
 				: defaultCountryMapModeInfo;
 
 		const isOwned = country != null;
-		const isColonized = isOwned && Boolean(system.colonies.length);
-		const isSectorCapital = Object.values(gameState.sectors).some((sector) =>
-			system.colonies.includes(sector.local_capital as number),
-		);
-		const isCountryCapital = system.colonies.includes(country?.capital as number);
-		const [x, y] = getSystemCoordinates(system.id, { invertX: true });
+		const isColonized = false; // TODO isOwned && Boolean(system.colonies.length);
+		const isSectorCapital = false; // TODO
+		// Object.values(gameState.sectors).some((sector) =>
+		// 	system.colonies.includes(sector.local_capital as number),
+		// );
+		const isCountryCapital = false; // TODO system.colonies.includes(country?.capital as number);
+		const [x, y] = getSystemCoordinates(system.id);
 
 		const ownerIsKnown = countryId != null && knownCountries.has(countryId);
 		const systemIsKnown = knownSystems.has(system.id);
 
-		const bypassTypes = new Set(
-			system.bypasses
-				.map((bypassId) => gameState.bypasses[bypassId]?.type)
-				.filter(Predicate.isNotNullable),
-		);
-		const hasWormhole = bypassTypes.has('wormhole') || bypassTypes.has('strange_wormhole');
-		const hasGateway = bypassTypes.has('gateway');
-		const hasLGate = bypassTypes.has('lgate');
-		const hasShroudTunnel = bypassTypes.has('shroud_tunnel');
+		// const bypassTypes = new Set(
+		// 	system.bypasses
+		// 		.map((bypassId) => gameState.bypasses[bypassId]?.type)
+		// 		.filter(Predicate.isNotNullable),
+		// );
+		const hasWormhole = false; // TODO bypassTypes.has('wormhole') || bypassTypes.has('strange_wormhole');
+		const hasGateway = false; // TODO bypassTypes.has('gateway');
+		const hasLGate = false; // TODO bypassTypes.has('lgate');
+		const hasShroudTunnel = false; // TODO bypassTypes.has('shroud_tunnel');
 
 		const mapModeValues = mapModes[settings.mapMode]?.system?.getValues(
-			gameState,
+			snapshot,
 			system,
 			povCountry ?? null,
-			selectedSpecies ?? null,
+			null, // TODO selectedSpecies ?? null,
 			country ?? null,
 		);
 		const mapModeTotalValue = mapModeValues?.reduce((acc, cur) => acc + cur.value, 0);
@@ -120,7 +120,7 @@ export default function processSystems(
 			hasShroudTunnel,
 			x,
 			y,
-			name: systemNames[system.id] ?? 'Unknown',
+			name: system.name,
 			mapModeValues,
 			mapModeTotalValue,
 		};

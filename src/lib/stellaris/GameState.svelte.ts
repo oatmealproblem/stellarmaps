@@ -1,8 +1,8 @@
 import { Record } from 'effect';
 import { z } from 'zod';
 
-import { RawStateWrapper } from './stateUtils.svelte';
-import { saveToWindow } from './utils';
+import { RawStateWrapper } from '../stateUtils.svelte';
+import { saveToWindow } from '../utils';
 
 type WithId<T> = T & { id: number };
 
@@ -398,6 +398,7 @@ function stellarisDb<T extends z.ZodType>(schema: T) {
 
 export const gameStateSchema = z
 	.object({
+		date: z.string(),
 		galactic_object: stellarisDb(galacticObjectSchema),
 		country: stellarisDb(countrySchema),
 		ships: stellarisDb(shipSchema),

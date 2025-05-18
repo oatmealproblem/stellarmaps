@@ -1,29 +1,30 @@
-import type { Country } from '../../GameState.svelte';
+import { Array, Iterable, Option, pipe } from 'effect';
+
+import type { Faction } from '$lib/project/snapshot';
+
 import { stellarisPath } from '../../loadStellarisData.svelte';
 import stellarMapsApi from '../../stellarMapsApi';
 
 const emblems: Record<string, Promise<string>> = {};
-export async function processEmblems(countries: Country[]) {
+export async function processEmblems(factions: Faction[]) {
 	const promises: Promise<string>[] = [];
-	const keys: string[] = [];
-	countries.forEach((c) => {
-		if (c.flag?.icon) {
-			const key = `${c.flag.icon.category}/${c.flag.icon.file}`;
-			if (keys.includes(key)) {
-				// do nothing
-			} else {
-				keys.push(key);
-				if (emblems[key] == null) {
-					emblems[key] = stellarMapsApi.loadEmblem(
-						stellarisPath.current,
-						c.flag.icon.category,
-						c.flag.icon.file,
-					);
-				}
-				promises.push(emblems[key]);
-			}
+	const keys: string[] = pipe(
+		factions,
+		Iterable.filterMap((faction) => Option.fromNullable(faction.flag.emblem)),
+		(values) => new Set(values),
+		Array.fromIterable,
+	);
+
+	keys.forEach((key) => {
+		if (emblems[key] == null) {
+			emblems[key] = stellarMapsApi.loadEmblem(
+				stellarisPath.current,
+				...(key.split('/') as [string, string]),
+			);
 		}
+		promises.push(emblems[key]);
 	});
+
 	const results = await Promise.allSettled(promises);
 	return results.reduce<Record<string, string>>((acc, cur, i) => {
 		const key = keys[i];

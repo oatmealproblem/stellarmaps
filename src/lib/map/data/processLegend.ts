@@ -1,9 +1,7 @@
 import { type MessageID, t } from '../../../intl';
-import type { GameState } from '../../GameState.svelte';
 import type { ColorSetting, IconSetting, MapSettings } from '../../settings';
 import { localizeText } from './locUtils';
 import { mapModes, type MapModeSystemValue } from './mapModes';
-import type processBorders from './processBorders';
 import type processSystems from './processSystems';
 import { getTextAspectRatio } from './utils';
 
@@ -50,9 +48,7 @@ export const processLegendDeps = [
 ] satisfies (keyof MapSettings)[];
 
 export default async function processLegend(
-	gameState: GameState,
 	settings: Pick<MapSettings, (typeof processLegendDeps)[number]>,
-	borders: ReturnType<typeof processBorders>,
 	systems: ReturnType<typeof processSystems>,
 ): Promise<LegendData> {
 	const mapMode = mapModes[settings.mapMode];

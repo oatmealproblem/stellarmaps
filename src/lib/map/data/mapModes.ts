@@ -1,16 +1,8 @@
-import { Predicate } from 'effect';
+import { Faction, FactionId, type Snapshot, System } from '$lib/project/snapshot';
 
 import type { MessageID } from '../../../intl';
-import type {
-	Country,
-	GalacticObject,
-	GameState,
-	LocalizedText,
-	Species,
-} from '../../GameState.svelte';
 import type { ColorSetting, MapSettings } from '../../settings';
-import { parseNumberEntry } from '../../utils';
-import { getUnionLeaderId } from './utils';
+import type { LocalizedText, Species } from '../../stellaris/GameState.svelte';
 
 interface MapMode {
 	id: string;
@@ -27,23 +19,22 @@ interface MapModeBorder {
 	showInLegend: 'always' | 'never';
 	primaryColor: string;
 	secondaryColor?: string;
-	matches: (gameState: GameState, countryId: number, povCountryId?: number) => boolean;
+	matches: (snapshot: Snapshot, countryId: FactionId, povCountryId?: FactionId) => boolean;
 }
 
 interface MapModeSystem {
 	scale?: number;
 	getValues: (
-		gameState: GameState,
-		system: GalacticObject,
-		povCountry: Country | null,
+		snapshot: Snapshot,
+		system: System,
+		povCountry: Faction | null,
 		selectedSpecies: Species | null,
-		systemOwner: Country | null,
+		systemOwner: Faction | null,
 	) => MapModeSystemValue[];
 }
 
 export interface MapModeSystemValue {
 	value: number;
-	directedValues?: Map<number, number>;
 	color: ColorSetting;
 	legendColor?: ColorSetting;
 	legendIndex: number;
@@ -76,14 +67,15 @@ export const mapModes: Record<string, MapMode> = {
 				label: 'map_mode.wars.ally',
 				showInLegend: 'always',
 				primaryColor: 'sky_blue',
-				matches: (gameState, countryId, povCountryId) =>
-					Object.values(gameState.war).some(
-						(war) =>
-							(war.attackers.some((c) => c.country === countryId) &&
-								war.attackers.some((c) => c.country === povCountryId)) ||
-							(war.defenders.some((c) => c.country === countryId) &&
-								war.defenders.some((c) => c.country === povCountryId)),
-					),
+				matches: (_snapshot, _countryId, _povCountryId) => false,
+				// TODO
+				// Object.values(snapshot.war).some(
+				// 	(war) =>
+				// 		(war.attackers.some((c) => c.country === countryId) &&
+				// 			war.attackers.some((c) => c.country === povCountryId)) ||
+				// 		(war.defenders.some((c) => c.country === countryId) &&
+				// 			war.defenders.some((c) => c.country === povCountryId)),
+				// ),
 			},
 			{
 				label: 'map_mode.wars.hostile',
@@ -95,12 +87,13 @@ export const mapModes: Record<string, MapMode> = {
 				label: 'map_mode.wars.at_war',
 				showInLegend: 'always',
 				primaryColor: 'orange',
-				matches: (gameState, countryId) =>
-					Object.values(gameState.war).some(
-						(war) =>
-							war.attackers.some((c) => c.country === countryId) ||
-							war.defenders.some((c) => c.country === countryId),
-					),
+				matches: (_gameState, _countryId) => false,
+				// TODO
+				// Object.values(gameState.war).some(
+				// 	(war) =>
+				// 		war.attackers.some((c) => c.country === countryId) ||
+				// 		war.defenders.some((c) => c.country === countryId),
+				// ),
 			},
 			{
 				label: 'map_mode.wars.at_peace',
@@ -123,14 +116,16 @@ export const mapModes: Record<string, MapMode> = {
 			},
 		],
 		system: {
-			getValues: (gameState, system) => {
-				const planets = system.colonies
-					.map((planetId) => gameState.planets.planet[planetId])
-					.filter(Predicate.isNotNullable);
-				const population = planets.reduce(
-					(totalPopulation, planet) => totalPopulation + (planet.num_sapient_pops ?? 0),
-					0,
-				);
+			getValues: (_snapshot, _system) => {
+				// TODO
+				// const planets = system.colonies
+				// 	.map((planetId) => snapshot.planets.planet[planetId])
+				// 	.filter(Predicate.isNotNullable);
+				// const population = planets.reduce(
+				// 	(totalPopulation, planet) => totalPopulation + (planet.num_sapient_pops ?? 0),
+				// 	0,
+				// );
+				const population = 0;
 				return [
 					{
 						value: population,
@@ -155,37 +150,38 @@ export const mapModes: Record<string, MapMode> = {
 			},
 		],
 		system: {
-			getValues: (gameState, system) => {
-				const planets = system.colonies
-					.map((planetId) => gameState.planets.planet[planetId])
-					.filter(Predicate.isNotNullable);
-				const populationByCountry: Map<number, number> = planets.reduce<Map<number, number>>(
-					(acc, planet) => {
-						if (planet.owner != null && planet.num_sapient_pops != null) {
-							acc.set(planet.owner, (acc.get(planet.owner) ?? 0) + planet.num_sapient_pops);
-						}
-						return acc;
-					},
-					new Map(),
-				);
-				return Array.from(populationByCountry)
-					.map<MapModeSystemValue>(([countryId, population]) => {
-						const color = gameState.country[countryId]?.flag?.colors[0] ?? 'black';
-						return {
-							value: population,
-							color: {
-								color,
-								colorAdjustments: [
-									{ type: 'MIN_CONTRAST', value: 0.25 },
-									{ type: 'OPACITY', value: 0.75 },
-								],
-							},
-							legendColor: { color: 'white', colorAdjustments: [] },
-							legendIndex: 0,
-							legendLabel: 'map_mode.population.country',
-						};
-					})
-					.sort((a, b) => b.value - a.value);
+			getValues: (_snapshot, _system) => {
+				return [];
+				// const planets = system.colonies
+				// 	.map((planetId) => gameState.planets.planet[planetId])
+				// 	.filter(Predicate.isNotNullable);
+				// const populationByCountry: Map<number, number> = planets.reduce<Map<number, number>>(
+				// 	(acc, planet) => {
+				// 		if (planet.owner != null && planet.num_sapient_pops != null) {
+				// 			acc.set(planet.owner, (acc.get(planet.owner) ?? 0) + planet.num_sapient_pops);
+				// 		}
+				// 		return acc;
+				// 	},
+				// 	new Map(),
+				// );
+				// return Array.from(populationByCountry)
+				// 	.map<MapModeSystemValue>(([countryId, population]) => {
+				// 		const color = snapshot.country[countryId]?.flag?.colors[0] ?? 'black';
+				// 		return {
+				// 			value: population,
+				// 			color: {
+				// 				color,
+				// 				colorAdjustments: [
+				// 					{ type: 'MIN_CONTRAST', value: 0.25 },
+				// 					{ type: 'OPACITY', value: 0.75 },
+				// 				],
+				// 			},
+				// 			legendColor: { color: 'white', colorAdjustments: [] },
+				// 			legendIndex: 0,
+				// 			legendLabel: 'map_mode.population.country',
+				// 		};
+				// 	})
+				// 	.sort((a, b) => b.value - a.value);
 			},
 		},
 	},
@@ -203,59 +199,61 @@ export const mapModes: Record<string, MapMode> = {
 			},
 		],
 		system: {
-			getValues: (gameState, system, _, selectedSpecies) => {
-				const planets = system.colonies
-					.map((planetId) => gameState.planets.planet[planetId])
-					.filter(Predicate.isNotNullable);
-				const population = planets.reduce(
-					(totalPopulation, planet) => totalPopulation + (planet.num_sapient_pops ?? 0),
-					0,
-				);
-				const { freePopulation, enslavedPopulation } = planets.reduce(
-					(acc, planet) => {
-						let freePlanetPopulation = 0;
-						let enslavedPlanetPopulation = 0;
-						for (const [speciesId, speciesPopulation] of Object.entries(
-							planet.species_information ?? {},
-						).map(parseNumberEntry)) {
-							if (
-								selectedSpecies?.id != null &&
-								(speciesId === selectedSpecies.id ||
-									gameState.species_db[speciesId]?.base_ref === selectedSpecies.id)
-							) {
-								freePlanetPopulation +=
-									(speciesPopulation.num_pops ?? 0) - (speciesPopulation.num_enslaved ?? 0);
-								enslavedPlanetPopulation += speciesPopulation.num_enslaved ?? 0;
-							}
-						}
-						acc.freePopulation += freePlanetPopulation;
-						acc.enslavedPopulation += enslavedPlanetPopulation;
-						return acc;
-					},
-					{ freePopulation: 0, enslavedPopulation: 0 },
-				);
-				return [
-					{
-						value: freePopulation,
-						color: { color: 'intense_blue', colorAdjustments: [] },
-						legendIndex: 0,
-						legendLabel: 'map_mode.population.free_species',
-						legendLabelData: { species: selectedSpecies?.name ?? { key: 'UNKNOWN' } },
-					},
-					{
-						value: enslavedPopulation,
-						color: { color: 'intense_red', colorAdjustments: [] },
-						legendIndex: 1,
-						legendLabel: 'map_mode.population.enslaved_species',
-						legendLabelData: { species: selectedSpecies?.name ?? { key: 'UNKNOWN' } },
-					},
-					{
-						value: population - freePopulation - enslavedPopulation,
-						color: { color: 'dark_grey', colorAdjustments: [] },
-						legendIndex: 2,
-						legendLabel: 'map_mode.population.other_species',
-					},
-				];
+			getValues: () => {
+				return [];
+				// TODO
+				// const planets = system.colonies
+				// 	.map((planetId) => gameState.planets.planet[planetId])
+				// 	.filter(Predicate.isNotNullable);
+				// const population = planets.reduce(
+				// 	(totalPopulation, planet) => totalPopulation + (planet.num_sapient_pops ?? 0),
+				// 	0,
+				// );
+				// const { freePopulation, enslavedPopulation } = planets.reduce(
+				// 	(acc, planet) => {
+				// 		let freePlanetPopulation = 0;
+				// 		let enslavedPlanetPopulation = 0;
+				// 		for (const [speciesId, speciesPopulation] of Object.entries(
+				// 			planet.species_information ?? {},
+				// 		).map(parseNumberEntry)) {
+				// 			if (
+				// 				selectedSpecies?.id != null &&
+				// 				(speciesId === selectedSpecies.id ||
+				// 					gameState.species_db[speciesId]?.base_ref === selectedSpecies.id)
+				// 			) {
+				// 				freePlanetPopulation +=
+				// 					(speciesPopulation.num_pops ?? 0) - (speciesPopulation.num_enslaved ?? 0);
+				// 				enslavedPlanetPopulation += speciesPopulation.num_enslaved ?? 0;
+				// 			}
+				// 		}
+				// 		acc.freePopulation += freePlanetPopulation;
+				// 		acc.enslavedPopulation += enslavedPlanetPopulation;
+				// 		return acc;
+				// 	},
+				// 	{ freePopulation: 0, enslavedPopulation: 0 },
+				// );
+				// return [
+				// 	{
+				// 		value: freePopulation,
+				// 		color: { color: 'intense_blue', colorAdjustments: [] },
+				// 		legendIndex: 0,
+				// 		legendLabel: 'map_mode.population.free_species',
+				// 		legendLabelData: { species: selectedSpecies?.name ?? { key: 'UNKNOWN' } },
+				// 	},
+				// 	{
+				// 		value: enslavedPopulation,
+				// 		color: { color: 'intense_red', colorAdjustments: [] },
+				// 		legendIndex: 1,
+				// 		legendLabel: 'map_mode.population.enslaved_species',
+				// 		legendLabelData: { species: selectedSpecies?.name ?? { key: 'UNKNOWN' } },
+				// 	},
+				// 	{
+				// 		value: population - freePopulation - enslavedPopulation,
+				// 		color: { color: 'dark_grey', colorAdjustments: [] },
+				// 		legendIndex: 2,
+				// 		legendLabel: 'map_mode.population.other_species',
+				// 	},
+				// ];
 			},
 		},
 	},
@@ -273,164 +271,92 @@ export const mapModes: Record<string, MapMode> = {
 			},
 		],
 		system: {
-			getValues(gameState, system, povCountry) {
-				const fleetToCountry: Record<string, number> = {};
-				Object.values(gameState.country).forEach((country) => {
-					country.fleets_manager?.owned_fleets.forEach((owned_fleet) => {
-						fleetToCountry[owned_fleet.fleet] = country.id;
-					});
-				});
+			getValues() {
+				return [];
+				// TODO
+				// 	const fleetToCountry: Record<string, number> = {};
+				// 	Object.values(gameState.country).forEach((country) => {
+				// 		country.fleets_manager?.owned_fleets.forEach((owned_fleet) => {
+				// 			fleetToCountry[owned_fleet.fleet] = country.id;
+				// 		});
+				// 	});
 
-				const mainStar =
-					system.planet[0] == null ? null : gameState.planets.planet[system.planet[0]];
-				const spaceControllerId = mainStar?.controller;
+				// 	const mainStar =
+				// 		system.planet[0] == null ? null : gameState.planets.planet[system.planet[0]];
+				// 	const spaceControllerId = mainStar?.controller;
 
-				let ownMobileFleetPower = 0;
-				let ownStationFleetPower = 0;
-				let alliedMobileFleetPower = 0;
-				let alliedStationFleetPower = 0;
-				let hostileMobileFleetPower = 0;
-				let hostileStationFleetPower = 0;
+				// 	let ownMobileFleetPower = 0;
+				// 	let ownStationFleetPower = 0;
+				// 	let alliedMobileFleetPower = 0;
+				// 	let alliedStationFleetPower = 0;
+				// 	let hostileMobileFleetPower = 0;
+				// 	let hostileStationFleetPower = 0;
 
-				const visibleFleets = new Set(povCountry?.sensor_range_fleets);
-				// TODO look into incorporating old sightings (country.intel)
-				for (const fleetId of system.fleet_presence.filter((id) => visibleFleets.has(id))) {
-					const fleet = gameState.fleet[fleetId];
-					const controllerId = fleet?.station ? spaceControllerId : fleetToCountry[fleetId];
-					const controller = controllerId == null ? null : gameState.country[controllerId];
-					if (!fleet || !controller) continue;
-					if (povCountry && controller.id === povCountry.id) {
-						if (fleet.station) {
-							ownStationFleetPower += fleet.military_power;
-						} else {
-							ownMobileFleetPower += fleet.military_power;
-						}
-					} else if (areCountriesFightingWarOnSameSide(gameState, povCountry?.id, controllerId)) {
-						if (fleet.station) {
-							alliedStationFleetPower += fleet.military_power;
-						} else {
-							alliedMobileFleetPower += fleet.military_power;
-						}
-					} else if (areCountriesHostile(gameState, povCountry?.id, controllerId)) {
-						if (fleet.station) {
-							hostileStationFleetPower += fleet.military_power;
-						} else {
-							hostileMobileFleetPower += fleet.military_power;
-						}
-					}
-				}
-				return [
-					{
-						value: ownMobileFleetPower,
-						color: { color: 'dark_teal', colorAdjustments: [{ type: 'LIGHTEN', value: 0.0 }] },
-						legendIndex: 0,
-						legendLabel: 'map_mode.fleet_power.own_fleet',
-					},
-					{
-						value: ownStationFleetPower,
-						color: { color: 'dark_teal', colorAdjustments: [{ type: 'DARKEN', value: 0.2 }] },
-						legendIndex: 1,
-						legendLabel: 'map_mode.fleet_power.own_station',
-					},
-					{
-						value: alliedMobileFleetPower,
-						color: { color: 'intense_blue', colorAdjustments: [{ type: 'LIGHTEN', value: 0.0 }] },
-						legendIndex: 2,
-						legendLabel: 'map_mode.fleet_power.allied_fleet',
-					},
-					{
-						value: alliedStationFleetPower,
-						color: { color: 'intense_blue', colorAdjustments: [{ type: 'DARKEN', value: 0.2 }] },
-						legendIndex: 3,
-						legendLabel: 'map_mode.fleet_power.allied_station',
-					},
-					{
-						value: hostileMobileFleetPower,
-						color: { color: 'intense_red', colorAdjustments: [{ type: 'LIGHTEN', value: 0.0 }] },
-						legendIndex: 4,
-						legendLabel: 'map_mode.fleet_power.hostile_fleet',
-					},
-					{
-						value: hostileStationFleetPower,
-						color: { color: 'intense_red', colorAdjustments: [{ type: 'DARKEN', value: 0.2 }] },
-						legendIndex: 5,
-						legendLabel: 'map_mode.fleet_power.hostile_station',
-					},
-				];
-			},
-		},
-	},
-	tradeRoutes: {
-		id: 'tradeRoutes',
-		name: 'map_mode.trade_routes.name',
-		tooltipLabel: 'map_mode.trade_routes.tooltip_label',
-		hasPov: true,
-		country: [
-			{
-				label: null,
-				showInLegend: 'never',
-				matches: () => true,
-				primaryColor: 'black',
-			},
-		],
-		system: {
-			scale: 0.25,
-			getValues(gameState, system, povCountry, _species, owner) {
-				const ownedByPov = owner != null && owner.id === povCountry?.id;
-				const collectedValue = !ownedByPov ? 0 : (system.trade_hub?.collected ?? 0);
-				const incomingValue = !ownedByPov
-					? undefined
-					: system.trade_hub?.sources?.reduce(
-							(acc, cur) => acc + (gameState.trade_routes[cur]?.delivered ?? 0),
-							0,
-						);
-				let deliveredValue = 0;
-				const deliveredValueTo = new Map<number, number>();
-				let piratedValue = 0;
-				const piratedValueTo = new Map<number, number>();
-				for (const route of Object.values(gameState.trade_routes).filter(
-					(route) => route.owner === povCountry?.id && (route.path[0]?.collected ?? 0) > 0,
-				)) {
-					route.path.forEach((node, i) => {
-						if (node.id === system.id) {
-							deliveredValue += node.delivered;
-							piratedValue += node.collected - node.delivered;
-							const next = route.path[i + 1];
-							if (next) {
-								if (node.delivered === 0) {
-									piratedValueTo.set(next.id, 0);
-								} else {
-									deliveredValueTo.set(
-										next.id,
-										(deliveredValueTo.get(next.id) ?? 0) + node.delivered,
-									);
-								}
-							}
-						}
-					});
-				}
-				return [
-					{
-						value: collectedValue,
-						color: { color: 'intense_blue', colorAdjustments: [] },
-						legendIndex: 1,
-						legendLabel: 'map_mode.trade_routes.collected',
-					},
-					{
-						value: incomingValue ?? Math.max(0, deliveredValue - collectedValue),
-						directedValues: deliveredValueTo,
-						color: { color: 'faded_blue', colorAdjustments: [] },
-						legendIndex: 2,
-						legendLabel: 'map_mode.trade_routes.pass_through',
-					},
-					{
-						value: piratedValue,
-						directedValues: piratedValueTo,
-						color: { color: 'intense_red', colorAdjustments: [] },
-						legendIndex: 3,
-						legendLabel: 'map_mode.trade_routes.pirated',
-					},
-				];
+				// 	const visibleFleets = new Set(povCountry?.sensor_range_fleets);
+				// 	// TODO look into incorporating old sightings (country.intel)
+				// 	for (const fleetId of system.fleet_presence.filter((id) => visibleFleets.has(id))) {
+				// 		const fleet = gameState.fleet[fleetId];
+				// 		const controllerId = fleet?.station ? spaceControllerId : fleetToCountry[fleetId];
+				// 		const controller = controllerId == null ? null : gameState.country[controllerId];
+				// 		if (!fleet || !controller) continue;
+				// 		if (povCountry && controller.id === povCountry.id) {
+				// 			if (fleet.station) {
+				// 				ownStationFleetPower += fleet.military_power;
+				// 			} else {
+				// 				ownMobileFleetPower += fleet.military_power;
+				// 			}
+				// 		} else if (areCountriesFightingWarOnSameSide(gameState, povCountry?.id, controllerId)) {
+				// 			if (fleet.station) {
+				// 				alliedStationFleetPower += fleet.military_power;
+				// 			} else {
+				// 				alliedMobileFleetPower += fleet.military_power;
+				// 			}
+				// 		} else if (areCountriesHostile(gameState, povCountry?.id, controllerId)) {
+				// 			if (fleet.station) {
+				// 				hostileStationFleetPower += fleet.military_power;
+				// 			} else {
+				// 				hostileMobileFleetPower += fleet.military_power;
+				// 			}
+				// 		}
+				// 	}
+				// 	return [
+				// 		{
+				// 			value: ownMobileFleetPower,
+				// 			color: { color: 'dark_teal', colorAdjustments: [{ type: 'LIGHTEN', value: 0.0 }] },
+				// 			legendIndex: 0,
+				// 			legendLabel: 'map_mode.fleet_power.own_fleet',
+				// 		},
+				// 		{
+				// 			value: ownStationFleetPower,
+				// 			color: { color: 'dark_teal', colorAdjustments: [{ type: 'DARKEN', value: 0.2 }] },
+				// 			legendIndex: 1,
+				// 			legendLabel: 'map_mode.fleet_power.own_station',
+				// 		},
+				// 		{
+				// 			value: alliedMobileFleetPower,
+				// 			color: { color: 'intense_blue', colorAdjustments: [{ type: 'LIGHTEN', value: 0.0 }] },
+				// 			legendIndex: 2,
+				// 			legendLabel: 'map_mode.fleet_power.allied_fleet',
+				// 		},
+				// 		{
+				// 			value: alliedStationFleetPower,
+				// 			color: { color: 'intense_blue', colorAdjustments: [{ type: 'DARKEN', value: 0.2 }] },
+				// 			legendIndex: 3,
+				// 			legendLabel: 'map_mode.fleet_power.allied_station',
+				// 		},
+				// 		{
+				// 			value: hostileMobileFleetPower,
+				// 			color: { color: 'intense_red', colorAdjustments: [{ type: 'LIGHTEN', value: 0.0 }] },
+				// 			legendIndex: 4,
+				// 			legendLabel: 'map_mode.fleet_power.hostile_fleet',
+				// 		},
+				// 		{
+				// 			value: hostileStationFleetPower,
+				// 			color: { color: 'intense_red', colorAdjustments: [{ type: 'DARKEN', value: 0.2 }] },
+				// 			legendIndex: 5,
+				// 			legendLabel: 'map_mode.fleet_power.hostile_station',
+				// 		},
+				// 	];
 			},
 		},
 	},
@@ -443,50 +369,57 @@ export const mapModes: Record<string, MapMode> = {
 				label: { key: 'auth_democratic' },
 				primaryColor: 'teal',
 				showInLegend: 'always',
-				matches: (gameState, country) =>
-					gameState.country[country]?.government?.authority === 'auth_democratic',
+				matches: () => false,
+				// TODO
+				// snapshot.country[country]?.government?.authority === 'auth_democratic',
 			},
 			{
 				label: { key: 'auth_oligarchic' },
 				primaryColor: 'yellow',
 				showInLegend: 'always',
-				matches: (gameState, country) =>
-					gameState.country[country]?.government?.authority === 'auth_oligarchic',
+				matches: () => false,
+				// TODO
+				// snapshot.country[country]?.government?.authority === 'auth_oligarchic',
 			},
 			{
 				label: { key: 'auth_dictatorial' },
 				primaryColor: 'intense_orange',
 				showInLegend: 'always',
-				matches: (gameState, country) =>
-					gameState.country[country]?.government?.authority === 'auth_dictatorial',
+				matches: () => false,
+				// TODO
+				// snapshot.country[country]?.government?.authority === 'auth_dictatorial',
 			},
 			{
 				label: { key: 'auth_imperial' },
 				primaryColor: 'red',
 				showInLegend: 'always',
-				matches: (gameState, country) =>
-					gameState.country[country]?.government?.authority === 'auth_imperial',
+				matches: () => false,
+				// TODO
+				// snapshot.country[country]?.government?.authority === 'auth_imperial',
 			},
 			{
 				label: { key: 'auth_corporate' },
 				primaryColor: 'desert_yellow',
 				showInLegend: 'always',
-				matches: (gameState, country) =>
-					gameState.country[country]?.government?.authority === 'auth_corporate',
+				matches: () => false,
+				// TODO
+				// snapshot.country[country]?.government?.authority === 'auth_corporate',
 			},
 			{
 				label: { key: 'auth_hive_mind' },
 				primaryColor: 'bright_yellow',
 				showInLegend: 'always',
-				matches: (gameState, country) =>
-					gameState.country[country]?.government?.authority === 'auth_hive_mind',
+				matches: () => false,
+				// TODO
+				// snapshot.country[country]?.government?.authority === 'auth_hive_mind',
 			},
 			{
 				label: { key: 'auth_machine_intelligence' },
 				primaryColor: 'sky_blue',
 				showInLegend: 'always',
-				matches: (gameState, country) =>
-					gameState.country[country]?.government?.authority === 'auth_machine_intelligence',
+				matches: () => false,
+				// TODO
+				// snapshot.country[country]?.government?.authority === 'auth_machine_intelligence',
 			},
 			{
 				label: null,
@@ -510,61 +443,62 @@ export const mapModes: Record<string, MapMode> = {
 					return country === povCountry;
 				},
 			},
-			{
-				label: { key: 'OPINION_EXCELLENT' },
-				primaryColor: 'intense_blue',
-				showInLegend: 'always',
-				matches: (gameState, country, povCountry) => {
-					const relation = gameState.country[country]?.relations_manager.relation.find(
-						(r) => r.country === povCountry,
-					);
-					return relation != null && relation.relation_current >= 750;
-				},
-			},
-			{
-				label: { key: 'OPINION_GOOD' },
-				primaryColor: 'turquoise',
-				showInLegend: 'always',
-				matches: (gameState, country, povCountry) => {
-					const relation = gameState.country[country]?.relations_manager.relation.find(
-						(r) => r.country === povCountry,
-					);
-					return relation != null && relation.relation_current >= 300;
-				},
-			},
-			{
-				label: { key: 'OPINION_NEUTRAL' },
-				primaryColor: 'yellow',
-				showInLegend: 'always',
-				matches: (gameState, country, povCountry) => {
-					const relation = gameState.country[country]?.relations_manager.relation.find(
-						(r) => r.country === povCountry,
-					);
-					return relation != null && relation.relation_current >= -300;
-				},
-			},
-			{
-				label: { key: 'OPINION_POOR' },
-				primaryColor: 'intense_orange',
-				showInLegend: 'always',
-				matches: (gameState, country, povCountry) => {
-					const relation = gameState.country[country]?.relations_manager.relation.find(
-						(r) => r.country === povCountry,
-					);
-					return relation != null && relation.relation_current >= -750;
-				},
-			},
-			{
-				label: { key: 'OPINION_TERRIBLE' },
-				primaryColor: 'intense_red',
-				showInLegend: 'always',
-				matches: (gameState, country, povCountry) => {
-					const relation = gameState.country[country]?.relations_manager.relation.find(
-						(r) => r.country === povCountry,
-					);
-					return relation != null && relation.relation_current < -750;
-				},
-			},
+			// TODO
+			// {
+			// 	label: { key: 'OPINION_EXCELLENT' },
+			// 	primaryColor: 'intense_blue',
+			// 	showInLegend: 'always',
+			// 	matches: (gameState, country, povCountry) => {
+			// 		const relation = gameState.country[country]?.relations_manager.relation.find(
+			// 			(r) => r.country === povCountry,
+			// 		);
+			// 		return relation != null && relation.relation_current >= 750;
+			// 	},
+			// },
+			// {
+			// 	label: { key: 'OPINION_GOOD' },
+			// 	primaryColor: 'turquoise',
+			// 	showInLegend: 'always',
+			// 	matches: (gameState, country, povCountry) => {
+			// 		const relation = gameState.country[country]?.relations_manager.relation.find(
+			// 			(r) => r.country === povCountry,
+			// 		);
+			// 		return relation != null && relation.relation_current >= 300;
+			// 	},
+			// },
+			// {
+			// 	label: { key: 'OPINION_NEUTRAL' },
+			// 	primaryColor: 'yellow',
+			// 	showInLegend: 'always',
+			// 	matches: (gameState, country, povCountry) => {
+			// 		const relation = gameState.country[country]?.relations_manager.relation.find(
+			// 			(r) => r.country === povCountry,
+			// 		);
+			// 		return relation != null && relation.relation_current >= -300;
+			// 	},
+			// },
+			// {
+			// 	label: { key: 'OPINION_POOR' },
+			// 	primaryColor: 'intense_orange',
+			// 	showInLegend: 'always',
+			// 	matches: (gameState, country, povCountry) => {
+			// 		const relation = gameState.country[country]?.relations_manager.relation.find(
+			// 			(r) => r.country === povCountry,
+			// 		);
+			// 		return relation != null && relation.relation_current >= -750;
+			// 	},
+			// },
+			// {
+			// 	label: { key: 'OPINION_TERRIBLE' },
+			// 	primaryColor: 'intense_red',
+			// 	showInLegend: 'always',
+			// 	matches: (gameState, country, povCountry) => {
+			// 		const relation = gameState.country[country]?.relations_manager.relation.find(
+			// 			(r) => r.country === povCountry,
+			// 		);
+			// 		return relation != null && relation.relation_current < -750;
+			// 	},
+			// },
 			{
 				label: null,
 				showInLegend: 'never',
@@ -587,8 +521,8 @@ export const defaultCountryMapModeInfo: MapModeCountryInfo = {
 };
 
 export function getCountryMapModeInfo(
-	countryId: number,
-	gameState: GameState,
+	countryId: FactionId,
+	snapshot: Snapshot,
 	settings: Pick<
 		MapSettings,
 		| 'mapMode'
@@ -602,13 +536,11 @@ export function getCountryMapModeInfo(
 ): MapModeCountryInfo {
 	const povCountryId =
 		settings.mapModePointOfView === 'player'
-			? gameState.player.filter((p) => gameState.country[p.country])[0]?.country
-			: parseInt(settings.mapModePointOfView);
+			? undefined // TODO gameState.player.filter((p) => gameState.country[p.country])[0]?.country
+			: FactionId.parse(settings.mapModePointOfView);
 	const mapMode = mapModes[settings.mapMode];
 	if (mapMode?.country) {
-		const match = mapMode.country.find(({ matches }) =>
-			matches(gameState, countryId, povCountryId),
-		);
+		const match = mapMode.country.find(({ matches }) => matches(snapshot, countryId, povCountryId));
 		if (match) {
 			return {
 				primaryColor: match.primaryColor,
@@ -620,57 +552,54 @@ export function getCountryMapModeInfo(
 			return defaultCountryMapModeInfo;
 		}
 	} else {
-		const colors =
-			gameState.country[
-				getUnionLeaderId(countryId, gameState, settings, ['joinedBorders', 'separateBorders'])
-			]?.flag?.colors;
-		return { primaryColor: colors?.[0] ?? 'black', secondaryColor: colors?.[1] ?? 'black' };
+		return snapshot.factions[countryId]?.flag ?? { primaryColor: 'black', secondaryColor: 'black' };
 	}
 }
 
 function areCountriesHostile(
-	gameState: GameState,
-	id1: number | null | undefined,
-	id2: number | null | undefined,
+	snapshot: Snapshot,
+	id1: FactionId | null | undefined,
+	id2: FactionId | null | undefined,
 ) {
 	if (id1 == null || id2 == null) return false;
-	const HOSTILE_COUNTRY_TYPES = ['awakened_marauders']; // it would be better to parse common/country_types
-	const country1 = gameState.country[id1];
-	const country2 = gameState.country[id2];
-	const relationTo2 = country1?.relations_manager.relation.find((r) => r.country === id2);
-	const relationTo1 = country2?.relations_manager.relation.find((r) => r.country === id1);
-	if (
-		Object.values(gameState.war).some(
-			(war) =>
-				(war.attackers.some((c) => c.country === id1) &&
-					war.defenders.some((c) => c.country === id2)) ||
-				(war.defenders.some((c) => c.country === id1) &&
-					war.attackers.some((c) => c.country === id2)),
-		)
-	)
-		return true;
-	if (country1?.overlord === id2 || country2?.overlord === id1) return false;
-	if (relationTo1?.truce != null || relationTo2?.truce != null) return false;
-	if (relationTo1?.hostile || relationTo2?.hostile) return true;
-	if (
-		country1 &&
-		country2 &&
-		(HOSTILE_COUNTRY_TYPES.includes(country1.type) || HOSTILE_COUNTRY_TYPES.includes(country2.type))
-	)
-		return true;
 	return false;
+	// const HOSTILE_COUNTRY_TYPES = ['awakened_marauders']; // it would be better to parse common/country_types
+	// const faction1 = snapshot.factions[id1];
+	// const faction2 = snapshot.factions[id2];
+	// const relationTo2 = faction1?.relations_manager.relation.find((r) => r.country === id2);
+	// const relationTo1 = faction2?.relations_manager.relation.find((r) => r.country === id1);
+	// if (
+	// 	Object.values(gameState.war).some(
+	// 		(war) =>
+	// 			(war.attackers.some((c) => c.country === id1) &&
+	// 				war.defenders.some((c) => c.country === id2)) ||
+	// 			(war.defenders.some((c) => c.country === id1) &&
+	// 				war.attackers.some((c) => c.country === id2)),
+	// 	)
+	// )
+	// 	return true;
+	// if (faction1?.overlord === id2 || faction2?.overlord === id1) return false;
+	// if (relationTo1?.truce != null || relationTo2?.truce != null) return false;
+	// if (relationTo1?.hostile || relationTo2?.hostile) return true;
+	// if (
+	// 	faction1 &&
+	// 	faction2 &&
+	// 	(HOSTILE_COUNTRY_TYPES.includes(faction1.type) || HOSTILE_COUNTRY_TYPES.includes(faction2.type))
+	// )
+	// 	return true;
+	// return false;
 }
 
-function areCountriesFightingWarOnSameSide(
-	gameState: GameState,
-	id1: number | null | undefined,
-	id2: number | null | undefined,
-) {
-	return Object.values(gameState.war).some(
-		(war) =>
-			(war.attackers.some((c) => c.country === id1) &&
-				war.attackers.some((c) => c.country === id2)) ||
-			(war.defenders.some((c) => c.country === id1) &&
-				war.defenders.some((c) => c.country === id2)),
-	);
-}
+// function areCountriesFightingWarOnSameSide(
+// 	_snapshot: Snapshot,
+// 	_id1: FactionId | null | undefined,
+// 	_id2: FactionId | null | undefined,
+// ) {
+// return Object.values(gameState.war).some(
+// 	(war) =>
+// 		(war.attackers.some((c) => c.country === id1) &&
+// 			war.attackers.some((c) => c.country === id2)) ||
+// 		(war.defenders.some((c) => c.country === id1) &&
+// 			war.defenders.some((c) => c.country === id2)),
+// );
+// }

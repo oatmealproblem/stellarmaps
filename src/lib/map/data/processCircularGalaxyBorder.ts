@@ -1,7 +1,9 @@
 import * as turf from '@turf/turf';
 import { interpolateBasis } from 'd3-interpolate';
+import { Array } from 'effect';
 
-import type { GameState } from '../../GameState.svelte';
+import type { Connection, Snapshot, SystemId } from '$lib/project/snapshot';
+
 import type { MapSettings } from '../../settings';
 import type { NonEmptyArray } from '../../utils';
 import {
@@ -27,7 +29,7 @@ export interface BorderCircle {
 	r: number;
 	type: 'inner' | 'outer' | 'inner-padded' | 'outer-padded' | 'outlier';
 	isMainCluster: boolean;
-	systems: Set<number>;
+	systems: Set<SystemId>;
 }
 
 export const processCircularGalaxyBordersDeps = [
@@ -35,46 +37,54 @@ export const processCircularGalaxyBordersDeps = [
 ] satisfies (keyof MapSettings)[];
 
 export default function processCircularGalaxyBorders(
-	gameState: GameState,
+	snapshot: Snapshot,
 	settings: Pick<MapSettings, (typeof processCircularGalaxyBordersDeps)[number]>,
-	getSystemCoordinates: (id: number, options?: { invertX?: boolean }) => [number, number],
+	getSystemCoordinates: (id: SystemId) => [number, number],
 ) {
 	const clusters: {
-		systems: Set<number>;
-		outliers: Set<number>;
+		systems: Set<SystemId>;
+		outliers: Set<SystemId>;
 		bBox: { xMin: number; xMax: number; yMin: number; yMax: number };
 		nonOutlierPoints: GeoJSON.FeatureCollection<GeoJSON.Point>;
 	}[] = [];
 
-	for (const go of Object.values(gameState.galactic_object)) {
-		if (clusters.some((cluster) => cluster.systems.has(go.id))) continue;
+	for (const system of Object.values(snapshot.systems)) {
+		if (clusters.some((cluster) => cluster.systems.has(system.id))) continue;
 		const cluster: (typeof clusters)[0] = {
-			systems: new Set<number>([go.id]),
-			outliers: new Set<number>(),
+			systems: new Set<SystemId>([system.id]),
+			outliers: new Set<SystemId>(),
 			bBox: {
-				xMin: getSystemCoordinates(go.id)[0],
-				xMax: getSystemCoordinates(go.id)[0],
-				yMin: getSystemCoordinates(go.id)[1],
-				yMax: getSystemCoordinates(go.id)[1],
+				xMin: getSystemCoordinates(system.id)[0],
+				xMax: getSystemCoordinates(system.id)[0],
+				yMin: getSystemCoordinates(system.id)[1],
+				yMax: getSystemCoordinates(system.id)[1],
 			},
 			nonOutlierPoints: turf.featureCollection([
-				turf.point(pointToGeoJSON(getSystemCoordinates(go.id))),
+				turf.point(pointToGeoJSON(getSystemCoordinates(system.id))),
 			]),
 		};
-		const edge = go.hyperlane.map((hyperlane) => hyperlane.to);
+
+		// TODO don't hard-code hyperlanes, instead base on connection definition
+		const connectionFilter = (connection: Connection) => connection.type === 'hyperlane';
+		const edge = system.connections.filter(connectionFilter).map((c) => c.to);
 		const edgeSet = new Set(edge);
 		while (edge.length > 0) {
 			const nextId = edge.pop();
 			if (nextId == null) break; // this shouldn't be possible, here for type inference
 			edgeSet.delete(nextId);
-			const next = gameState.galactic_object[nextId];
+			const next = snapshot.systems[nextId];
 			if (next != null && !cluster.systems.has(nextId)) {
 				cluster.systems.add(nextId);
-				const nextHyperlanes = next.hyperlane;
+				const nextConnections = next.connections.filter(connectionFilter);
 				const isOutlier =
-					nextHyperlanes.length === 1 &&
-					nextHyperlanes[0] != null &&
-					nextHyperlanes[0].length > OUTLIER_DISTANCE;
+					nextConnections.length === 1 &&
+					nextConnections[0] != null &&
+					Math.hypot(
+						...Array.zip(
+							getSystemCoordinates(nextId),
+							getSystemCoordinates(nextConnections[0].to),
+						).map(([a, b]) => a - b),
+					) > OUTLIER_DISTANCE;
 				if (!isOutlier) {
 					cluster.nonOutlierPoints.features.push(
 						turf.point(pointToGeoJSON(getSystemCoordinates(nextId))),
@@ -92,10 +102,10 @@ export default function processCircularGalaxyBorders(
 					if (getSystemCoordinates(nextId)[1] > cluster.bBox.yMax)
 						cluster.bBox.yMax = getSystemCoordinates(nextId)[1];
 				}
-				for (const hyperlane of nextHyperlanes) {
-					if (!cluster.systems.has(hyperlane.to) && !edgeSet.has(hyperlane.to)) {
-						edge.push(hyperlane.to);
-						edgeSet.add(hyperlane.to);
+				for (const connection of nextConnections) {
+					if (!cluster.systems.has(connection.to) && !edgeSet.has(connection.to)) {
+						edge.push(connection.to);
+						edgeSet.add(connection.to);
 					}
 				}
 			}
@@ -107,14 +117,18 @@ export default function processCircularGalaxyBorders(
 	const mainCluster = clusters.find((cluster) =>
 		clusters.every((otherCluster) => cluster.systems.size >= otherCluster.systems.size),
 	);
-	if (mainCluster && gameState.galaxy.shape === 'starburst' && settings.circularGalaxyBorders) {
+	// TODO detect starburst shape
+	function isStarburst(_snapshot: Snapshot) {
+		return false;
+	}
+	if (mainCluster && isStarburst(snapshot) && settings.circularGalaxyBorders) {
 		let outerRadii: number[] = [];
 		let innerRadii: number[] = [];
 		for (let i = 0; i < STARBURST_NUM_SLICES; i++) {
 			const minAngle = STARBURST_SLICE_ANGLE * i - ONE_DEGREE;
 			const maxAngle = STARBURST_SLICE_ANGLE * (i + 1) + ONE_DEGREE;
 			const [minR, maxR] = getMinMaxSystemRadii(
-				Array.from(mainCluster.systems).filter((id) => {
+				Array.fromIterable(mainCluster.systems).filter((id) => {
 					let systemAngle = Math.atan2(getSystemCoordinates(id)[1], getSystemCoordinates(id)[0]);
 					if (systemAngle < 0) systemAngle = Math.PI * 2 + systemAngle;
 					return (
@@ -123,7 +137,6 @@ export default function processCircularGalaxyBorders(
 				}),
 				0,
 				0,
-				gameState,
 				getSystemCoordinates,
 			);
 			outerRadii.push(maxR);
@@ -179,10 +192,9 @@ export default function processCircularGalaxyBorders(
 				}
 			}
 			const [minR, maxR] = getMinMaxSystemRadii(
-				Array.from(cluster.systems).filter((id) => !cluster.outliers.has(id)),
+				Array.fromIterable(cluster.systems).filter((id) => !cluster.outliers.has(id)),
 				cx,
 				cy,
-				gameState,
 				getSystemCoordinates,
 			);
 			const clusterCircles: NonEmptyArray<BorderCircle> = [
@@ -224,7 +236,7 @@ export default function processCircularGalaxyBorders(
 				});
 			}
 			clusterCircles.push(
-				...Array.from(cluster.outliers).map((outlierId) => ({
+				...Array.fromIterable(cluster.outliers).map((outlierId) => ({
 					cx: getSystemCoordinates(outlierId)[0],
 					cy: getSystemCoordinates(outlierId)[1],
 					r: OUTLIER_RADIUS,
@@ -250,7 +262,7 @@ export default function processCircularGalaxyBorders(
 	for (const circle of galaxyBorderCircles.filter(
 		(circle) => starburstGeoJSON == null || !circle.isMainCluster || circle.type === 'outlier',
 	)) {
-		const polygon = makeBorderCircleGeojson(gameState, getSystemCoordinates, circle);
+		const polygon = makeBorderCircleGeojson(snapshot, getSystemCoordinates, circle);
 		if (polygon == null) continue;
 		if (circle.type === 'outer-padded' || circle.type === 'outlier') {
 			if (galaxyBorderCirclesGeoJSON == null) {
@@ -272,11 +284,10 @@ export default function processCircularGalaxyBorders(
 }
 
 function getMinMaxSystemRadii(
-	systemIds: number[],
+	systemIds: SystemId[],
 	cx: number,
 	cy: number,
-	gameState: GameState,
-	getSystemCoordinates: (id: number, options?: { invertX?: boolean }) => [number, number],
+	getSystemCoordinates: (id: SystemId) => [number, number],
 ): [number, number] {
 	const sortedRadiusesSquared = systemIds
 		.map((id) => {

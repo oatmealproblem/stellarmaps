@@ -11,7 +11,6 @@
 	} from './analyzeStellarisGameStateShape';
 	import ApplyChangesButton from './ApplyChangesButton.svelte';
 	import debug from './debug';
-	import { gameStatePromise, gameStateSchema } from './GameState.svelte';
 	import HeroiconTrashMini from './icons/HeroiconTrashMini.svelte';
 	import { localizeText } from './map/data/locUtils';
 	import SettingControl from './SettingControl/index.svelte';
@@ -31,6 +30,7 @@
 	} from './settings';
 	import { speciesOptions } from './settings/options/speciesOptions';
 	import { PersistedRawState } from './stateUtils.svelte';
+	import { gameStatePromise, gameStateSchema } from './stellaris/GameState.svelte';
 	import type { StellarisSaveMetadata } from './stellarMapsApi';
 	import stellarMapsApi from './stellarMapsApi';
 	import { toaster } from './Toaster.svelte';

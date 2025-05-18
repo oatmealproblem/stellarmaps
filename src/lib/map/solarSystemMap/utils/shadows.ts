@@ -1,7 +1,7 @@
 import type { PathKit } from 'pathkit-wasm/bin/pathkit';
 
-import type { Planet } from '../../../GameState.svelte';
 import type { MapSettings } from '../../../settings';
+import type { Planet } from '../../../stellaris/GameState.svelte';
 import { getPlanetCoordinate } from './coordinates';
 import { getPlanetRadius, getPlanetStar, PLANET_RING_PATTERN } from './planets';
 

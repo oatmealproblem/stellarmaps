@@ -1,14 +1,16 @@
 import * as turf from '@turf/turf';
 import { Delaunay, Voronoi } from 'd3-delaunay';
-import { Predicate } from 'effect';
+import { Predicate, Record } from 'effect';
 import * as topojsonClient from 'topojson-client';
 import * as topojsonServer from 'topojson-server';
 import * as topojsonSimplify from 'topojson-simplify';
 import type { MultiPolygon, Objects, Polygon, Topology } from 'topojson-specification';
 
-import type { GameState } from '../../GameState.svelte';
+import type { FactionId, SectorId, Snapshot, SystemId } from '$lib/project/snapshot';
+
 import type { MapSettings } from '../../settings';
-import { getOrDefault, parseNumberEntry } from '../../utils';
+import { getOrDefault } from '../../utils';
+import { SYSTEMLESS_VORONOI_POINTS } from './processVoronoi';
 import {
 	closeRings,
 	getAllPositionArrays,
@@ -30,24 +32,24 @@ export const processPolygonsDeps = [
 ] satisfies (keyof MapSettings)[];
 
 export default function processPolygons(
-	gameState: GameState,
+	snapshot: Snapshot,
 	settings: Pick<MapSettings, (typeof processPolygonsDeps)[number]>,
 	voronoi: Voronoi<[number, number]>,
-	systemIdToVoronoiIndexes: Record<number, number[]>,
-	sectorToSystemIds: Record<number, Set<number>>,
-	countryToSystemIds: Record<number, Set<number>>,
-	unionLeaderToSystemIds: Record<number, Set<number>>,
-	unionLeaderToSectors: Record<number, Set<number>>,
-	sectorToCountry: Record<number, number>,
-	knownSystems: Set<number>,
-	fullOccupiedOccupierToSystemIds: Record<string, Set<number>>,
-	partialOccupiedOccupierToSystemIds: Record<string, Set<number>>,
+	systemIdToVoronoiIndexes: Record<SystemId, number[]>,
+	sectorToSystemIds: Record<SectorId, Set<SystemId>>,
+	countryToSystemIds: Record<FactionId, Set<SystemId>>,
+	unionLeaderToSystemIds: Record<FactionId, Set<SystemId>>,
+	unionLeaderToSectors: Record<FactionId, Set<SectorId>>,
+	sectorToCountry: Record<SectorId, FactionId>,
+	knownSystems: Set<SystemId>,
+	fullOccupiedOccupierToSystemIds: Record<FactionId, Set<SystemId>>,
+	partialOccupiedOccupierToSystemIds: Record<FactionId, Set<SystemId>>,
 ) {
 	const claimVoidEnabled = settings.claimVoidMaxSize != null && settings.claimVoidMaxSize > 0;
-	const systemIdToPolygon: Record<number, PolygonalFeature> = {};
+	const systemIdToPolygon: Record<SystemId, PolygonalFeature> = {};
 	for (const systemId of [
-		...(claimVoidEnabled ? [-1] : []),
-		...Object.values(gameState.galactic_object).map((system) => system.id),
+		...(claimVoidEnabled ? [SYSTEMLESS_VORONOI_POINTS] : []),
+		...Object.values(snapshot.systems).map((system) => system.id),
 	]) {
 		const delaunayPolygons = (systemIdToVoronoiIndexes[systemId] ?? []).map((voronoiIndex) =>
 			voronoi.cellPolygon(voronoiIndex),
@@ -76,7 +78,7 @@ export default function processPolygons(
 		topology,
 		partialOccupiedOccupierToSystemIds,
 	);
-	const unknownSystemIds = Object.values(gameState.galactic_object)
+	const unknownSystemIds = Object.values(snapshot.systems)
 		.map((s) => s.id)
 		.filter((id) => !knownSystems.has(id));
 	const terraIncognitaGeojson = mergeSystemPolygons(topology, unknownSystemIds);
@@ -114,23 +116,21 @@ export default function processPolygons(
 			if (area > (settings.claimVoidMaxSize ?? 0) * 10_000_000) continue;
 			const voidPositionStrings = turf.coordAll(voidPolygon).map(positionToString);
 
-			let unionLeaderId: number | undefined;
+			let unionLeaderId: FactionId | undefined;
 			let unionLeaderSharedDistancePercent = Math.max(
 				settings.claimVoidBorderThreshold,
 				Number.EPSILON,
 			);
-			Object.entries(unionLeaderToGeojson)
-				.map(parseNumberEntry)
-				.forEach(([id]) => {
-					const sharedDistancePercent = getSharedDistancePercent(
-						voidPolygon,
-						getOrDefault(unionLeaderToPositionStrings, id, new Set()),
-					);
-					if (sharedDistancePercent >= unionLeaderSharedDistancePercent) {
-						unionLeaderId = id;
-						unionLeaderSharedDistancePercent = sharedDistancePercent;
-					}
-				});
+			Record.keys(unionLeaderToGeojson).forEach((id) => {
+				const sharedDistancePercent = getSharedDistancePercent(
+					voidPolygon,
+					getOrDefault(unionLeaderToPositionStrings, id, new Set()),
+				);
+				if (sharedDistancePercent >= unionLeaderSharedDistancePercent) {
+					unionLeaderId = id;
+					unionLeaderSharedDistancePercent = sharedDistancePercent;
+				}
+			});
 
 			const sectorId =
 				unionLeaderId == null
@@ -167,15 +167,15 @@ export default function processPolygons(
 	};
 }
 
-function mergeSystemMappingPolygons<K extends string | number>(
+function mergeSystemMappingPolygons<K extends string>(
 	topology: Topology<Objects>,
-	systemIdMapping: Record<K, Set<number>>,
+	systemIdMapping: Record<K, Set<SystemId>>,
 ) {
 	return Object.fromEntries(
 		Object.entries(systemIdMapping)
 			.map(([key, systemIds]) => [
 				key,
-				mergeSystemPolygons(topology, Array.from(systemIds as Set<number>)),
+				mergeSystemPolygons(topology, Array.from(systemIds as Set<SystemId>)),
 			])
 			.filter(([_key, geojson]) => geojson != null),
 	) as Record<K, PolygonalFeature>;
@@ -183,7 +183,7 @@ function mergeSystemMappingPolygons<K extends string | number>(
 
 function mergeSystemPolygons(
 	topology: Topology<Objects>,
-	systemIds: number[],
+	systemIds: SystemId[],
 ): PolygonalFeature | null {
 	const geometry = topojsonClient.merge(
 		topology,
@@ -234,10 +234,10 @@ function getVoidPolygons(topology: Topology<Objects>) {
 	return getPolygons(voidGeojson);
 }
 
-function addPolygonToGeojsonMapping(
+function addPolygonToGeojsonMapping<Id extends string>(
 	polygon: GeoJSON.Feature<GeoJSON.Polygon>,
-	mapping: Record<number, PolygonalFeature>,
-	id: number | null | undefined,
+	mapping: Record<Id, PolygonalFeature>,
+	id: Id | null | undefined,
 ) {
 	const currentGeojson = id == null ? null : mapping[id];
 	if (id != null && currentGeojson) {

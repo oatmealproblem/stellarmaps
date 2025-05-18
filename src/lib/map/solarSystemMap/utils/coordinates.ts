@@ -1,5 +1,5 @@
-import type { Planet } from '../../../GameState.svelte';
 import type { MapSettings } from '../../../settings';
+import type { Planet } from '../../../stellaris/GameState.svelte';
 import { getPlanetRadius, getPrimaryBodies } from './planets';
 
 export function getScaledDistance(unscaledDistance: number, settings: MapSettings) {

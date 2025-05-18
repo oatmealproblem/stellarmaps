@@ -165,6 +165,6 @@ export function settingsAreDifferent(
 						throw new Error(`Unhandled setting type: ${settingType}`);
 				}
 			}
-			return deepEquals(a[setting.id], b[setting.id]);
+			return !deepEquals(a[setting.id], b[setting.id]);
 		});
 }

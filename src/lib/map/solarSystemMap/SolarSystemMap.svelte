@@ -4,9 +4,9 @@
 	import { Match, Predicate } from 'effect';
 
 	import { t } from '../../../intl';
-	import type { GalacticObject, GameState } from '../../GameState.svelte';
 	import { pathKitPromise } from '../../pathKit';
 	import { type MapSettings, mapSettings } from '../../settings';
+	import type { GalacticObject, GameState } from '../../stellaris/GameState.svelte';
 	import { localizeText } from '../data/locUtils';
 	import type { MapData } from '../data/processMapData';
 	import Glow from '../Glow.svelte';
@@ -91,7 +91,7 @@
 				const country = Object.values(gameState.country).find((country) =>
 					country.fleets_manager?.owned_fleets.some((f) => f.fleet === fleetId),
 				);
-				const countryBorder = mapData.borders.find((b) => b.countryId === country?.id);
+				const countryBorder = mapData.borders.find((b) => b.countryId === `country-${country?.id}`);
 				if (!fleet || !country) return null;
 				return {
 					id: fleet.id,
@@ -136,7 +136,7 @@
 				const country = Object.values(gameState.country).find((country) =>
 					country.fleets_manager?.owned_fleets.some((f) => f.fleet === fleetId),
 				);
-				const countryBorder = mapData.borders.find((b) => b.countryId === country?.id);
+				const countryBorder = mapData.borders.find((b) => b.countryId === `country-${country?.id}`);
 				if (!fleet || !country) return [];
 				return fleet.ships.map((shipId) => {
 					const ship = gameState.ships[shipId];

@@ -11,7 +11,6 @@
 	import type { MapData } from './data/processMapData';
 	import Hyperlanes from './Hyperlanes.svelte';
 	import Icons from './Icons.svelte';
-	import MapModePaths from './MapModePaths.svelte';
 	import OccupationPatternDefs from './OccupationPatternDefs.svelte';
 	import SystemIcons from './SystemIcons.svelte';
 	import TerraIncognita from './TerraIncognita.svelte';
@@ -86,7 +85,6 @@
 		<Hyperlanes {data} {colors} />
 		<TerraIncognita {data} />
 		<BypassLinks {data} {colors} />
-		<MapModePaths {data} {colors} />
 		<SystemIcons {data} {colors} />
 		<CountryLabels {data} />
 		{#if debug.current}

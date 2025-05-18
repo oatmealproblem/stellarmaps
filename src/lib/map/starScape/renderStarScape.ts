@@ -8,8 +8,8 @@ import { rgb } from 'd3-color';
 import { Array, Predicate } from 'effect';
 import * as PIXI from 'pixi.js';
 
-import type { GameState } from '../../GameState.svelte';
 import type { ColorSetting, MapSettings } from '../../settings';
+import type { GameState } from '../../stellaris/GameState.svelte';
 import { resolveColor } from '../mapUtils';
 import shaderString from './noiseShader.glsl?raw';
 

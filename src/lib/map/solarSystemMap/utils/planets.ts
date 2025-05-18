@@ -1,7 +1,7 @@
 import { scalePow } from 'd3-scale';
 
-import type { Planet } from '../../../GameState.svelte';
 import type { MapSettings } from '../../../settings';
+import type { Planet } from '../../../stellaris/GameState.svelte';
 
 export function isAsteroid(planet: Planet) {
 	return planet.planet_class.includes('asteroid');

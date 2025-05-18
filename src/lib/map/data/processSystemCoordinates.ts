@@ -1,20 +1,21 @@
-import type { GameState } from '../../GameState.svelte';
+import type { Snapshot, SystemId } from '$lib/project/snapshot';
+
 import type { MapSettings } from '../../settings';
 import { positionToString } from './utils';
 
 export const processSystemCoordinatesDeps = ['alignStarsToGrid'] satisfies (keyof MapSettings)[];
 export default function processSystemCoordinates(
-	gameState: GameState,
+	snapshot: Snapshot,
 	settings: Pick<MapSettings, (typeof processSystemCoordinatesDeps)[number]>,
 ) {
-	const systemIdToCoordinates: Record<number, [number, number]> = {};
+	const systemIdToCoordinates: Record<SystemId, [number, number]> = {};
 	const usedCoordinates = new Set(
-		...Object.values(gameState.galactic_object).map((go) =>
-			positionToString([go.coordinate.x, go.coordinate.y]),
+		...Object.values(snapshot.systems).map((system) =>
+			positionToString([system.coordinate.x, system.coordinate.y]),
 		),
 	);
-	for (const go of Object.values(gameState.galactic_object)) {
-		const originalCoordinates: [number, number] = [go.coordinate.x, go.coordinate.y];
+	for (const system of Object.values(snapshot.systems)) {
+		const originalCoordinates: [number, number] = [system.coordinate.x, system.coordinate.y];
 		const preferredCoordinates: [number, number][] = settings.alignStarsToGrid
 			? [
 					[
@@ -33,16 +34,12 @@ export default function processSystemCoordinates(
 			preferredCoordinates.find((coords) => !usedCoordinates.has(positionToString(coords))) ??
 			originalCoordinates;
 		usedCoordinates.add(positionToString(coordinates));
-		systemIdToCoordinates[go.id] = coordinates;
+		systemIdToCoordinates[system.id] = coordinates;
 	}
-	function getSystemCoordinates(systemId: number, { invertX = false } = {}): [number, number] {
+	function getSystemCoordinates(systemId: SystemId): [number, number] {
 		const coordinates = systemIdToCoordinates[systemId];
 		if (coordinates != null) {
-			if (invertX) {
-				return [-coordinates[0], coordinates[1]];
-			} else {
-				return coordinates;
-			}
+			return coordinates;
 		}
 		console.error(`System ${systemId} is missing coordinates; falling back to 0,0`);
 		return [0, 0];

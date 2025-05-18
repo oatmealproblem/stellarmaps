@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { arrow, autoUpdate, computePosition, flip, offset, shift } from '@floating-ui/dom';
-	import { Predicate } from 'effect';
 	import { onDestroy, onMount } from 'svelte';
+
+	import type { System } from '$lib/project/snapshot';
 
 	import { locale, type MessageID, t } from '../../intl';
 	import debug from '../debug';
-	import type { GalacticObject, GameState, LocalizedText } from '../GameState.svelte';
-	import HeroiconUserMicro from '../icons/HeroiconUserMicro.svelte';
 	import { mapSettings } from '../settings';
+	import type { GameState, LocalizedText } from '../stellaris/GameState.svelte';
 	import { localizeText } from './data/locUtils';
 	import { mapModes } from './data/mapModes';
 	import type { ProcessedSystem } from './data/processSystems';
@@ -16,13 +16,13 @@
 	interface Props {
 		x: number;
 		y: number;
-		system: GalacticObject;
+		system: System;
 		processedSystem: ProcessedSystem | null | undefined;
 		gameState: null | GameState;
 		colors: Record<string, string>;
 	}
 
-	let { x, y, system, processedSystem, gameState, colors }: Props = $props();
+	let { x, y, system, processedSystem, colors }: Props = $props();
 
 	let targetEl: HTMLDivElement;
 	let popupEl: HTMLDivElement;
@@ -61,12 +61,13 @@
 	});
 	onDestroy(() => cleanup?.());
 
-	let planets = $derived(
-		system.colonies
-			.map((planetId) => gameState?.planets.planet[planetId])
-			.filter(Predicate.isNotNullable)
-			.sort((a, b) => (b.num_sapient_pops ?? 0) - (a.num_sapient_pops ?? 0)),
-	);
+	// TODO
+	// let planets = $derived(
+	// 	system.colonies
+	// 		.map((planetId) => gameState?.planets.planet[planetId])
+	// 		.filter(Predicate.isNotNullable)
+	// 		.sort((a, b) => (b.num_sapient_pops ?? 0) - (a.num_sapient_pops ?? 0)),
+	// );
 
 	async function localizeValueLabel(
 		message: MessageID | LocalizedText,
@@ -94,13 +95,7 @@
 	bind:this={popupEl}
 >
 	<div class="bg-surface-600 absolute size-2 rotate-45" bind:this={arrowEl}></div>
-	<strong>
-		{#await localizeText(system.name)}
-			{t('generic.loading')}
-		{:then name}
-			{name}
-		{/await}
-	</strong>
+	<strong>{system.name}</strong>
 	{#if debug.current}
 		<div>System ID: {system.id}</div>
 		<div>Country ID: {processedSystem?.countryId}</div>
@@ -155,7 +150,8 @@
 			{/each}
 		</ul>
 	{/if}
-	{#if planets.length}
+	<!-- TODO -->
+	<!-- {#if planets.length}
 		<strong class="mt-2 block">{t('map.tooltip.colonies')}</strong>
 		<ul class="ps-4">
 			{#each planets as planet}
@@ -173,7 +169,7 @@
 				</li>
 			{/each}
 		</ul>
-	{/if}
+	{/if} -->
 	<div class="text-sm">
 		{t('map.click_to_view_system')}
 	</div>

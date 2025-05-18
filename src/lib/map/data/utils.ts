@@ -2,7 +2,8 @@ import * as turf from '@turf/turf';
 import { pathRound } from 'd3-path';
 import { curveBasis, curveBasisClosed, curveLinear, curveLinearClosed } from 'd3-shape';
 
-import type { GameState } from '../../GameState.svelte';
+import type { FactionId, Snapshot, SystemId } from '$lib/project/snapshot';
+
 import type { MapSettings } from '../../settings';
 import type { BorderCircle } from './processCircularGalaxyBorder';
 
@@ -20,80 +21,80 @@ export function pointFromGeoJSON(point: GeoJSON.Position): [number, number] {
 	return [point[0] * SCALE, point[1] * SCALE];
 }
 
-export function inverseX([x, y]: [number, number]): [number, number] {
-	return [-x, y];
-}
-
 export function getUnionLeaderId(
-	countryId: number,
-	gameState: GameState,
-	settings: Pick<
+	factionId: FactionId,
+	_snapshot: Snapshot,
+	_settings: Pick<
 		MapSettings,
 		'unionMode' | 'unionFederations' | 'unionHegemonies' | 'unionSubjects' | 'unionFederationsColor'
 	>,
-	values: ('joinedBorders' | 'separateBorders' | 'off')[],
-): number {
-	const isIncludedValue = (value: string) => (values as string[]).includes(value);
-	const country = gameState.country[countryId];
-	if (country == null) return countryId;
-	const overlordId = country.overlord;
-	const overlord = overlordId != null ? gameState.country[overlordId] : null;
-	const federation = country.federation != null ? gameState.federation[country.federation] : null;
-	const isHegemonyFederation = federation
-		? federation.federation_progress.federation_type === 'hegemony_federation'
-		: false;
-	const isNonHegemonyFederation = federation ? !isHegemonyFederation : false;
-	const overlordFederation =
-		overlord?.federation != null ? gameState.federation[overlord.federation] : null;
-	if (!settings.unionMode) {
-		return countryId;
-	} else if (
-		isIncludedValue(settings.unionFederations) &&
-		isIncludedValue(settings.unionSubjects) &&
-		overlordFederation
-	) {
-		return settings.unionFederationsColor === 'leader'
-			? overlordFederation.leader
-			: (overlordFederation.members[0] ?? countryId);
-	} else if (
-		federation &&
-		((isIncludedValue(settings.unionFederations) && isNonHegemonyFederation) ||
-			(isIncludedValue(settings.unionHegemonies) && isHegemonyFederation))
-	) {
-		return settings.unionFederationsColor === 'leader'
-			? federation.leader
-			: (federation.members[0] ?? countryId);
-	} else if (isIncludedValue(settings.unionSubjects) && overlord && overlordId != null) {
-		return overlordId;
-	} else {
-		return countryId;
-	}
+	_values: ('joinedBorders' | 'separateBorders' | 'off')[],
+): FactionId {
+	return factionId;
+	// TODO
+	// const isIncludedValue = (value: string) => (values as string[]).includes(value);
+	// const country = gameState.country[factionId];
+	// if (country == null) return factionId;
+	// const overlordId = country.overlord;
+	// const overlord = overlordId != null ? gameState.country[overlordId] : null;
+	// const federation = country.federation != null ? gameState.federation[country.federation] : null;
+	// const isHegemonyFederation = federation
+	// 	? federation.federation_progress.federation_type === 'hegemony_federation'
+	// 	: false;
+	// const isNonHegemonyFederation = federation ? !isHegemonyFederation : false;
+	// const overlordFederation =
+	// 	overlord?.federation != null ? gameState.federation[overlord.federation] : null;
+	// if (!settings.unionMode) {
+	// 	return factionId;
+	// } else if (
+	// 	isIncludedValue(settings.unionFederations) &&
+	// 	isIncludedValue(settings.unionSubjects) &&
+	// 	overlordFederation
+	// ) {
+	// 	return settings.unionFederationsColor === 'leader'
+	// 		? overlordFederation.leader
+	// 		: (overlordFederation.members[0] ?? factionId);
+	// } else if (
+	// 	federation &&
+	// 	((isIncludedValue(settings.unionFederations) && isNonHegemonyFederation) ||
+	// 		(isIncludedValue(settings.unionHegemonies) && isHegemonyFederation))
+	// ) {
+	// 	return settings.unionFederationsColor === 'leader'
+	// 		? federation.leader
+	// 		: (federation.members[0] ?? factionId);
+	// } else if (isIncludedValue(settings.unionSubjects) && overlord && overlordId != null) {
+	// 	return overlordId;
+	// } else {
+	// 	return factionId;
+	// }
 }
 
 export function isUnionLeader(
-	countryId: number,
-	gameState: GameState,
-	settings: Pick<
+	_countryId: FactionId,
+	_snapshot: Snapshot,
+	_settings: Pick<
 		MapSettings,
 		'unionMode' | 'unionFederations' | 'unionHegemonies' | 'unionSubjects'
 	>,
 ) {
-	const country = gameState.country[countryId];
-	if (country == null) return false;
-	const federation = country.federation != null ? gameState.federation[country.federation] : null;
-	const federationIsDisplayedAsUnion =
-		federation?.federation_progress.federation_type === 'hegemony_federation'
-			? settings.unionHegemonies !== 'off'
-			: settings.unionFederations !== 'off';
-	if (!settings.unionMode) {
-		return false;
-	} else if (federation && federationIsDisplayedAsUnion) {
-		return federation.leader === countryId;
-	} else if (settings.unionSubjects !== 'off') {
-		return Boolean(country.subjects.length);
-	} else {
-		return false;
-	}
+	return false;
+	// TODO
+	// const country = gameState.country[countryId];
+	// if (country == null) return false;
+	// const federation = country.federation != null ? gameState.federation[country.federation] : null;
+	// const federationIsDisplayedAsUnion =
+	// 	federation?.federation_progress.federation_type === 'hegemony_federation'
+	// 		? settings.unionHegemonies !== 'off'
+	// 		: settings.unionFederations !== 'off';
+	// if (!settings.unionMode) {
+	// 	return false;
+	// } else if (federation && federationIsDisplayedAsUnion) {
+	// 	return federation.leader === countryId;
+	// } else if (settings.unionSubjects !== 'off') {
+	// 	return Boolean(country.subjects.length);
+	// } else {
+	// 	return false;
+	// }
 }
 
 export function multiPolygonToPath(
@@ -113,7 +114,7 @@ export function multiPolygonToPath(
 			const pathContext = pathRound(3);
 			const curve = smooth ? curveBasisClosed(pathContext) : curveLinearClosed(pathContext);
 			curve.lineStart();
-			for (const point of points.map(inverseX)) {
+			for (const point of points) {
 				curve.point(...point);
 			}
 			curve.lineEnd();
@@ -127,7 +128,7 @@ export function segmentToPath(segment: GeoJSON.Position[], smooth: boolean): str
 	const pathContext = pathRound(3);
 	const curve = smooth ? curveBasis(pathContext) : curveLinear(pathContext);
 	curve.lineStart();
-	for (const point of points.map(inverseX)) {
+	for (const point of points) {
 		curve.point(...point);
 	}
 	curve.lineEnd();
@@ -170,33 +171,34 @@ export function getAllPositionArrays(geoJSON: PolygonalFeatureCollection | Polyg
 }
 
 export function createHyperlanePaths(
-	gameState: GameState,
+	snapshot: Snapshot,
 	settings: Pick<MapSettings, 'hyperlaneMetroStyle'>,
-	relayMegastructures: Set<number>,
-	systemIdToUnionLeader: Record<number, number>,
-	owner: null | number,
-	getSystemCoordinates: (id: number, options?: { invertX?: boolean }) => [number, number],
+	systemIdToUnionLeader: Record<SystemId, FactionId>,
+	owner: null | FactionId,
+	getSystemCoordinates: (id: SystemId) => [number, number],
 ) {
 	const hyperlanes = new Set<string>();
 	const relayHyperlanes = new Set<string>();
-	Object.values(gameState.galactic_object).forEach((go) => {
-		for (const hyperlane of go.hyperlane.filter((lane) => {
-			if (owner != null) {
-				return systemIdToUnionLeader[go.id] === owner && systemIdToUnionLeader[lane.to] === owner;
-			} else {
-				return (
-					systemIdToUnionLeader[go.id] == null ||
-					systemIdToUnionLeader[lane.to] == null ||
-					systemIdToUnionLeader[go.id] !== systemIdToUnionLeader[lane.to]
-				);
-			}
-		})) {
-			const isRelay =
-				go.megastructures.some((id) => relayMegastructures.has(id)) &&
-				gameState.galactic_object[hyperlane.to]?.megastructures.some((id) =>
-					relayMegastructures.has(id),
-				);
-			const key = [go.id, hyperlane.to].sort().join(',');
+	Object.values(snapshot.systems).forEach((system) => {
+		for (const connection of system.connections
+			// TODO don't hard-code hyperlane and relay_bypass
+			.filter((c) => c.type === 'hyperlane' || c.type === 'relay_bypass')
+			.filter((connection) => {
+				if (owner != null) {
+					return (
+						systemIdToUnionLeader[system.id] === owner &&
+						systemIdToUnionLeader[connection.to] === owner
+					);
+				} else {
+					return (
+						systemIdToUnionLeader[system.id] == null ||
+						systemIdToUnionLeader[connection.to] == null ||
+						systemIdToUnionLeader[system.id] !== systemIdToUnionLeader[connection.to]
+					);
+				}
+			})) {
+			const isRelay = connection.type === 'relay_bypass';
+			const key = [system.id, connection.to].sort().join(',');
 			if (isRelay) {
 				relayHyperlanes.add(key);
 			} else {
@@ -208,13 +210,13 @@ export function createHyperlanePaths(
 	const RADIUS = 3;
 	const RADIUS_45 = Math.sqrt(RADIUS ** 2 / 2);
 	const makeHyperlanePath = (key: string) => {
-		const [a, b] = key.split(',').map((id) => getSystemCoordinates(parseInt(id)));
+		const [a, b] = key.split(',').map((id) => getSystemCoordinates(id as SystemId));
 		if (a == null || b == null)
 			throw new Error(`Failed to parse system ids from hyperlane key ${key}`);
-		const simplePath = `M ${-a[0]} ${a[1]} L ${-b[0]} ${b[1]}`;
+		const simplePath = `M ${a[0]} ${a[1]} L ${b[0]} ${b[1]}`;
 		const dx = b[0] - a[0];
 		const dy = b[1] - a[1];
-		const dxSign = dx > 0 ? -1 : 1;
+		const dxSign = dx > 0 ? 1 : -1;
 		const dySign = dy > 0 ? 1 : -1;
 		if (
 			!settings.hyperlaneMetroStyle ||
@@ -230,10 +232,10 @@ export function createHyperlanePaths(
 				Math.abs(dy) > RADIUS
 			) {
 				return [
-					`M ${-a[0]} ${a[1]}`,
+					`M ${a[0]} ${a[1]}`,
 					`h ${dxSign * (Math.abs(dx) - Math.abs(dy) - RADIUS)}`,
 					`q ${dxSign * RADIUS} 0 ${dxSign * (RADIUS + RADIUS_45)} ${dySign * RADIUS_45}`,
-					`L ${-b[0]} ${b[1]}`,
+					`L ${b[0]} ${b[1]}`,
 				].join(' ');
 			} else if (
 				Math.abs(dy) > Math.abs(dx) &&
@@ -241,10 +243,10 @@ export function createHyperlanePaths(
 				Math.abs(dx) > RADIUS
 			) {
 				return [
-					`M ${-a[0]} ${a[1]}`,
+					`M ${a[0]} ${a[1]}`,
 					`v ${dySign * (Math.abs(dy) - Math.abs(dx) - RADIUS)}`,
 					`q 0 ${dySign * RADIUS} ${dxSign * RADIUS_45} ${dySign * (RADIUS_45 + RADIUS)}`,
-					`L ${-b[0]} ${b[1]}`,
+					`L ${b[0]} ${b[1]}`,
 				].join(' ');
 			} else {
 				return simplePath;
@@ -255,13 +257,6 @@ export function createHyperlanePaths(
 	const hyperlanesPath = Array.from(hyperlanes.values()).map(makeHyperlanePath).join(' ');
 	const relayHyperlanesPath = Array.from(relayHyperlanes.values()).map(makeHyperlanePath).join(' ');
 	return { hyperlanesPath, relayHyperlanesPath };
-}
-
-// frontier sectors don't exist as actual sector objects in the gameState
-// use the negative country id so they all have unique ids (needed when processing union boundaries)
-// also subtract 1, to avoid confusion with 0 vs -0 (country ids start at 0)
-export function getFrontierSectorPseudoId(countryId: number) {
-	return -countryId - 1;
 }
 
 export function closeRings(geojson: PolygonalFeature, loggingContext: Record<string, any> = {}) {
@@ -290,8 +285,8 @@ export function applyGalaxyBoundary(
 
 const OUTLIER_HYPERLANE_PADDING = 7.5;
 export function makeBorderCircleGeojson(
-	gameState: GameState,
-	getSystemCoordinates: (id: number) => [number, number],
+	snapshot: Snapshot,
+	getSystemCoordinates: (id: SystemId) => [number, number],
 	circle: BorderCircle,
 ) {
 	let geojson: PolygonalFeature | null = turf.circle(
@@ -306,12 +301,15 @@ export function makeBorderCircleGeojson(
 	if (circle.type === 'outlier') {
 		const multiLineString = turf.multiLineString(
 			Array.from(circle.systems).flatMap((systemId) => {
-				const system = gameState.galactic_object[systemId];
+				const system = snapshot.systems[systemId];
 				if (system == null) return [];
-				return system.hyperlane.map(({ to }) => [
-					pointToGeoJSON(getSystemCoordinates(systemId)),
-					pointToGeoJSON(getSystemCoordinates(to)),
-				]);
+				// TODO don't hardcode hyperlane, lookup definition
+				return system.connections
+					.filter((c) => c.type === 'hyperlane')
+					.map(({ to }) => [
+						pointToGeoJSON(getSystemCoordinates(systemId)),
+						pointToGeoJSON(getSystemCoordinates(to)),
+					]);
 			}),
 		);
 		const hyperlaneBuffer = turf.buffer(multiLineString, OUTLIER_HYPERLANE_PADDING / SCALE, {

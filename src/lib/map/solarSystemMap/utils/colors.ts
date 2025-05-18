@@ -1,4 +1,4 @@
-import type { Planet } from '../../../GameState.svelte';
+import type { Planet } from '../../../stellaris/GameState.svelte';
 import { isBlackHole } from './planets';
 
 export function getPlanetColor(planet: Planet, colors: Record<string, string>): string | undefined {

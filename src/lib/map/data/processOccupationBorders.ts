@@ -1,4 +1,7 @@
-import type { GameState } from '../../GameState.svelte';
+import { Record } from 'effect';
+
+import { FactionId, type Snapshot } from '$lib/project/snapshot';
+
 import type { MapSettings } from '../../settings';
 import { getCountryMapModeInfo } from './mapModes';
 import { multiPolygonToPath, type PolygonalFeature } from './utils';
@@ -15,8 +18,8 @@ export const processOccupationBordersDeps = [
 ] satisfies (keyof MapSettings)[];
 
 interface OccupationBorder {
-	occupied: number;
-	occupier: number;
+	occupied: FactionId;
+	occupier: FactionId;
 	primaryColor: string;
 	secondaryColor: string;
 	partial: boolean;
@@ -24,19 +27,23 @@ interface OccupationBorder {
 }
 
 export default function processOccupationBorders(
-	gameState: GameState,
+	snapshot: Snapshot,
 	settings: Pick<MapSettings, (typeof processOccupationBordersDeps)[number]>,
-	fullOccupiedOccupierToSystemIds: Record<string, PolygonalFeature>,
-	partialOccupiedOccupierToSystemIds: Record<string, PolygonalFeature>,
+	fullOccupiedOccupierToSystemIds: Record<FactionId, PolygonalFeature>,
+	partialOccupiedOccupierToSystemIds: Record<FactionId, PolygonalFeature>,
 ): OccupationBorder[] {
 	if (!settings.occupation) return [];
 	const makeMapFunc =
 		(partial: boolean) =>
-		([key, geojson]: [string, PolygonalFeature]) => {
-			const ids = key.split('-').map((s) => parseInt(s));
-			const occupied = ids[0] ?? -1; // this should never be nullish
-			const occupier = ids[1] ?? -1; // this should never be nullish
-			const { primaryColor, secondaryColor } = getCountryMapModeInfo(occupier, gameState, settings);
+		([key, geojson]: [FactionId, PolygonalFeature]) => {
+			const ids = key.split('-').map((s) => FactionId.parse(s));
+			const occupied = ids[0];
+			if (occupied == null || snapshot.factions[occupied])
+				throw new Error(`Invalid occupied faction ID, ${occupied}`);
+			const occupier = ids[1];
+			if (occupier == null || snapshot.factions[occupier])
+				throw new Error(`Invalid occupier faction ID, ${occupier}`);
+			const { primaryColor, secondaryColor } = getCountryMapModeInfo(occupier, snapshot, settings);
 			const path = multiPolygonToPath(geojson, false);
 			return {
 				occupied,
@@ -48,7 +55,7 @@ export default function processOccupationBorders(
 			};
 		};
 	return [
-		...Object.entries(fullOccupiedOccupierToSystemIds).map(makeMapFunc(false)),
-		...Object.entries(partialOccupiedOccupierToSystemIds).map(makeMapFunc(true)),
+		...Record.toEntries(fullOccupiedOccupierToSystemIds).map(makeMapFunc(false)),
+		...Record.toEntries(partialOccupiedOccupierToSystemIds).map(makeMapFunc(true)),
 	];
 }

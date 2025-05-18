@@ -1,9 +1,9 @@
 import { Predicate } from 'effect';
 import { romanize } from 'romans';
 
-import type { LocalizedText } from '../../GameState.svelte';
 import { stellarisDataPromise } from '../../loadStellarisData.svelte';
 import { appSettings, type StellarisLanguage } from '../../settings';
+import type { LocalizedText } from '../../stellaris/GameState.svelte';
 
 function getStellarisLanguageCode(stellarisLanguage: StellarisLanguage) {
 	const stellarisLanguageToCode: Record<StellarisLanguage, string> = {

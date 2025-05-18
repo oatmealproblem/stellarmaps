@@ -6,6 +6,8 @@
 	import { fade } from 'svelte/transition';
 
 	import ExportModal from '$lib/ExportModal.svelte';
+	import type { FactionId, System } from '$lib/project/snapshot';
+	import convertToSnapshot from '$lib/stellaris/convertToSnapshot';
 
 	import { t } from '../../intl';
 	import resizeObserver from '../actions/resizeObserver';
@@ -13,19 +15,14 @@
 	import convertBlobToDataUrl from '../convertBlobToDataUrl';
 	import convertSvgToPng from '../convertSvgToPng';
 	import debug from '../debug';
-	import { type GalacticObject, type GameState, gameStatePromise } from '../GameState.svelte';
 	import HeroiconArrowsPointingOut from '../icons/HeroiconArrowsPointingOut.svelte';
 	import {
 		loadStellarisData,
 		stellarisDataPromise,
 		stellarisPath,
 	} from '../loadStellarisData.svelte';
-	import {
-		appSettings,
-		editedMapSettings,
-		lastProcessedMapSettings,
-		mapSettings,
-	} from '../settings';
+	import { editedMapSettings, lastProcessedMapSettings, mapSettings } from '../settings';
+	import { type GameState, gameStatePromise } from '../stellaris/GameState.svelte';
 	import { debounce, timeItAsync, toastError } from '../utils';
 	import { mapModes } from './data/mapModes';
 	import processMapData from './data/processMapData';
@@ -33,14 +30,15 @@
 	import Map from './Map.svelte';
 	import MapTooltip from './MapTooltip.svelte';
 	import { getBackgroundColor } from './mapUtils';
-	import SolarSystemMap from './solarSystemMap/SolarSystemMap.svelte';
 	import renderStarScape from './starScape/renderStarScape';
 
 	let mapDataPromise = $derived.by(() => {
 		if (gameStatePromise.current) {
 			const settings = lastProcessedMapSettings.current;
-			const language = appSettings.current.appStellarisLanguage;
-			return gameStatePromise.current.then((gs) => processMapData(gs, settings, language));
+			return Promise.all([gameStatePromise.current, stellarisDataPromise.current]).then(
+				([gameState, stellarisData]) =>
+					processMapData(convertToSnapshot(gameState, { loc: stellarisData.loc }), settings),
+			);
 		} else {
 			return new Promise<Awaited<ReturnType<typeof processMapData>>>(() => {});
 		}
@@ -283,8 +281,8 @@
 	let tooltip: {
 		x: number;
 		y: number;
-		system: GalacticObject;
-		countryId: number | null;
+		system: System;
+		countryId: FactionId | null;
 		hidden: boolean;
 	} | null = $state(null);
 	function onMouseMoveInner(e: MouseEvent) {
@@ -302,7 +300,7 @@
 				((transform ?? zoomIdentity).invertY(e.offsetY) * viewBoxHeight) / outputHeight -
 					viewBoxHeight / 2,
 			];
-			const system = dataOrNull.findClosestSystem(-svgPoint[0], svgPoint[1]);
+			const system = dataOrNull.findClosestSystem(svgPoint[0], svgPoint[1]);
 			if (system) {
 				const countryId = dataOrNull.systemIdToCountry[system.id] ?? null;
 				const settings = mapSettings.current;
@@ -348,7 +346,7 @@
 		onMouseMoveInnerDebounced(e);
 	}
 
-	let openedSystem: GalacticObject | undefined = $state(undefined);
+	let openedSystem: System | undefined = $state(undefined);
 	function closeSystemMap() {
 		openedSystem = undefined;
 	}
@@ -478,7 +476,8 @@
 			</div>
 		{/await}
 		{#if openedSystem && gameStateOrNull && colorsOrNull && dataOrNull}
-			<SolarSystemMap
+			<!-- TODO -->
+			<!-- <SolarSystemMap
 				id="systemMap"
 				gameState={gameStateOrNull}
 				mapData={dataOrNull}
@@ -487,7 +486,7 @@
 				onSystemSelected={(system) => {
 					openedSystem = system;
 				}}
-			/>
+			/> -->
 		{/if}
 		<!-- svelte-ignore a11y_mouse_events_have_key_events -->
 		<svg

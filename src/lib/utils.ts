@@ -30,10 +30,6 @@ export function wait(ms: number): Promise<never> {
 	return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export function parseNumberEntry<T>(entry: [string, T]): [number, T] {
-	return [parseInt(entry[0]), entry[1]];
-}
-
 export function saveToWindow<T>(key: string, value: T): T {
 	(window as any)[key] = value;
 	return value;

@@ -1,11 +1,9 @@
-import type { GameState } from '../../GameState.svelte';
 import type { MapSettings } from '../../settings';
 import { applyGalaxyBoundary, multiPolygonToPath, type PolygonalFeature } from './utils';
 
 export const processTerraIncognitaPathDeps = ['borderStroke'] satisfies (keyof MapSettings)[];
 
 export default function processTerraIncognitaPath(
-	gameState: GameState,
 	settings: Pick<MapSettings, (typeof processTerraIncognitaPathDeps)[number]>,
 	terraIncognitaGeojson: PolygonalFeature | null,
 	galaxyBorderCirclesGeoJSON: PolygonalFeature | null,

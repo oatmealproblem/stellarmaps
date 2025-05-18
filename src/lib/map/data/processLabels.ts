@@ -1,16 +1,15 @@
 import * as turf from '@turf/turf';
 import polylabel from 'polylabel';
 
-import type { GameState } from '../../GameState.svelte';
+import type { FactionId, Snapshot } from '$lib/project/snapshot';
+
 import type { MapSettings } from '../../settings';
-import { removeColorAndIconCodes } from './locUtils';
 import type processBorders from './processBorders';
 import type processSystemOwnership from './processSystemOwnership';
 import type processTerraIncognita from './processTerraIncognita';
 import {
 	getPolygons,
 	getTextAspectRatio,
-	inverseX,
 	isUnionLeader,
 	pointFromGeoJSON,
 	type PolygonalFeature,
@@ -35,20 +34,19 @@ export const processLabelsDeps = [
 ] satisfies (keyof MapSettings)[];
 
 export default function processLabels(
-	gameState: GameState,
+	snapshot: Snapshot,
 	settings: Pick<MapSettings, (typeof processLabelsDeps)[number]>,
-	countryToGeojson: Record<number, PolygonalFeature>,
-	unionLeaderToUnionMembers: Record<number, Set<number>>,
+	countryToGeojson: Record<FactionId, PolygonalFeature>,
+	unionLeaderToUnionMembers: Record<FactionId, Set<FactionId>>,
 	borders: ReturnType<typeof processBorders>,
-	countryNames: Record<number, string>,
 	knownCountries: ReturnType<typeof processTerraIncognita>['knownCountries'],
 	ownedSystemPoints: ReturnType<typeof processSystemOwnership>['ownedSystemPoints'],
 ) {
-	const idGeojsonPairs: [number, PolygonalFeature | null][] = !settings.unionMode
+	const idGeojsonPairs: [FactionId, PolygonalFeature | null][] = !settings.unionMode
 		? borders.map((border) => [border.countryId, border.geojson])
 		: borders.flatMap((border) =>
 				Array.from(unionLeaderToUnionMembers[border.countryId] ?? []).map<
-					[number, PolygonalFeature | null]
+					[FactionId, PolygonalFeature | null]
 				>((memberId) => {
 					const memberGeojson = countryToGeojson[memberId];
 					if (!memberGeojson || !border.geojson) return [memberId, null];
@@ -57,14 +55,16 @@ export default function processLabels(
 					return [
 						memberId,
 						turf.intersect(turf.featureCollection([memberGeojson, border.geojson])),
-					] as [number, PolygonalFeature | null];
+					] as [FactionId, PolygonalFeature | null];
 				}),
 			);
 	const labels = idGeojsonPairs.map(([countryId, geojson]) => {
-		const countryName = countryNames[countryId] ?? '';
-		const playerName = removeColorAndIconCodes(
-			gameState.player.find((player) => player.country === countryId)?.name ?? '',
-		);
+		const countryName = snapshot.factions[countryId]?.name ?? '';
+		const playerName = '' as string;
+		// TODO
+		// removeColorAndIconCodes(
+		// 	gameState.player.find((player) => player.country === countryId)?.name ?? '',
+		// );
 		let primaryName = '';
 		let secondaryName = '';
 		switch (settings.countryNamesType) {
@@ -87,7 +87,7 @@ export default function processLabels(
 				break;
 			}
 		}
-		const country = gameState.country[countryId];
+		const country = snapshot.factions[countryId];
 
 		const textAspectRatio =
 			primaryName && settings.countryNames
@@ -174,7 +174,7 @@ export default function processLabels(
 								emblemWidth = settings.countryEmblemsMaxSize / SCALE;
 							}
 							return {
-								point: inverseX(pointFromGeoJSON(point)),
+								point: pointFromGeoJSON(point),
 								emblemWidth: emblemWidth != null && emblemWidth > 0 ? emblemWidth * SCALE : null,
 								emblemHeight:
 									emblemWidth != null && emblemWidth > 0
@@ -186,15 +186,13 @@ export default function processLabels(
 							};
 						})
 				: [];
-		const emblemKey = country?.flag?.icon
-			? `${country.flag.icon.category}/${country.flag.icon.file}`
-			: null;
+		const emblemKey = country?.flag.emblem ?? null;
 		return {
 			labelPoints,
 			primaryName,
 			secondaryName,
 			emblemKey,
-			isUnionLeader: isUnionLeader(countryId, gameState, settings),
+			isUnionLeader: isUnionLeader(countryId, snapshot, settings),
 			isKnown: knownCountries.has(countryId),
 		};
 	});

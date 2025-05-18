@@ -1,6 +1,6 @@
 import { Predicate } from 'effect';
 
-import type { GameState } from '../../GameState.svelte';
+import type { GameState } from '../../stellaris/GameState.svelte';
 
 export default function processBypassLinks(
 	gameState: GameState,

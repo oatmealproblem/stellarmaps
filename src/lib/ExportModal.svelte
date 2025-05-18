@@ -8,15 +8,15 @@
 	import { t } from '../intl';
 	import convertBlobToDataUrl from './convertBlobToDataUrl';
 	import convertSvgToPng from './convertSvgToPng';
-	import type { GalacticObject, GameState } from './GameState.svelte';
 	import type { MapData } from './map/data/processMapData';
 	import Legend from './map/Legend.svelte';
 	import Map from './map/Map.svelte';
 	import { getBackgroundColor, getFillColorAttributes, resolveColor } from './map/mapUtils';
-	import SolarSystemMap from './map/solarSystemMap/SolarSystemMap.svelte';
 	import renderStarScape from './map/starScape/renderStarScape';
+	import type { System } from './project/snapshot';
 	import { type MapSettings, mapSettings } from './settings';
 	import { PersistedDeepState } from './stateUtils.svelte';
+	import type { GameState } from './stellaris/GameState.svelte';
 	import stellarMapsApi from './stellarMapsApi';
 	import { toaster } from './Toaster.svelte';
 	import { toastError } from './utils';
@@ -25,7 +25,7 @@
 		colors: Record<string, string>;
 		mapData: MapData;
 		gameState: GameState;
-		openedSystem: GalacticObject | undefined;
+		openedSystem: System | undefined;
 		close: () => void;
 	}
 
@@ -431,14 +431,15 @@
 					style:cursor="pointer"
 				>
 					{#if openedSystem}
-						<SolarSystemMap
+						<!-- TODO -->
+						<!-- <SolarSystemMap
 							system={openedSystem}
 							{mapData}
 							{colors}
 							{gameState}
 							id="systemMapPreview"
 							previewMode
-						/>
+						/> -->
 					{:else if mapData}
 						{#each mapData.borders as border}
 							<path
@@ -529,14 +530,15 @@
 	</svg>
 	<div bind:this={hiddenSystemMapContainer}>
 		{#if openedSystem}
-			<SolarSystemMap
+			<!-- TODO -->
+			<!-- <SolarSystemMap
 				id="exportSystemMap"
 				{colors}
 				{mapData}
 				{gameState}
 				system={openedSystem}
 				exportMode
-			/>
+			/> -->
 		{/if}
 	</div>
 	<div bind:this={hiddenLegendContainer}>

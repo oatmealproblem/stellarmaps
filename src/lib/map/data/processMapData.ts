@@ -1,7 +1,8 @@
 import { dequal as deepEquals } from 'dequal/lite';
 
+import type { Snapshot } from '$lib/project/snapshot';
+
 import debug from '../../debug';
-import type { GameState } from '../../GameState.svelte';
 import { type MapSettings } from '../../settings';
 import { timeIt, timeItAsync } from '../../utils';
 import processBorders, { processBordersDeps } from './processBorders';
@@ -10,10 +11,8 @@ import processCircularGalaxyBorders, {
 	processCircularGalaxyBordersDeps,
 } from './processCircularGalaxyBorder';
 import { processEmblems } from './processEmblems';
-import processHyperRelays from './processHyperRelays';
 import processLabels, { processLabelsDeps } from './processLabels';
 import processLegend, { processLegendDeps } from './processLegend';
-import processNames from './processNames';
 import processOccupationBorders, { processOccupationBordersDeps } from './processOccupationBorders';
 import processPolygons, { processPolygonsDeps } from './processPolygons';
 import processSystemCoordinates, { processSystemCoordinatesDeps } from './processSystemCoordinates';
@@ -26,11 +25,7 @@ import processTerraIncognitaPath, {
 import processVoronoi, { processVoronoiDeps } from './processVoronoi';
 import { createHyperlanePaths } from './utils';
 
-export default async function processMapData(
-	gameState: GameState,
-	rawSettings: MapSettings,
-	language: string,
-) {
+export default async function processMapData(snapshot: Snapshot, rawSettings: MapSettings) {
 	console.time('TOTAL PROCESSING TIME');
 	const settings = { ...rawSettings };
 	if (settings.hyperlaneMetroStyle) settings.alignStarsToGrid = true;
@@ -41,29 +36,28 @@ export default async function processMapData(
 	const emblemsPromise = timeItAsync(
 		'emblems',
 		cached(processEmblems),
-		Object.values(gameState.country),
+		Object.values(snapshot.factions),
 	);
-	const namesPromise = timeItAsync('names', cached(processNames), gameState, language);
 
 	const getSystemCoordinates = timeIt(
 		'system coordinates',
 		cached(processSystemCoordinates),
-		gameState,
+		snapshot,
 		pickSettings(settings, processSystemCoordinatesDeps),
 	);
 
 	const { galaxyBorderCircles, galaxyBorderCirclesGeoJSON } = timeIt(
 		'circular galaxy borders',
 		cached(processCircularGalaxyBorders),
-		gameState,
+		snapshot,
 		pickSettings(settings, processCircularGalaxyBordersDeps),
 		getSystemCoordinates,
 	);
 
-	const { knownSystems, knownCountries, knownWormholes } = timeIt(
+	const { knownSystems, knownCountries } = timeIt(
 		'terra incognita',
 		cached(processTerraIncognita),
-		gameState,
+		snapshot,
 		pickSettings(settings, processTerraIncognitaDeps),
 	);
 
@@ -82,7 +76,7 @@ export default async function processMapData(
 	} = timeIt(
 		'system ownership',
 		cached(processSystemOwnership),
-		gameState,
+		snapshot,
 		pickSettings(settings, processSystemOwnershipDeps),
 		getSystemCoordinates,
 	);
@@ -90,7 +84,7 @@ export default async function processMapData(
 	const { findClosestSystem, voronoi, systemIdToVoronoiIndexes } = timeIt(
 		'voronoi',
 		cached(processVoronoi),
-		gameState,
+		snapshot,
 		pickSettings(settings, processVoronoiDeps),
 		getSystemCoordinates,
 		galaxyBorderCircles,
@@ -106,7 +100,7 @@ export default async function processMapData(
 	} = timeIt(
 		'polygons',
 		cached(processPolygons),
-		gameState,
+		snapshot,
 		pickSettings(settings, processPolygonsDeps),
 		voronoi,
 		systemIdToVoronoiIndexes,
@@ -123,20 +117,17 @@ export default async function processMapData(
 	const { terraIncognitaPath } = timeIt(
 		'terra incognita path',
 		cached(processTerraIncognitaPath),
-		gameState,
 		pickSettings(settings, processTerraIncognitaPathDeps),
 		terraIncognitaGeojson,
 		galaxyBorderCirclesGeoJSON,
 	);
 
-	const relayMegastructures = timeIt('hyper relays', cached(processHyperRelays), gameState);
 	const { hyperlanesPath: unownedHyperlanesPath, relayHyperlanesPath: unownedRelayHyperlanesPath } =
 		timeIt(
 			'unowned hyperlanes',
 			cached(createHyperlanePaths),
-			gameState,
+			snapshot,
 			pickSettings(settings, ['hyperlaneMetroStyle']),
-			relayMegastructures,
 			systemIdToUnionLeader,
 			null,
 			getSystemCoordinates,
@@ -144,7 +135,7 @@ export default async function processMapData(
 	const borders = timeIt(
 		'borders',
 		cached(processBorders),
-		gameState,
+		snapshot,
 		pickSettings(settings, processBordersDeps),
 		unionLeaderToGeojson,
 		countryToGeojson,
@@ -153,7 +144,6 @@ export default async function processMapData(
 		unionLeaderToSystemIds,
 		countryToSystemIds,
 		systemIdToUnionLeader,
-		relayMegastructures,
 		knownCountries,
 		galaxyBorderCircles,
 		galaxyBorderCirclesGeoJSON,
@@ -162,51 +152,49 @@ export default async function processMapData(
 	const occupationBorders = timeIt(
 		'borders',
 		cached(processOccupationBorders),
-		gameState,
+		snapshot,
 		pickSettings(settings, processOccupationBordersDeps),
 		fullOccupiedOccupierToGeojson,
 		partialOccupiedOccupierToGeojson,
 	);
-	const { countryNames, systemNames } = await namesPromise;
 	const labels = timeIt(
 		'labels',
 		cached(processLabels),
-		gameState,
+		snapshot,
 		pickSettings(settings, processLabelsDeps),
 		countryToGeojson,
 		unionLeaderToUnionMembers,
 		borders,
-		countryNames,
 		knownCountries,
 		ownedSystemPoints,
 	);
 	const systems = timeIt(
 		'systems',
 		cached(processSystems),
-		gameState,
+		snapshot,
 		pickSettings(settings, processSystemsDeps),
 		systemIdToCountry,
 		knownCountries,
 		knownSystems,
 		getSystemCoordinates,
-		systemNames,
 	);
-	const bypassLinks = timeIt(
-		'bypassLinks',
-		cached(processBypassLinks),
-		gameState,
-		knownSystems,
-		knownWormholes,
-		getSystemCoordinates,
-	);
+	// TODO
+	const bypassLinks: ReturnType<typeof processBypassLinks> = [];
+	// const bypassLinks = timeIt(
+	// 	'bypassLinks',
+	// 	cached(processBypassLinks),
+	// 	gameState,
+	// 	knownSystems,
+	// 	knownWormholes,
+	// 	getSystemCoordinates,
+	// );
 	const legend = await timeItAsync(
 		'legend',
 		cached(processLegend),
-		gameState,
 		pickSettings(settings, processLegendDeps),
-		borders,
 		systems,
 	);
+
 	const emblems = await emblemsPromise;
 
 	console.timeEnd('TOTAL PROCESSING TIME');

@@ -1,13 +1,13 @@
 import * as turf from '@turf/turf';
-import { Predicate } from 'effect';
+import { Predicate, Record } from 'effect';
 
-import type { GameState, Sector } from '../../GameState.svelte';
+import type { FactionId, Sector, SectorId, Snapshot, SystemId } from '$lib/project/snapshot';
+
 import type { MapSettings } from '../../settings';
-import { getOrDefault, getOrSetDefault, parseNumberEntry } from '../../utils';
+import { getOrDefault, getOrSetDefault } from '../../utils';
 import { getCountryMapModeInfo } from './mapModes';
 import type processCircularGalaxyBorders from './processCircularGalaxyBorder';
 import type { BorderCircle } from './processCircularGalaxyBorder';
-import type processHyperRelays from './processHyperRelays';
 import type processSystemOwnership from './processSystemOwnership';
 import type processTerraIncognita from './processTerraIncognita';
 import { getSmoothedPosition, smoothGeojson } from './smoothing';
@@ -15,7 +15,6 @@ import {
 	applyGalaxyBoundary,
 	createHyperlanePaths,
 	getAllPositionArrays,
-	getFrontierSectorPseudoId,
 	getPolygons,
 	getSharedDistancePercent,
 	getUnionLeaderId,
@@ -57,46 +56,32 @@ export const processBordersDeps = [
 ] satisfies (keyof MapSettings)[];
 
 export default function processBorders(
-	gameState: GameState,
+	snapshot: Snapshot,
 	settings: Pick<MapSettings, (typeof processBordersDeps)[number]>,
-	unionLeaderToGeojson: Record<number, PolygonalFeature>,
-	countryToGeojson: Record<number, PolygonalFeature>,
-	sectorToGeojson: Record<number, PolygonalFeature>,
+	unionLeaderToGeojson: Record<FactionId, PolygonalFeature>,
+	countryToGeojson: Record<FactionId, PolygonalFeature>,
+	sectorToGeojson: Record<SectorId, PolygonalFeature>,
 	unionLeaderToUnionMembers: ReturnType<typeof processSystemOwnership>['unionLeaderToUnionMembers'],
-	unionLeaderToSystemIds: Record<number, Set<number>>,
-	countryToOwnedSystemIds: Record<number, Set<number>>,
+	unionLeaderToSystemIds: Record<FactionId, Set<SystemId>>,
+	countryToOwnedSystemIds: Record<FactionId, Set<SystemId>>,
 	systemIdToUnionLeader: ReturnType<typeof processSystemOwnership>['systemIdToUnionLeader'],
-	relayMegastructures: ReturnType<typeof processHyperRelays>,
 	knownCountries: ReturnType<typeof processTerraIncognita>['knownCountries'],
 	galaxyBorderCircles: BorderCircle[],
 	galaxyBorderCirclesGeoJSON: ReturnType<
 		typeof processCircularGalaxyBorders
 	>['galaxyBorderCirclesGeoJSON'],
-	getSystemCoordinates: (id: number, options?: { invertX?: boolean }) => [number, number],
+	getSystemCoordinates: (id: SystemId) => [number, number],
 ) {
-	const unassignedFragments: [number, GeoJSON.Feature<GeoJSON.Polygon>][] = [];
-	const borders = Object.entries(unionLeaderToGeojson)
-		.map(parseNumberEntry)
+	const unassignedFragments: [FactionId, GeoJSON.Feature<GeoJSON.Polygon>][] = [];
+	const borders = Record.toEntries(unionLeaderToGeojson)
 		.map(([countryId, outerBorderGeoJSON]) => {
-			const mapModeInfo = getCountryMapModeInfo(countryId, gameState, settings);
+			const mapModeInfo = getCountryMapModeInfo(countryId, snapshot, settings);
 
-			const countrySectors = Object.values(gameState.sectors).filter(
+			const countrySectors = Object.values(snapshot.sectors).filter(
 				(sector) =>
-					sector.owner != null &&
-					getUnionLeaderId(sector.owner, gameState, settings, ['joinedBorders']) === countryId,
+					getUnionLeaderId(sector.faction, snapshot, settings, ['joinedBorders']) === countryId,
 			);
-			for (const unionMemberId of unionLeaderToUnionMembers[countryId]?.values() ?? []) {
-				const frontierSector: Sector = {
-					id: getFrontierSectorPseudoId(unionMemberId),
-					systems: Array.from(
-						getOrDefault(countryToOwnedSystemIds, unionMemberId, new Set()).values(),
-					).filter((systemId) => countrySectors.every((s) => !s.systems.includes(systemId))),
-					owner: unionMemberId,
-				};
-				if (frontierSector.systems.length) {
-					countrySectors.push(frontierSector);
-				}
-			}
+
 			const sectorOuterPolygons = countrySectors
 				.map((sector) => sectorToGeojson[sector.id])
 				.filter(Predicate.isNotNullable);
@@ -268,7 +253,7 @@ export default function processBorders(
 							// all stars in this polygon belong to a non-main cluster
 							// try to find fragments outside of it's cluster's bounds
 							const bounds = circles.reduce<PolygonalFeature | null>((acc, cur) => {
-								const geojson = makeBorderCircleGeojson(gameState, getSystemCoordinates, cur);
+								const geojson = makeBorderCircleGeojson(snapshot, getSystemCoordinates, cur);
 								if (acc == null) return geojson;
 								if (geojson == null) return acc;
 								return turf.union(turf.featureCollection([acc, geojson]));
@@ -294,9 +279,8 @@ export default function processBorders(
 			}
 
 			const { hyperlanesPath, relayHyperlanesPath } = createHyperlanePaths(
-				gameState,
+				snapshot,
 				settings,
-				relayMegastructures,
 				systemIdToUnionLeader,
 				countryId,
 				getSystemCoordinates,
@@ -315,20 +299,18 @@ export default function processBorders(
 					let type: SectorBorderPath['type'] = 'standard';
 					let style = settings.sectorBorderStroke;
 
-					if (new Set(Array.from(segment.sectors).map((sector) => sector.owner)).size > 1) {
+					if (new Set(Array.from(segment.sectors).map((sector) => sector.faction)).size > 1) {
 						type = 'union';
 						style = settings.unionBorderStroke;
 					} else if (
 						settings.sectorTypeBorderStyles &&
-						Array.from(segment.sectors).some((s) => s.id < 0)
+						Array.from(segment.sectors).some((s) => s.type === 'frontier')
 					) {
 						type = 'frontier';
 						style = settings.sectorFrontierBorderStroke;
 					} else if (
 						settings.sectorTypeBorderStyles &&
-						Array.from(segment.sectors).some(
-							(s) => s.owner != null && s.local_capital === gameState.country[s.owner]?.capital,
-						)
+						Array.from(segment.sectors).some((s) => s.type === 'core')
 					) {
 						type = 'core';
 						style = settings.sectorCoreBorderStroke;
@@ -352,10 +334,9 @@ export default function processBorders(
 	);
 
 	for (const [originalCountryId, fragment] of unassignedFragments) {
-		let unionLeaderId: number | undefined;
+		let unionLeaderId: FactionId | undefined;
 		let unionLeaderSharedDistancePercent = Number.EPSILON;
-		Object.entries(unionLeaderToGeojson)
-			.map(parseNumberEntry)
+		Record.toEntries(unionLeaderToGeojson)
 			.filter(([id]) => id !== originalCountryId)
 			.forEach(([id]) => {
 				const sharedDistancePercent = getSharedDistancePercent(

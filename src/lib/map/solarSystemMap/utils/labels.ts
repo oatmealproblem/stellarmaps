@@ -1,5 +1,5 @@
-import type { Planet } from '../../../GameState.svelte';
 import type { MapSettings } from '../../../settings';
+import type { Planet } from '../../../stellaris/GameState.svelte';
 import { getPlanetCoordinate, getPlanetOrbitDistance } from './coordinates';
 import { getPlanetRadius, getPrimaryBodies, isAsteroid, isColony, isMoon, isStar } from './planets';
 

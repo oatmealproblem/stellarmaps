@@ -1,6 +1,7 @@
 import { Delaunay } from 'd3-delaunay';
 
-import type { GalacticObject, GameState } from '../../GameState.svelte';
+import { type Snapshot, System, SystemId } from '$lib/project/snapshot';
+
 import type { MapSettings } from '../../settings';
 import { getOrSetDefault } from '../../utils';
 import type { BorderCircle } from './processCircularGalaxyBorder';
@@ -14,27 +15,31 @@ export const processVoronoiDeps = [
 	'circularGalaxyBorders',
 ] satisfies (keyof MapSettings)[];
 
+export const SYSTEMLESS_VORONOI_POINTS = SystemId.parse('SYSTEMLESS_VORONOI_POINTS');
+
 export default function processVoronoi(
-	gameState: GameState,
+	snapshot: Snapshot,
 	settings: Pick<MapSettings, (typeof processVoronoiDeps)[number]>,
-	getSystemCoordinates: (id: number, options?: { invertX?: boolean }) => [number, number],
+	getSystemCoordinates: (id: SystemId) => [number, number],
 	galaxyBorderCircles: BorderCircle[],
 ) {
-	const voronoiIndexToSystem: Record<number, number> = {};
-	const systemIdToVoronoiIndexes: Record<number, number[]> = {};
-	const points = Object.values(gameState.galactic_object).map((system, i) => {
+	const voronoiIndexToSystem: Record<number, SystemId> = {};
+	const systemIdToVoronoiIndexes: Record<SystemId, number[]> = {};
+	const points = Object.values(snapshot.systems).map((system, i) => {
 		systemIdToVoronoiIndexes[system.id] = [i];
 		voronoiIndexToSystem[i] = system.id;
 		return getSystemCoordinates(system.id);
 	});
 	if (settings.hyperlaneSensitiveBorders) {
-		for (const system of Object.values(gameState.galactic_object)) {
+		for (const system of Object.values(snapshot.systems)) {
 			const [fromX, fromY] = getSystemCoordinates(system.id);
-			for (const hyperlane of system.hyperlane) {
-				const [toX, toY] = getSystemCoordinates(hyperlane.to);
+			// TODO don't hard-code hyperlane, check definitions
+			for (const connection of system.connections.filter((c) => c.type === 'hyperlane')) {
+				const [toX, toY] = getSystemCoordinates(connection.to);
 				const dx = toX - fromX;
 				const dy = toY - fromY;
-				const numPoints = Math.round(hyperlane.length / settings.voronoiGridSize / 2) * 2;
+				const distance = Math.hypot(dx, dy);
+				const numPoints = Math.round(distance / settings.voronoiGridSize / 2) * 2;
 				for (let i = 1; i <= numPoints / 2; i++) {
 					// only add half (the other system will add its half)
 					const t = i / (numPoints + 1);
@@ -53,7 +58,7 @@ export default function processVoronoi(
 		outerCircles.some((circle) => Math.hypot(circle.cx - x, circle.cy - y) < circle.r);
 	let extraPointsIndex = points.length;
 	const extraPointsIndexes: number[] = [];
-	systemIdToVoronoiIndexes[-1] = extraPointsIndexes;
+	systemIdToVoronoiIndexes[SYSTEMLESS_VORONOI_POINTS] = extraPointsIndexes;
 	const extraPoints: [number, number][] = [];
 	for (let x = -MAX_BORDER_DISTANCE; x <= MAX_BORDER_DISTANCE; x += settings.voronoiGridSize) {
 		for (
@@ -93,10 +98,10 @@ export default function processVoronoi(
 		MAX_BORDER_DISTANCE,
 	]);
 
-	function findClosestSystem(x: number, y: number): GalacticObject | null {
+	function findClosestSystem(x: number, y: number): System | null {
 		const index = delaunay.find(x, y);
 		const systemId = voronoiIndexToSystem[index];
-		return systemId == null ? null : (gameState.galactic_object[systemId] ?? null);
+		return systemId == null ? null : (snapshot.systems[systemId] ?? null);
 	}
 	return {
 		findClosestSystem,
