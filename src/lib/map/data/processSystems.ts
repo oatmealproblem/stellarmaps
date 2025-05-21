@@ -1,3 +1,5 @@
+import { Iterable, Option, pipe, Record } from 'effect';
+
 import type { FactionId, Snapshot, SystemId } from '$lib/project/snapshot';
 
 import type { MapSettings } from '../../settings';
@@ -8,11 +10,10 @@ import {
 	mapModes,
 	type MapModeSystemValue,
 } from './mapModes';
-import type processSystemOwnership from './processSystemOwnership';
 
 export interface ProcessedSystem extends MapModeCountryInfo {
 	id: SystemId;
-	countryId?: FactionId;
+	countryId: FactionId | null;
 	isColonized: boolean;
 	isSectorCapital: boolean;
 	isCountryCapital: boolean;
@@ -44,7 +45,6 @@ export const processSystemsDeps = [
 export default function processSystems(
 	snapshot: Snapshot,
 	settings: Pick<MapSettings, (typeof processSystemsDeps)[number]>,
-	systemIdToCountry: ReturnType<typeof processSystemOwnership>['systemIdToCountry'],
 	knownCountries: Set<FactionId>,
 	knownSystems: Set<SystemId>,
 	getSystemCoordinates: (id: SystemId) => [number, number],
@@ -66,23 +66,30 @@ export default function processSystems(
 	// 	selectedSpeciesId == null ? null : gameState.species_db[selectedSpeciesId];
 
 	const systems = Object.values(snapshot.systems).map<ProcessedSystem>((system) => {
-		const countryId = systemIdToCountry[system.id];
-		const country = countryId != null ? snapshot.factions[countryId] : null;
+		const factionId = system.faction;
+		const faction = factionId != null ? snapshot.factions[factionId] : null;
 		const mapModeInfo =
-			countryId != null
-				? getCountryMapModeInfo(countryId, snapshot, settings)
+			factionId != null
+				? getCountryMapModeInfo(factionId, snapshot, settings)
 				: defaultCountryMapModeInfo;
 
-		const isOwned = country != null;
-		const isColonized = false; // TODO isOwned && Boolean(system.colonies.length);
-		const isSectorCapital = false; // TODO
-		// Object.values(gameState.sectors).some((sector) =>
-		// 	system.colonies.includes(sector.local_capital as number),
-		// );
-		const isCountryCapital = false; // TODO system.colonies.includes(country?.capital as number);
+		const isOwned = faction != null;
+		const colonies = new Set(
+			pipe(
+				snapshot.systemObjects,
+				Record.values,
+				Iterable.filterMap((obj) =>
+					obj.population > 0 && obj.system === system.id ? Option.some(obj.id) : Option.none(),
+				),
+			),
+		);
+		const isColonized = isOwned && colonies.size > 0;
+		const sector = system.sector != null ? snapshot.sectors[system.sector] : null;
+		const isSectorCapital = sector?.capital != null && colonies.has(sector.capital);
+		const isCountryCapital = faction?.capital != null && colonies.has(faction.capital);
 		const [x, y] = getSystemCoordinates(system.id);
 
-		const ownerIsKnown = countryId != null && knownCountries.has(countryId);
+		const ownerIsKnown = factionId != null && knownCountries.has(factionId);
 		const systemIsKnown = knownSystems.has(system.id);
 
 		// const bypassTypes = new Set(
@@ -100,13 +107,13 @@ export default function processSystems(
 			system,
 			povCountry ?? null,
 			null, // TODO selectedSpecies ?? null,
-			country ?? null,
+			faction ?? null,
 		);
 		const mapModeTotalValue = mapModeValues?.reduce((acc, cur) => acc + cur.value, 0);
 
 		return {
 			id: system.id,
-			countryId,
+			countryId: factionId,
 			...mapModeInfo,
 			isColonized,
 			isSectorCapital,

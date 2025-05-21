@@ -173,7 +173,6 @@ export default async function processMapData(snapshot: Snapshot, rawSettings: Ma
 		cached(processSystems),
 		snapshot,
 		pickSettings(settings, processSystemsDeps),
-		systemIdToCountry,
 		knownCountries,
 		knownSystems,
 		getSystemCoordinates,

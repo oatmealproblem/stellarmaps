@@ -1,4 +1,4 @@
-import { Iterable, pipe, Predicate, Record } from 'effect';
+import { identity, Iterable, Option, pipe, Predicate, Record } from 'effect';
 
 import { localizeTextSync } from '$lib/map/data/locUtils';
 import {
@@ -9,9 +9,11 @@ import {
 	type Snapshot,
 	System,
 	SystemId,
+	SystemObject,
+	SystemObjectId,
 } from '$lib/project/snapshot';
 
-import type { GameState } from './GameState.svelte';
+import { type GameState } from './GameState.svelte';
 
 type Context = {
 	loc: Record<string, string>;
@@ -28,10 +30,11 @@ export default function convertToSnapshot(gameState: GameState, context: Context
 		systems: pipe(extractGalacticObjects(gameState, context), (systems) =>
 			Record.fromIterableBy(systems, (system) => system.id),
 		),
-		systemObjects: {
-			// TODO planets
+		systemObjects: pipe(
+			extractPlanets(gameState, context),
 			// TODO fleets
-		},
+			(systemObjects) => Record.fromIterableBy(systemObjects, (systemObject) => systemObject.id),
+		),
 		sectors: pipe(
 			extractSectors(gameState),
 			Iterable.appendAll(extractFrontierSectors(gameState)),
@@ -52,6 +55,7 @@ function extractCountries(gameState: GameState, context: Context): Faction[] {
 					? `${country.flag.icon.category}/${country.flag.icon.file}`
 					: null,
 			},
+			capital: country.capital != null ? SystemObjectId.parse(`planet-${country.capital}`) : null,
 		};
 		return faction;
 	});
@@ -69,6 +73,10 @@ function extractSectors(gameState: GameState): Sector[] {
 						? 'core'
 						: 'standard',
 				faction: FactionId.parse(`country-${ownerId}`),
+				capital:
+					stellarisSector.local_capital != null
+						? SystemObjectId.parse(`planet-${stellarisSector.local_capital}`)
+						: null,
 			};
 			return sector;
 		})
@@ -82,10 +90,38 @@ function extractFrontierSectors(gameState: GameState): Sector[] {
 				id: SectorId.parse(`frontier-sector-${country.id}`),
 				type: 'frontier',
 				faction: FactionId.parse(`country-${country.id}`),
+				capital: null,
 			};
 			return sector;
 		})
 		.filter(Predicate.isNotNull);
+}
+
+function extractPlanets(gameState: GameState, context: Context): SystemObject[] {
+	const planetToSystem = pipe(
+		gameState.galactic_object,
+		Record.values,
+		Iterable.flatMap((system) =>
+			Iterable.map(system.planet, (planet) => [planet.toString(), system] as const),
+		),
+		(entries) => Record.fromIterableWith(entries, identity),
+	);
+	return Object.values(gameState.planets.planet).map((planet) => {
+		const systemId = pipe(
+			planetToSystem,
+			Record.get(planet.id.toString()),
+			Option.getOrThrow,
+			(system) => SystemId.parse(`system-${system.id}`),
+		);
+		const systemObject: SystemObject = {
+			id: SystemObjectId.parse(`planet-${planet.id}`),
+			name: localizeTextSync(planet.name, context.loc),
+			system: systemId,
+			coordinate: { x: -planet.coordinate.x, y: planet.coordinate.y },
+			population: planet.num_sapient_pops ?? 0,
+		};
+		return systemObject;
+	});
 }
 
 function extractGalacticObjects(gameState: GameState, context: Context): System[] {
