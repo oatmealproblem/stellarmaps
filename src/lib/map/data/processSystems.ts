@@ -66,7 +66,7 @@ export default function processSystems(
 	// 	selectedSpeciesId == null ? null : gameState.species_db[selectedSpeciesId];
 
 	const systems = Object.values(snapshot.systems).map<ProcessedSystem>((system) => {
-		const factionId = system.faction;
+		const factionId = system.factionId;
 		const faction = factionId != null ? snapshot.factions[factionId] : null;
 		const mapModeInfo =
 			factionId != null
@@ -84,9 +84,9 @@ export default function processSystems(
 			),
 		);
 		const isColonized = isOwned && colonies.size > 0;
-		const sector = system.sector != null ? snapshot.sectors[system.sector] : null;
-		const isSectorCapital = sector?.capital != null && colonies.has(sector.capital);
-		const isCountryCapital = faction?.capital != null && colonies.has(faction.capital);
+		const sector = system.sectorId != null ? snapshot.sectors[system.sectorId] : null;
+		const isSectorCapital = sector?.capitalId != null && colonies.has(sector.capitalId);
+		const isCountryCapital = faction?.capitalId != null && colonies.has(faction.capitalId);
 		const [x, y] = getSystemCoordinates(system.id);
 
 		const ownerIsKnown = factionId != null && knownCountries.has(factionId);

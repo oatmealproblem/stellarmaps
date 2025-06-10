@@ -79,7 +79,7 @@ export default function processBorders(
 
 			const countrySectors = Object.values(snapshot.sectors).filter(
 				(sector) =>
-					getUnionLeaderId(sector.faction, snapshot, settings, ['joinedBorders']) === countryId,
+					getUnionLeaderId(sector.factionId, snapshot, settings, ['joinedBorders']) === countryId,
 			);
 
 			const sectorOuterPolygons = countrySectors
@@ -299,7 +299,7 @@ export default function processBorders(
 					let type: SectorBorderPath['type'] = 'standard';
 					let style = settings.sectorBorderStroke;
 
-					if (new Set(Array.from(segment.sectors).map((sector) => sector.faction)).size > 1) {
+					if (new Set(Array.from(segment.sectors).map((sector) => sector.factionId)).size > 1) {
 						type = 'union';
 						style = settings.unionBorderStroke;
 					} else if (

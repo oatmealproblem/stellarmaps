@@ -33,11 +33,11 @@ export default function processSystemOwnership(
 	const fullOccupiedOccupierToSystemIds: Record<FactionId, Set<SystemId>> = {};
 	const partialOccupiedOccupierToSystemIds: Record<FactionId, Set<SystemId>> = {};
 	for (const system of Object.values(snapshot.systems)) {
-		const ownerId = system.faction;
+		const ownerId = system.factionId;
 		const owner = ownerId != null ? snapshot.factions[ownerId] : null;
 
 		if (ownerId != null && owner != null) {
-			const sectorId = system.sector;
+			const sectorId = system.sectorId;
 			if (sectorId == null) throw new Error('Unsupported: owned system does not have sector');
 			systemToSectorId[system.id] = sectorId;
 			getOrSetDefault(sectorToSystemIds, sectorId, new Set()).add(system.id);

@@ -55,7 +55,7 @@ function extractCountries(gameState: GameState, context: Context): Faction[] {
 					? `${country.flag.icon.category}/${country.flag.icon.file}`
 					: null,
 			},
-			capital: country.capital != null ? SystemObjectId.parse(`planet-${country.capital}`) : null,
+			capitalId: country.capital != null ? SystemObjectId.parse(`planet-${country.capital}`) : null,
 		};
 		return faction;
 	});
@@ -72,8 +72,8 @@ function extractSectors(gameState: GameState): Sector[] {
 					stellarisSector.local_capital === gameState.country[ownerId]?.capital
 						? 'core'
 						: 'standard',
-				faction: FactionId.parse(`country-${ownerId}`),
-				capital:
+				factionId: FactionId.parse(`country-${ownerId}`),
+				capitalId:
 					stellarisSector.local_capital != null
 						? SystemObjectId.parse(`planet-${stellarisSector.local_capital}`)
 						: null,
@@ -89,8 +89,8 @@ function extractFrontierSectors(gameState: GameState): Sector[] {
 			const sector: Sector = {
 				id: SectorId.parse(`frontier-sector-${country.id}`),
 				type: 'frontier',
-				faction: FactionId.parse(`country-${country.id}`),
-				capital: null,
+				factionId: FactionId.parse(`country-${country.id}`),
+				capitalId: null,
 			};
 			return sector;
 		})
@@ -154,8 +154,8 @@ function extractGalacticObjects(gameState: GameState, context: Context): System[
 				x: -galacticObject.coordinate.x,
 				y: galacticObject.coordinate.y,
 			},
-			faction: starbaseOwnerId != null ? FactionId.parse(`country-${starbaseOwnerId}`) : null,
-			sector: stellarisSector
+			factionId: starbaseOwnerId != null ? FactionId.parse(`country-${starbaseOwnerId}`) : null,
+			sectorId: stellarisSector
 				? SectorId.parse(`sector-${stellarisSector.id}`)
 				: starbaseOwnerId != null
 					? SectorId.parse(`frontier-sector-${starbaseOwnerId}`)

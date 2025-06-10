@@ -22,7 +22,7 @@ export const Faction = z.object({
 		secondaryColor: z.string(),
 		emblem: z.string().nullable(),
 	}),
-	capital: SystemObjectId.nullable(),
+	capitalId: SystemObjectId.nullable(),
 	// subfactions
 	// relationships
 });
@@ -30,9 +30,9 @@ export type Faction = z.infer<typeof Faction>;
 
 export const Sector = z.object({
 	id: SectorId,
-	faction: FactionId,
+	factionId: FactionId,
 	type: z.enum(['core', 'frontier', 'standard']),
-	capital: SystemObjectId.nullable(),
+	capitalId: SystemObjectId.nullable(),
 });
 export type Sector = z.infer<typeof Sector>;
 
@@ -53,8 +53,8 @@ export const System = z.object({
 	id: SystemId,
 	name: z.string(),
 	coordinate: Coordinate,
-	faction: FactionId.nullable(),
-	sector: SectorId.nullable(),
+	factionId: FactionId.nullable(),
+	sectorId: SectorId.nullable(),
 	connections: z.array(Connection),
 	// connections
 });
