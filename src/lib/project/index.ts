@@ -1,17 +1,16 @@
-import { z } from 'zod';
+import { Schema } from 'effect';
 
 import { Definitions } from './definitions';
 import { Snapshot } from './snapshot';
 
-const StellarisConfig = z.object({
-	gameId: z.string(),
-	language: z.string(),
-});
+class StellarisConfig extends Schema.Class<StellarisConfig>('StellarisConfig')({
+	gameId: Schema.String,
+	language: Schema.String,
+}) {}
 
-export const Project = z.object({
-	name: z.string(),
+export class Project extends Schema.Class<Project>('Project')({
+	name: Schema.String,
 	stellarisConfig: StellarisConfig,
 	definitions: Definitions,
-	snapshots: z.array(Snapshot),
-});
-export type Project = z.infer<typeof Project>;
+	snapshots: Schema.Array(Snapshot),
+}) {}

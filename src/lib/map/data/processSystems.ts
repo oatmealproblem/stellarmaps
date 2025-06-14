@@ -1,6 +1,6 @@
 import { Iterable, Option, pipe, Record } from 'effect';
 
-import type { FactionId, Snapshot, SystemId } from '$lib/project/snapshot';
+import { FactionId, type Snapshot, type SystemId } from '$lib/project/snapshot';
 
 import type { MapSettings } from '../../settings';
 import {
@@ -53,7 +53,7 @@ export default function processSystems(
 	const povCountryId =
 		settings.mapModePointOfView === 'player'
 			? playerCountryId
-			: parseInt(settings.mapModePointOfView);
+			: FactionId.make(settings.mapModePointOfView);
 	const povCountry = povCountryId == null ? null : snapshot.factions[povCountryId];
 	// TODO
 	// const selectedSpeciesId =

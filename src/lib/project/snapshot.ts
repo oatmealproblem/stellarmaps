@@ -1,70 +1,87 @@
-import { z } from 'zod';
+import { Schema } from 'effect';
 
-export const FactionId = z.string().brand('FactionId');
-export type FactionId = z.infer<typeof FactionId>;
-export const SectorId = z.string().brand('SectorId');
-export type SectorId = z.infer<typeof SectorId>;
-export const SystemId = z.string().brand('SystemId');
-export type SystemId = z.infer<typeof SystemId>;
-export const SystemObjectId = z.string().brand('SystemObjectId');
-export type SystemObjectId = z.infer<typeof SystemObjectId>;
+export const FactionId = Schema.String.pipe(Schema.brand('FactionId'));
+export type FactionId = typeof FactionId.Type;
+export const SectorId = Schema.String.pipe(Schema.brand('SectorId'));
+export type SectorId = typeof SectorId.Type;
+export const SystemId = Schema.String.pipe(Schema.brand('SystemId'));
+export type SystemId = typeof SystemId.Type;
+export const SystemObjectId = Schema.String.pipe(Schema.brand('SystemObjectId'));
+export type SystemObjectId = typeof SystemObjectId.Type;
 
-const Coordinate = z.object({
-	x: z.number(),
-	y: z.number(),
-});
+export class Coordinate extends Schema.Class<Coordinate>('Coordinate')({
+	x: Schema.Number,
+	y: Schema.Number,
+}) {}
 
-export const Faction = z.object({
+export class Flag extends Schema.Class<Flag>('Flag')({
+	primaryColor: Schema.String,
+	secondaryColor: Schema.String,
+	emblem: Schema.NullOr(Schema.String),
+}) {}
+
+export class Faction extends Schema.Class<Faction>('Faction')({
 	id: FactionId,
-	name: z.string(),
-	flag: z.object({
-		primaryColor: z.string(),
-		secondaryColor: z.string(),
-		emblem: z.string().nullable(),
-	}),
-	capitalId: SystemObjectId.nullable(),
+	name: Schema.String,
+	flag: Flag,
+	capitalId: Schema.NullOr(SystemObjectId),
 	// subfactions
 	// relationships
-});
-export type Faction = z.infer<typeof Faction>;
+}) {}
 
-export const Sector = z.object({
+export class Sector extends Schema.Class<Sector>('Sector')({
 	id: SectorId,
 	factionId: FactionId,
-	type: z.enum(['core', 'frontier', 'standard']),
-	capitalId: SystemObjectId.nullable(),
-});
-export type Sector = z.infer<typeof Sector>;
+	type: Schema.Literal('core', 'frontier', 'standard'),
+	capitalId: Schema.NullOr(SystemObjectId),
+}) {}
 
-export const SystemObject = z.object({
+export class SystemObject extends Schema.Class<SystemObject>('SystemObject')({
 	id: SystemObjectId,
-	name: z.string(),
+	name: Schema.String,
 	coordinate: Coordinate,
 	system: SystemId,
-	population: z.number(),
+	population: Schema.Number.pipe(Schema.nonNegative()),
 	// orientation
-	// population
-});
-export type SystemObject = z.infer<typeof SystemObject>;
+}) {}
 
-export const Connection = z.object({ to: SystemId, type: z.string() });
-export type Connection = z.infer<typeof Connection>;
-export const System = z.object({
+export class Connection extends Schema.Class<Connection>('Connection')({
+	to: SystemId,
+	type: Schema.String,
+}) {}
+export class System extends Schema.Class<System>('System')({
 	id: SystemId,
-	name: z.string(),
+	name: Schema.String,
 	coordinate: Coordinate,
-	factionId: FactionId.nullable(),
-	sectorId: SectorId.nullable(),
-	connections: z.array(Connection),
-	// connections
-});
-export type System = z.infer<typeof System>;
+	factionId: Schema.NullOr(FactionId),
+	sectorId: Schema.NullOr(SectorId),
+	connections: Schema.Data(Schema.Array(Connection)),
+}) {}
 
-export const Snapshot = z.object({
-	date: z.string(),
-	factions: z.record(Faction, FactionId),
-	sectors: z.record(Sector, SectorId),
-	systems: z.record(System, SystemId),
-	systemObjects: z.record(SystemObject, SystemObjectId),
-});
-export type Snapshot = z.infer<typeof Snapshot>;
+export class Snapshot extends Schema.Class<Snapshot>('Snapshot')({
+	date: Schema.String,
+	factions: Schema.Data(
+		Schema.Record({
+			key: FactionId,
+			value: Faction,
+		}),
+	),
+	sectors: Schema.Data(
+		Schema.Record({
+			key: SectorId,
+			value: Sector,
+		}),
+	),
+	systems: Schema.Data(
+		Schema.Record({
+			key: SystemId,
+			value: System,
+		}),
+	),
+	systemObjects: Schema.Data(
+		Schema.Record({
+			key: SystemObjectId,
+			value: SystemObject,
+		}),
+	),
+}) {}

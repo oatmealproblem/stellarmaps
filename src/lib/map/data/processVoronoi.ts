@@ -15,7 +15,7 @@ export const processVoronoiDeps = [
 	'galaxyBorderStyle',
 ] satisfies (keyof MapSettings)[];
 
-export const SYSTEMLESS_VORONOI_POINTS = SystemId.parse('SYSTEMLESS_VORONOI_POINTS');
+export const SYSTEMLESS_VORONOI_POINTS = SystemId.make('SYSTEMLESS_VORONOI_POINTS');
 
 export default function processVoronoi(
 	snapshot: Snapshot,

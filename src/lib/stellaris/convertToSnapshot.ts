@@ -1,9 +1,12 @@
-import { identity, Iterable, Option, pipe, Predicate, Record } from 'effect';
+import { Data, identity, Iterable, Option, pipe, Predicate, Record } from 'effect';
 
 import { localizeTextSync } from '$lib/map/data/locUtils';
 import {
+	Connection,
+	Coordinate,
 	Faction,
 	FactionId,
+	Flag,
 	Sector,
 	SectorId,
 	type Snapshot,
@@ -45,18 +48,18 @@ export default function convertToSnapshot(gameState: GameState, context: Context
 
 function extractCountries(gameState: GameState, context: Context): Faction[] {
 	return Object.values(gameState.country).map((country) => {
-		const faction: Faction = {
-			id: FactionId.parse(`country-${country.id}`),
+		const faction = Faction.make({
+			id: FactionId.make(`country-${country.id}`),
 			name: localizeTextSync(country.name, context.loc),
-			flag: {
+			flag: Flag.make({
 				primaryColor: country.flag?.colors[0] ?? 'black',
 				secondaryColor: country.flag?.colors[1] ?? 'black',
 				emblem: country.flag?.icon
 					? `${country.flag.icon.category}/${country.flag.icon.file}`
 					: null,
-			},
-			capitalId: country.capital != null ? SystemObjectId.parse(`planet-${country.capital}`) : null,
-		};
+			}),
+			capitalId: country.capital != null ? SystemObjectId.make(`planet-${country.capital}`) : null,
+		});
 		return faction;
 	});
 }
@@ -66,18 +69,18 @@ function extractSectors(gameState: GameState): Sector[] {
 		.map((stellarisSector) => {
 			const ownerId = stellarisSector.owner;
 			if (ownerId == null) return null;
-			const sector: Sector = {
-				id: SectorId.parse(`sector-${stellarisSector.id}`),
+			const sector = Sector.make({
+				id: SectorId.make(`sector-${stellarisSector.id}`),
 				type:
 					stellarisSector.local_capital === gameState.country[ownerId]?.capital
 						? 'core'
 						: 'standard',
-				factionId: FactionId.parse(`country-${ownerId}`),
+				factionId: FactionId.make(`country-${ownerId}`),
 				capitalId:
 					stellarisSector.local_capital != null
-						? SystemObjectId.parse(`planet-${stellarisSector.local_capital}`)
+						? SystemObjectId.make(`planet-${stellarisSector.local_capital}`)
 						: null,
-			};
+			});
 			return sector;
 		})
 		.filter(Predicate.isNotNull);
@@ -86,12 +89,12 @@ function extractSectors(gameState: GameState): Sector[] {
 function extractFrontierSectors(gameState: GameState): Sector[] {
 	return Object.values(gameState.country)
 		.map((country) => {
-			const sector: Sector = {
-				id: SectorId.parse(`frontier-sector-${country.id}`),
+			const sector = Sector.make({
+				id: SectorId.make(`frontier-sector-${country.id}`),
 				type: 'frontier',
-				factionId: FactionId.parse(`country-${country.id}`),
+				factionId: FactionId.make(`country-${country.id}`),
 				capitalId: null,
-			};
+			});
 			return sector;
 		})
 		.filter(Predicate.isNotNull);
@@ -111,15 +114,15 @@ function extractPlanets(gameState: GameState, context: Context): SystemObject[] 
 			planetToSystem,
 			Record.get(planet.id.toString()),
 			Option.getOrThrow,
-			(system) => SystemId.parse(`system-${system.id}`),
+			(system) => SystemId.make(`system-${system.id}`),
 		);
-		const systemObject: SystemObject = {
-			id: SystemObjectId.parse(`planet-${planet.id}`),
+		const systemObject = SystemObject.make({
+			id: SystemObjectId.make(`planet-${planet.id}`),
 			name: localizeTextSync(planet.name, context.loc),
 			system: systemId,
-			coordinate: { x: -planet.coordinate.x, y: planet.coordinate.y },
+			coordinate: Coordinate.make({ x: -planet.coordinate.x, y: planet.coordinate.y }),
 			population: planet.num_sapient_pops ?? 0,
-		};
+		});
 		return systemObject;
 	});
 }
@@ -147,27 +150,29 @@ function extractGalacticObjects(gameState: GameState, context: Context): System[
 		const stellarisSector = Object.values(gameState.sectors).find((s) =>
 			s.systems.includes(galacticObject.id),
 		);
-		const system: System = {
-			id: SystemId.parse(`system-${galacticObject.id}`),
+		const system = System.make({
+			id: SystemId.make(`system-${galacticObject.id}`),
 			name: localizeTextSync(galacticObject.name, context.loc),
-			coordinate: {
+			coordinate: Coordinate.make({
 				x: -galacticObject.coordinate.x,
 				y: galacticObject.coordinate.y,
-			},
-			factionId: starbaseOwnerId != null ? FactionId.parse(`country-${starbaseOwnerId}`) : null,
+			}),
+			factionId: starbaseOwnerId != null ? FactionId.make(`country-${starbaseOwnerId}`) : null,
 			sectorId: stellarisSector
-				? SectorId.parse(`sector-${stellarisSector.id}`)
+				? SectorId.make(`sector-${stellarisSector.id}`)
 				: starbaseOwnerId != null
-					? SectorId.parse(`frontier-sector-${starbaseOwnerId}`)
+					? SectorId.make(`frontier-sector-${starbaseOwnerId}`)
 					: null,
-			connections: [
-				...galacticObject.hyperlane.map((hyperlane) => ({
-					type: 'hyperlane',
-					to: SystemId.parse(`system-${hyperlane.to}`),
-				})),
+			connections: Data.array([
+				...galacticObject.hyperlane.map((hyperlane) =>
+					Connection.make({
+						type: 'hyperlane',
+						to: SystemId.make(`system-${hyperlane.to}`),
+					}),
+				),
 				// TODO bypasses
-			],
-		};
+			]),
+		});
 		return system;
 	});
 }

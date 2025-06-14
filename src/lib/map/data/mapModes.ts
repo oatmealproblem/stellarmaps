@@ -537,7 +537,7 @@ export function getCountryMapModeInfo(
 	const povCountryId =
 		settings.mapModePointOfView === 'player'
 			? undefined // TODO gameState.player.filter((p) => gameState.country[p.country])[0]?.country
-			: FactionId.parse(settings.mapModePointOfView);
+			: FactionId.make(settings.mapModePointOfView);
 	const mapMode = mapModes[settings.mapMode];
 	if (mapMode?.country) {
 		const match = mapMode.country.find(({ matches }) => matches(snapshot, countryId, povCountryId));

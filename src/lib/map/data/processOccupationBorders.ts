@@ -36,7 +36,7 @@ export default function processOccupationBorders(
 	const makeMapFunc =
 		(partial: boolean) =>
 		([key, geojson]: [FactionId, PolygonalFeature]) => {
-			const ids = key.split('-').map((s) => FactionId.parse(s));
+			const ids = key.split('-').map((s) => FactionId.make(s));
 			const occupied = ids[0];
 			if (occupied == null || snapshot.factions[occupied])
 				throw new Error(`Invalid occupied faction ID, ${occupied}`);

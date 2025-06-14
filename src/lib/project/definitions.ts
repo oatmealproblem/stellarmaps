@@ -1,23 +1,32 @@
-import { z } from 'zod';
+import { Schema } from 'effect';
 
-const Color = z.object({
-	name: z.string(),
-	cssValue: z.string(),
-});
+class Color extends Schema.Class<Color>('Color')({
+	name: Schema.String,
+	cssValue: Schema.String,
+}) {}
 
-const Emblem = z.object({
-	name: z.string(),
-});
+class Emblem extends Schema.Class<Emblem>('Emblem')({
+	name: Schema.String,
+}) {}
 
-const ConnectionType = z.object({
-	name: z.string(),
-	type: z.enum(['unidirectional', 'bidirectional', 'all']),
+class ConnectionType extends Schema.Class<ConnectionType>('ConnectionType')({
+	name: Schema.String,
+	type: Schema.Literal('unidirectional', 'bidirectional', 'all'),
 	// cluster sensitive
 	// border sensitive
-});
+}) {}
 
-export const Definitions = z.object({
-	colors: z.record(Color),
-	emblems: z.record(Emblem),
-	connectionType: z.record(ConnectionType),
-});
+export class Definitions extends Schema.Class<Definitions>('Definitions')({
+	colors: Schema.Record({
+		key: Schema.String,
+		value: Color,
+	}),
+	emblems: Schema.Record({
+		key: Schema.String,
+		value: Emblem,
+	}),
+	connectionType: Schema.Record({
+		key: Schema.String,
+		value: ConnectionType,
+	}),
+}) {}
