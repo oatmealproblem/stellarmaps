@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.12.5](https://github.com/oatmealproblem/stellarmaps/compare/stellarmaps-v0.12.4...stellarmaps-v0.12.5) (2025-06-16)
+
+### Bug Fixes
+
+- **parser:** handle NaN in save file parser ([ecbb67f](https://github.com/oatmealproblem/stellarmaps/commit/ecbb67fb2c89ba983cbb54a52e4b43c3e6c8282b))
+
 ## [0.12.4](https://github.com/MichaelMakesGames/stellarmaps/compare/stellarmaps-v0.12.3...stellarmaps-v0.12.4) (2025-04-26)
 
 ### Bug Fixes

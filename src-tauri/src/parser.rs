@@ -145,7 +145,13 @@ fn parse_value(value: Value) -> Value {
 		} else if let Ok(n) = s.parse::<u64>() {
 			return Value::Number(Number::from(n));
 		} else if let Ok(n) = s.parse::<f64>() {
-			return Value::Number(Number::from_f64(n).unwrap());
+			if let Some(n) = Number::from_f64(n) {
+				return Value::Number(n);
+			} else {
+				// for NaN, parsing succeeds, but converting that into a JSON number fails (NaN isn't supported by standard JSON)
+				// return the original string value
+				return value;
+			}
 		} else {
 			return value;
 		}
