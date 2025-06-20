@@ -1,6 +1,6 @@
 import * as turf from '@turf/turf';
 import { Delaunay, Voronoi } from 'd3-delaunay';
-import { Predicate, Record } from 'effect';
+import { Array, pipe, Predicate, Record } from 'effect';
 import * as topojsonClient from 'topojson-client';
 import * as topojsonServer from 'topojson-server';
 import * as topojsonSimplify from 'topojson-simplify';
@@ -36,11 +36,8 @@ export default function processPolygons(
 	settings: Pick<MapSettings, (typeof processPolygonsDeps)[number]>,
 	voronoi: Voronoi<[number, number]>,
 	systemIdToVoronoiIndexes: Record<SystemId, number[]>,
-	sectorToSystemIds: Record<SectorId, Set<SystemId>>,
-	countryToSystemIds: Record<FactionId, Set<SystemId>>,
 	unionLeaderToSystemIds: Record<FactionId, Set<SystemId>>,
 	unionLeaderToSectors: Record<FactionId, Set<SectorId>>,
-	sectorToCountry: Record<SectorId, FactionId>,
 	knownSystems: Set<SystemId>,
 	fullOccupiedOccupierToSystemIds: Record<FactionId, Set<SystemId>>,
 	partialOccupiedOccupierToSystemIds: Record<FactionId, Set<SystemId>>,
@@ -65,6 +62,15 @@ export default function processPolygons(
 			topojsonServer.topology(systemIdToPolygon) as Topology<Objects<any>>,
 		),
 		(settings.voronoiGridSize * 2) / SCALE ** 2,
+	);
+
+	const countryToSystemIds: Record<string, Set<SystemId>> = pipe(
+		snapshot.factions,
+		Record.map((faction) => new Set(faction.systems.map((system) => system.id))),
+	);
+	const sectorToSystemIds: Record<string, Set<SystemId>> = pipe(
+		snapshot.sectors,
+		Record.map((sector) => new Set(sector.systems.map((system) => system.id))),
 	);
 
 	const countryToGeojson = mergeSystemMappingPolygons(topology, countryToSystemIds);
@@ -135,7 +141,7 @@ export default function processPolygons(
 			const sectorId =
 				unionLeaderId == null
 					? null
-					: Array.from(getOrDefault(unionLeaderToSectors, unionLeaderId, new Set())).sort(
+					: Array.fromIterable(getOrDefault(unionLeaderToSectors, unionLeaderId, new Set())).sort(
 							(a, b) => {
 								const aPositionStrings = getOrDefault(sectorToPositionStrings, a, new Set());
 								const aNumSharedPoints = voidPositionStrings.filter((p) =>
@@ -149,7 +155,7 @@ export default function processPolygons(
 							},
 						)[0];
 
-			const countryId = sectorId == null ? null : sectorToCountry[sectorId];
+			const countryId = sectorId == null ? null : (snapshot.sectors[sectorId]?.factionId ?? null);
 
 			addPolygonToGeojsonMapping(voidPolygon, sectorToGeojson, sectorId);
 			addPolygonToGeojsonMapping(voidPolygon, countryToGeojson, countryId);
@@ -175,7 +181,7 @@ function mergeSystemMappingPolygons<K extends string>(
 		Object.entries(systemIdMapping)
 			.map(([key, systemIds]) => [
 				key,
-				mergeSystemPolygons(topology, Array.from(systemIds as Set<SystemId>)),
+				mergeSystemPolygons(topology, Array.fromIterable(systemIds as Set<SystemId>)),
 			])
 			.filter(([_key, geojson]) => geojson != null),
 	) as Record<K, PolygonalFeature>;

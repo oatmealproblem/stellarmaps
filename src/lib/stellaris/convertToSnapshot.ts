@@ -9,7 +9,7 @@ import {
 	Flag,
 	Sector,
 	SectorId,
-	type Snapshot,
+	Snapshot,
 	System,
 	SystemId,
 	SystemObject,
@@ -23,27 +23,34 @@ type Context = {
 };
 
 export default function convertToSnapshot(gameState: GameState, context: Context): Snapshot {
-	return {
+	const snapshot = Snapshot.make({
 		date: gameState.date,
 		factions: pipe(
 			extractCountries(gameState, context),
 			// TODO federations
 			(factions) => Record.fromIterableBy(factions, (faction) => faction.id),
+			Data.struct,
 		),
-		systems: pipe(extractGalacticObjects(gameState, context), (systems) =>
-			Record.fromIterableBy(systems, (system) => system.id),
+		systems: pipe(
+			extractGalacticObjects(gameState, context),
+			(systems) => Record.fromIterableBy(systems, (system) => system.id),
+			Data.struct,
 		),
 		systemObjects: pipe(
 			extractPlanets(gameState, context),
 			// TODO fleets
 			(systemObjects) => Record.fromIterableBy(systemObjects, (systemObject) => systemObject.id),
+			Data.struct,
 		),
 		sectors: pipe(
 			extractSectors(gameState),
 			Iterable.appendAll(extractFrontierSectors(gameState)),
 			(sectors) => Record.fromIterableBy(sectors, (sector) => sector.id),
+			Data.struct,
 		),
-	};
+	});
+	snapshot.init();
+	return snapshot;
 }
 
 function extractCountries(gameState: GameState, context: Context): Faction[] {
@@ -119,7 +126,7 @@ function extractPlanets(gameState: GameState, context: Context): SystemObject[] 
 		const systemObject = SystemObject.make({
 			id: SystemObjectId.make(`planet-${planet.id}`),
 			name: localizeTextSync(planet.name, context.loc),
-			system: systemId,
+			systemId,
 			coordinate: Coordinate.make({ x: -planet.coordinate.x, y: planet.coordinate.y }),
 			population: planet.num_sapient_pops ?? 0,
 		});

@@ -20,15 +20,10 @@ export default function processSystemOwnership(
 	settings: Pick<MapSettings, (typeof processSystemOwnershipDeps)[number]>,
 	getSystemCoordinates: (id: SystemId) => [number, number],
 ) {
-	const systemToSectorId: Record<SystemId, SectorId> = {};
-	const sectorToSystemIds: Record<SectorId, Set<SystemId>> = {};
-	const sectorToCountry: Record<SectorId, FactionId> = {};
-	const countryToSystemIds: Record<FactionId, Set<SystemId>> = {};
 	const unionLeaderToSystemIds: Record<FactionId, Set<SystemId>> = {};
 	const unionLeaderToUnionMembers: Record<FactionId, Set<FactionId>> = {};
 	const unionLeaderToSectors: Record<FactionId, Set<SectorId>> = {};
 	const ownedSystemPoints: GeoJSON.Point[] = [];
-	const systemIdToCountry: Record<SystemId, FactionId> = {};
 	const systemIdToUnionLeader: Record<SystemId, FactionId> = {};
 	const fullOccupiedOccupierToSystemIds: Record<FactionId, Set<SystemId>> = {};
 	const partialOccupiedOccupierToSystemIds: Record<FactionId, Set<SystemId>> = {};
@@ -39,16 +34,11 @@ export default function processSystemOwnership(
 		if (ownerId != null && owner != null) {
 			const sectorId = system.sectorId;
 			if (sectorId == null) throw new Error('Unsupported: owned system does not have sector');
-			systemToSectorId[system.id] = sectorId;
-			getOrSetDefault(sectorToSystemIds, sectorId, new Set()).add(system.id);
-			sectorToCountry[sectorId] = ownerId;
 			const joinedUnionLeaderId = getUnionLeaderId(ownerId, snapshot, settings, ['joinedBorders']);
 			ownedSystemPoints.push(turf.point(pointToGeoJSON(getSystemCoordinates(system.id))).geometry);
-			getOrSetDefault(countryToSystemIds, ownerId, new Set()).add(system.id);
 			getOrSetDefault(unionLeaderToSystemIds, joinedUnionLeaderId, new Set()).add(system.id);
 			getOrSetDefault(unionLeaderToUnionMembers, joinedUnionLeaderId, new Set()).add(ownerId);
 			getOrSetDefault(unionLeaderToSectors, joinedUnionLeaderId, new Set()).add(sectorId);
-			systemIdToCountry[system.id] = ownerId;
 			systemIdToUnionLeader[system.id] = joinedUnionLeaderId;
 
 			// TODO occupation
@@ -145,14 +135,10 @@ export default function processSystemOwnership(
 	// }
 
 	return {
-		sectorToSystemIds,
-		sectorToCountry,
-		countryToSystemIds,
 		unionLeaderToSystemIds,
 		unionLeaderToUnionMembers,
 		unionLeaderToSectors,
 		ownedSystemPoints,
-		systemIdToCountry,
 		systemIdToUnionLeader,
 		fullOccupiedOccupierToSystemIds,
 		partialOccupiedOccupierToSystemIds,

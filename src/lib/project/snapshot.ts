@@ -1,4 +1,5 @@
-import { Schema } from 'effect';
+import { Array, Equal, HashMap, identity, Iterable, Option, pipe, Record, Schema } from 'effect';
+import type { PickByValue } from 'utility-types';
 
 export const FactionId = Schema.String.pipe(Schema.brand('FactionId'));
 export type FactionId = typeof FactionId.Type;
@@ -8,6 +9,10 @@ export const SystemId = Schema.String.pipe(Schema.brand('SystemId'));
 export type SystemId = typeof SystemId.Type;
 export const SystemObjectId = Schema.String.pipe(Schema.brand('SystemObjectId'));
 export type SystemObjectId = typeof SystemObjectId.Type;
+
+interface HasCtx {
+	ctx: Snapshot;
+}
 
 export class Coordinate extends Schema.Class<Coordinate>('Coordinate')({
 	x: Schema.Number,
@@ -27,23 +32,89 @@ export class Faction extends Schema.Class<Faction>('Faction')({
 	capitalId: Schema.NullOr(SystemObjectId),
 	// subfactions
 	// relationships
-}) {}
+}) {
+	#ctxRef: WeakRef<Snapshot> | null = null;
+	set ctx(ctx: Snapshot) {
+		this.#ctxRef = new WeakRef(ctx);
+	}
+	get ctx(): Snapshot {
+		const ctx = this.#ctxRef?.deref();
+		if (ctx == null) throw new Error('Context not set');
+		return ctx;
+	}
+
+	get capital(): SystemObject | null {
+		if (this.capitalId != null) {
+			return this.ctx.systemObjects[this.capitalId] ?? null;
+		} else {
+			return null;
+		}
+	}
+
+	get sectors(): Sector[] {
+		return this.ctx.getSectorsWithFaction(this);
+	}
+
+	get systems(): System[] {
+		return this.ctx.getSystemsWithFaction(this);
+	}
+}
 
 export class Sector extends Schema.Class<Sector>('Sector')({
 	id: SectorId,
 	factionId: FactionId,
 	type: Schema.Literal('core', 'frontier', 'standard'),
 	capitalId: Schema.NullOr(SystemObjectId),
-}) {}
+}) {
+	#ctxRef: WeakRef<Snapshot> | null = null;
+	set ctx(ctx: Snapshot) {
+		this.#ctxRef = new WeakRef(ctx);
+	}
+	get ctx(): Snapshot {
+		const ctx = this.#ctxRef?.deref();
+		if (ctx == null) throw new Error('Context not set');
+		return ctx;
+	}
+
+	get capital(): SystemObject | null {
+		if (this.capitalId != null) {
+			return this.ctx.systemObjects[this.capitalId] ?? null;
+		} else {
+			return null;
+		}
+	}
+
+	get faction(): Faction | null {
+		return this.ctx.factions[this.factionId] ?? null;
+	}
+
+	get systems(): System[] {
+		return this.ctx.getSystemsWithSector(this);
+	}
+}
 
 export class SystemObject extends Schema.Class<SystemObject>('SystemObject')({
 	id: SystemObjectId,
 	name: Schema.String,
 	coordinate: Coordinate,
-	system: SystemId,
+	systemId: SystemId,
 	population: Schema.Number.pipe(Schema.nonNegative()),
 	// orientation
-}) {}
+}) {
+	#ctxRef: WeakRef<Snapshot> | null = null;
+	set ctx(ctx: Snapshot) {
+		this.#ctxRef = new WeakRef(ctx);
+	}
+	get ctx(): Snapshot {
+		const ctx = this.#ctxRef?.deref();
+		if (ctx == null) throw new Error('Context not set');
+		return ctx;
+	}
+
+	get system(): System | null {
+		return this.ctx.systems[this.systemId] ?? null;
+	}
+}
 
 export class Connection extends Schema.Class<Connection>('Connection')({
 	to: SystemId,
@@ -56,7 +127,37 @@ export class System extends Schema.Class<System>('System')({
 	factionId: Schema.NullOr(FactionId),
 	sectorId: Schema.NullOr(SectorId),
 	connections: Schema.Data(Schema.Array(Connection)),
-}) {}
+}) {
+	#ctxRef: WeakRef<Snapshot> | null = null;
+	set ctx(ctx: Snapshot) {
+		this.#ctxRef = new WeakRef(ctx);
+	}
+	get ctx(): Snapshot {
+		const ctx = this.#ctxRef?.deref();
+		if (ctx == null) throw new Error('Context not set');
+		return ctx;
+	}
+
+	get faction(): Faction | null {
+		if (this.factionId != null) {
+			return this.ctx.factions[this.factionId] ?? null;
+		} else {
+			return null;
+		}
+	}
+
+	get objects(): SystemObject[] {
+		return this.ctx.getSystemObjectsWithSystem(this);
+	}
+
+	get sector(): Sector | null {
+		if (this.sectorId != null) {
+			return this.ctx.sectors[this.sectorId] ?? null;
+		} else {
+			return null;
+		}
+	}
+}
 
 export class Snapshot extends Schema.Class<Snapshot>('Snapshot')({
 	date: Schema.String,
@@ -84,4 +185,67 @@ export class Snapshot extends Schema.Class<Snapshot>('Snapshot')({
 			value: SystemObject,
 		}),
 	),
-}) {}
+}) {
+	init() {
+		const applyContext = (objects: Iterable<HasCtx>) => {
+			for (const object of objects) {
+				object.ctx = this;
+			}
+		};
+		pipe(this.factions, Record.values, applyContext);
+		pipe(this.sectors, Record.values, applyContext);
+		pipe(this.systems, Record.values, applyContext);
+		pipe(this.systemObjects, Record.values, applyContext);
+	}
+
+	#sectorsWithFactionCache = HashMap.empty<Faction, Sector[]>();
+	getSectorsWithFaction(faction: Faction): Sector[] {
+		return getCachedOneToMany<Faction | null, Sector>(
+			faction,
+			this.sectors,
+			'faction',
+			this.#sectorsWithFactionCache,
+		);
+	}
+
+	#systemObjectsWithSystemCache = HashMap.empty<System, SystemObject[]>();
+	getSystemObjectsWithSystem(system: System): SystemObject[] {
+		return getCachedOneToMany(
+			system,
+			this.systemObjects,
+			'system',
+			this.#systemObjectsWithSystemCache,
+		);
+	}
+
+	#systemsWithFactionCache = HashMap.empty<Faction, System[]>();
+	getSystemsWithFaction(faction: Faction): System[] {
+		return getCachedOneToMany(faction, this.systems, 'faction', this.#systemsWithFactionCache);
+	}
+
+	#systemsWithSectorCache = HashMap.empty<Sector, System[]>();
+	getSystemsWithSector(sector: Sector): System[] {
+		return getCachedOneToMany(sector, this.systems, 'sector', this.#systemsWithSectorCache);
+	}
+}
+
+function getCachedOneToMany<One, Many>(
+	one: One,
+	many: Record<string, Many>,
+	key: keyof PickByValue<Many, One | null>,
+	cache: HashMap.HashMap<One, Many[]>,
+): Many[] {
+	return Option.match(HashMap.get(cache, one), {
+		onSome: identity,
+		onNone: () => {
+			const result = pipe(
+				many,
+				Record.values,
+				Iterable.filter((object) => Equal.equals(object[key], one)),
+				Array.fromIterable,
+			);
+			HashMap.set(cache, one, result);
+			return result;
+		},
+	});
+}

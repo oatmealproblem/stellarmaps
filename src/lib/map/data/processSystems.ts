@@ -1,4 +1,5 @@
-import { Iterable, Option, pipe, Record } from 'effect';
+import { Iterable, Option, pipe } from 'effect';
+import { equals } from 'effect/Equal';
 
 import { FactionId, type Snapshot, type SystemId } from '$lib/project/snapshot';
 
@@ -67,26 +68,23 @@ export default function processSystems(
 
 	const systems = Object.values(snapshot.systems).map<ProcessedSystem>((system) => {
 		const factionId = system.factionId;
-		const faction = factionId != null ? snapshot.factions[factionId] : null;
 		const mapModeInfo =
 			factionId != null
 				? getCountryMapModeInfo(factionId, snapshot, settings)
 				: defaultCountryMapModeInfo;
 
-		const isOwned = faction != null;
+		const isOwned = system.faction != null;
 		const colonies = new Set(
 			pipe(
-				snapshot.systemObjects,
-				Record.values,
+				system.objects,
 				Iterable.filterMap((obj) =>
-					obj.population > 0 && obj.system === system.id ? Option.some(obj.id) : Option.none(),
+					obj.population > 0 && obj.systemId === system.id ? Option.some(obj.id) : Option.none(),
 				),
 			),
 		);
 		const isColonized = isOwned && colonies.size > 0;
-		const sector = system.sectorId != null ? snapshot.sectors[system.sectorId] : null;
-		const isSectorCapital = sector?.capitalId != null && colonies.has(sector.capitalId);
-		const isCountryCapital = faction?.capitalId != null && colonies.has(faction.capitalId);
+		const isSectorCapital = equals(system, system.sector?.capital?.system);
+		const isCountryCapital = equals(system, system.faction?.capital?.system);
 		const [x, y] = getSystemCoordinates(system.id);
 
 		const ownerIsKnown = factionId != null && knownCountries.has(factionId);
@@ -107,7 +105,7 @@ export default function processSystems(
 			system,
 			povCountry ?? null,
 			null, // TODO selectedSpecies ?? null,
-			faction ?? null,
+			system.faction,
 		);
 		const mapModeTotalValue = mapModeValues?.reduce((acc, cur) => acc + cur.value, 0);
 

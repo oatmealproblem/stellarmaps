@@ -302,7 +302,7 @@
 			];
 			const system = dataOrNull.findClosestSystem(svgPoint[0], svgPoint[1]);
 			if (system) {
-				const countryId = dataOrNull.systemIdToCountry[system.id] ?? null;
+				const countryId = system.factionId;
 				const settings = mapSettings.current;
 				const processedSystem = dataOrNull.systems.find((s) => s.id === system.id);
 				if (processedSystem == null) {

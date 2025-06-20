@@ -62,14 +62,10 @@ export default async function processMapData(snapshot: Snapshot, rawSettings: Ma
 	);
 
 	const {
-		sectorToSystemIds,
-		countryToSystemIds,
 		unionLeaderToSystemIds,
 		unionLeaderToUnionMembers,
 		ownedSystemPoints,
-		systemIdToCountry,
 		systemIdToUnionLeader,
-		sectorToCountry,
 		unionLeaderToSectors,
 		fullOccupiedOccupierToSystemIds,
 		partialOccupiedOccupierToSystemIds,
@@ -104,11 +100,8 @@ export default async function processMapData(snapshot: Snapshot, rawSettings: Ma
 		pickSettings(settings, processPolygonsDeps),
 		voronoi,
 		systemIdToVoronoiIndexes,
-		sectorToSystemIds,
-		countryToSystemIds,
 		unionLeaderToSystemIds,
 		unionLeaderToSectors,
-		sectorToCountry,
 		knownSystems,
 		fullOccupiedOccupierToSystemIds,
 		partialOccupiedOccupierToSystemIds,
@@ -138,11 +131,8 @@ export default async function processMapData(snapshot: Snapshot, rawSettings: Ma
 		snapshot,
 		pickSettings(settings, processBordersDeps),
 		unionLeaderToGeojson,
-		countryToGeojson,
 		sectorToGeojson,
-		unionLeaderToUnionMembers,
 		unionLeaderToSystemIds,
-		countryToSystemIds,
 		systemIdToUnionLeader,
 		knownCountries,
 		galaxyBorderCircles,
@@ -210,7 +200,6 @@ export default async function processMapData(snapshot: Snapshot, rawSettings: Ma
 		terraIncognitaPath,
 		galaxyBorderCircles,
 		findClosestSystem,
-		systemIdToCountry,
 		legend,
 	};
 }
