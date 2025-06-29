@@ -76,7 +76,8 @@ export default function processBorders(
 
 			const countrySectors = Object.values(snapshot.sectors).filter(
 				(sector) =>
-					getUnionLeaderId(sector.factionId, snapshot, settings, ['joinedBorders']) === countryId,
+					(getUnionLeaderId(sector.factionId, snapshot, settings, ['joinedBorders']) ??
+						sector.factionId) === countryId,
 			);
 
 			const sectorOuterPolygons = countrySectors

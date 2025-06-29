@@ -3,6 +3,8 @@ import type { PickByValue } from 'utility-types';
 
 export const FactionId = Schema.String.pipe(Schema.brand('FactionId'));
 export type FactionId = typeof FactionId.Type;
+export const MembershipId = Schema.String.pipe(Schema.brand('MembershipId'));
+export type MembershipId = typeof FactionId.Type;
 export const SectorId = Schema.String.pipe(Schema.brand('SectorId'));
 export type SectorId = typeof SectorId.Type;
 export const SystemId = Schema.String.pipe(Schema.brand('SystemId'));
@@ -58,6 +60,48 @@ export class Faction extends Schema.Class<Faction>('Faction')({
 	get systems(): System[] {
 		return this.ctx.getSystemsWithFaction(this);
 	}
+
+	get members(): Membership[] {
+		return this.ctx.getMembershipsWithOrganization(this);
+	}
+
+	get organizations(): Membership[] {
+		return this.ctx.getMembershipsWithMember(this);
+	}
+}
+
+export const MembershipTag = Schema.Literal(
+	'federation_leader',
+	'federation_member',
+	'hegemony_leader',
+	'hegemony_member',
+	'subject',
+);
+export type MembershipTag = typeof MembershipTag.Type;
+
+export class Membership extends Schema.Class<Membership>('Membership')({
+	id: MembershipId,
+	memberId: FactionId,
+	organizationId: FactionId,
+	tags: Schema.HashSet(MembershipTag),
+}) {
+	#ctxRef: WeakRef<Snapshot> | null = null;
+	set ctx(ctx: Snapshot) {
+		this.#ctxRef = new WeakRef(ctx);
+	}
+	get ctx(): Snapshot {
+		const ctx = this.#ctxRef?.deref();
+		if (ctx == null) throw new Error('Context not set');
+		return ctx;
+	}
+
+	get member(): Faction {
+		return pipe(this.ctx.factions[this.memberId], Option.fromNullable, Option.getOrThrow);
+	}
+
+	get organization(): Faction {
+		return pipe(this.ctx.factions[this.organizationId], Option.fromNullable, Option.getOrThrow);
+	}
 }
 
 export class Sector extends Schema.Class<Sector>('Sector')({
@@ -84,8 +128,8 @@ export class Sector extends Schema.Class<Sector>('Sector')({
 		}
 	}
 
-	get faction(): Faction | null {
-		return this.ctx.factions[this.factionId] ?? null;
+	get faction(): Faction {
+		return pipe(this.ctx.factions[this.factionId], Option.fromNullable, Option.getOrThrow);
 	}
 
 	get systems(): System[] {
@@ -111,8 +155,8 @@ export class SystemObject extends Schema.Class<SystemObject>('SystemObject')({
 		return ctx;
 	}
 
-	get system(): System | null {
-		return this.ctx.systems[this.systemId] ?? null;
+	get system(): System {
+		return pipe(this.ctx.systems[this.systemId], Option.fromNullable, Option.getOrThrow);
 	}
 }
 
@@ -167,6 +211,12 @@ export class Snapshot extends Schema.Class<Snapshot>('Snapshot')({
 			value: Faction,
 		}),
 	),
+	memberships: Schema.Data(
+		Schema.Record({
+			key: MembershipId,
+			value: Membership,
+		}),
+	),
 	sectors: Schema.Data(
 		Schema.Record({
 			key: SectorId,
@@ -193,9 +243,30 @@ export class Snapshot extends Schema.Class<Snapshot>('Snapshot')({
 			}
 		};
 		pipe(this.factions, Record.values, applyContext);
+		pipe(this.memberships, Record.values, applyContext);
 		pipe(this.sectors, Record.values, applyContext);
 		pipe(this.systems, Record.values, applyContext);
 		pipe(this.systemObjects, Record.values, applyContext);
+	}
+
+	#membershipsWithMemberCache = HashMap.empty<Faction, Membership[]>();
+	getMembershipsWithMember(faction: Faction): Membership[] {
+		return getCachedOneToMany<Faction | null, Membership>(
+			faction,
+			this.memberships,
+			'member',
+			this.#membershipsWithMemberCache,
+		);
+	}
+
+	#membershipsWithOrganizationCache = HashMap.empty<Faction, Membership[]>();
+	getMembershipsWithOrganization(faction: Faction): Membership[] {
+		return getCachedOneToMany<Faction | null, Membership>(
+			faction,
+			this.memberships,
+			'organization',
+			this.#membershipsWithOrganizationCache,
+		);
 	}
 
 	#sectorsWithFactionCache = HashMap.empty<Faction, Sector[]>();

@@ -34,7 +34,8 @@ export default function processSystemOwnership(
 		if (ownerId != null && owner != null) {
 			const sectorId = system.sectorId;
 			if (sectorId == null) throw new Error('Unsupported: owned system does not have sector');
-			const joinedUnionLeaderId = getUnionLeaderId(ownerId, snapshot, settings, ['joinedBorders']);
+			const joinedUnionLeaderId =
+				getUnionLeaderId(ownerId, snapshot, settings, ['joinedBorders']) ?? ownerId;
 			ownedSystemPoints.push(turf.point(pointToGeoJSON(getSystemCoordinates(system.id))).geometry);
 			getOrSetDefault(unionLeaderToSystemIds, joinedUnionLeaderId, new Set()).add(system.id);
 			getOrSetDefault(unionLeaderToUnionMembers, joinedUnionLeaderId, new Set()).add(ownerId);

@@ -3,6 +3,7 @@ import { Faction, FactionId, type Snapshot, System } from '$lib/project/snapshot
 import type { MessageID } from '../../../intl';
 import type { ColorSetting, MapSettings } from '../../settings';
 import type { LocalizedText, Species } from '../../stellaris/GameState.svelte';
+import { getUnionLeaderId } from './utils';
 
 interface MapMode {
 	id: string;
@@ -552,7 +553,10 @@ export function getCountryMapModeInfo(
 			return defaultCountryMapModeInfo;
 		}
 	} else {
-		return snapshot.factions[countryId]?.flag ?? { primaryColor: 'black', secondaryColor: 'black' };
+		const unionLeaderId =
+			getUnionLeaderId(countryId, snapshot, settings, ['joinedBorders', 'separateBorders']) ??
+			countryId;
+		return snapshot.factions[unionLeaderId]?.flag ?? defaultCountryMapModeInfo;
 	}
 }
 

@@ -1,4 +1,4 @@
-import { Data, identity, Iterable, Option, pipe, Predicate, Record } from 'effect';
+import { Data, HashSet, identity, Iterable, Option, pipe, Predicate, Record } from 'effect';
 
 import { localizeTextSync } from '$lib/map/data/locUtils';
 import {
@@ -7,6 +7,9 @@ import {
 	Faction,
 	FactionId,
 	Flag,
+	Membership,
+	MembershipId,
+	MembershipTag,
 	Sector,
 	SectorId,
 	Snapshot,
@@ -16,7 +19,7 @@ import {
 	SystemObjectId,
 } from '$lib/project/snapshot';
 
-import { type GameState } from './GameState.svelte';
+import { type Country, type GameState } from './GameState.svelte';
 
 type Context = {
 	loc: Record<string, string>;
@@ -27,8 +30,14 @@ export default function convertToSnapshot(gameState: GameState, context: Context
 		date: gameState.date,
 		factions: pipe(
 			extractCountries(gameState, context),
-			// TODO federations
+			Iterable.appendAll(extractFederations(gameState, context)),
 			(factions) => Record.fromIterableBy(factions, (faction) => faction.id),
+			Data.struct,
+		),
+		memberships: pipe(
+			extractSubjectMemberships(gameState, context),
+			Iterable.appendAll(extractFederationMemberships(gameState, context)),
+			(memberships) => Record.fromIterableBy(memberships, (membership) => membership.id),
 			Data.struct,
 		),
 		systems: pipe(
@@ -58,17 +67,65 @@ function extractCountries(gameState: GameState, context: Context): Faction[] {
 		const faction = Faction.make({
 			id: FactionId.make(`country-${country.id}`),
 			name: localizeTextSync(country.name, context.loc),
-			flag: Flag.make({
-				primaryColor: country.flag?.colors[0] ?? 'black',
-				secondaryColor: country.flag?.colors[1] ?? 'black',
-				emblem: country.flag?.icon
-					? `${country.flag.icon.category}/${country.flag.icon.file}`
-					: null,
-			}),
+			flag: makeFlagFromCountry(country),
 			capitalId: country.capital != null ? SystemObjectId.make(`planet-${country.capital}`) : null,
 		});
 		return faction;
 	});
+}
+
+function extractSubjectMemberships(gameState: GameState, context: Context): Membership[] {
+	return Object.values(gameState.country)
+		.map((country) => {
+			if (country.overlord == null) return null;
+			const memberId = FactionId.make(`country-${country.id}`);
+			const organizationId = FactionId.make(`country-${country.overlord}`);
+			return Membership.make({
+				id: MembershipId.make(`${organizationId}-${memberId}`),
+				memberId,
+				organizationId,
+				tags: HashSet.fromIterable<MembershipTag>(['subject']),
+			});
+		})
+		.filter(Predicate.isNotNull);
+}
+
+function extractFederations(gameState: GameState, context: Context): Faction[] {
+	return Object.values(gameState.federation).map((federation) => {
+		const foundingCountry = federation.members[0]
+			? gameState.country[federation.members[0]]
+			: undefined;
+		const faction = Faction.make({
+			id: FactionId.make(`federation-${federation.id}`),
+			name: localizeTextSync(federation.name, context.loc),
+			// TODO option to use current leader
+			flag: makeFlagFromCountry(foundingCountry),
+			capitalId: null,
+		});
+		return faction;
+	});
+}
+
+function extractFederationMemberships(gameState: GameState, context: Context): Membership[] {
+	return Object.values(gameState.federation).flatMap((federation) =>
+		federation.members.map((countryId) => {
+			const organizationId = FactionId.make(`federation-${federation.id}`);
+			const memberId = FactionId.make(`country-${countryId}`);
+			const isHegemony = federation.federation_progress.federation_type === 'hegemony_federation';
+			const memberTag = isHegemony ? 'hegemony_member' : 'federation_member';
+			const leaderTag = isHegemony ? 'hegemony_leader' : 'federation_leader';
+			const membership = Membership.make({
+				id: MembershipId.make(`${organizationId}-${memberId}`),
+				memberId,
+				organizationId,
+				tags: HashSet.fromIterable<MembershipTag>([
+					...(countryId === federation.leader ? ([leaderTag] as const) : []),
+					memberTag,
+				]),
+			});
+			return membership;
+		}),
+	);
 }
 
 function extractSectors(gameState: GameState): Sector[] {
@@ -181,5 +238,13 @@ function extractGalacticObjects(gameState: GameState, context: Context): System[
 			]),
 		});
 		return system;
+	});
+}
+
+function makeFlagFromCountry(country: Country | undefined) {
+	return Flag.make({
+		primaryColor: country?.flag?.colors[0] ?? 'black',
+		secondaryColor: country?.flag?.colors[1] ?? 'black',
+		emblem: country?.flag?.icon ? `${country.flag.icon.category}/${country.flag.icon.file}` : null,
 	});
 }

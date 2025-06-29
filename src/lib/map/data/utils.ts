@@ -2,10 +2,18 @@ import * as turf from '@turf/turf';
 import { pathRound } from 'd3-path';
 import { curveBasis, curveBasisClosed, curveLinear, curveLinearClosed } from 'd3-shape';
 
-import type { FactionId, Snapshot, SystemId } from '$lib/project/snapshot';
+import {
+	MembershipTag,
+	type Faction,
+	type FactionId,
+	type Membership,
+	type Snapshot,
+	type SystemId,
+} from '$lib/project/snapshot';
 
 import type { MapSettings } from '../../settings';
 import type { BorderCircle } from './processCircularGalaxyBorder';
+import { HashSet } from 'effect';
 
 export type PolygonalGeometry = GeoJSON.Polygon | GeoJSON.MultiPolygon;
 export type PolygonalFeature = GeoJSON.Feature<PolygonalGeometry>;
@@ -23,78 +31,67 @@ export function pointFromGeoJSON(point: GeoJSON.Position): [number, number] {
 
 export function getUnionLeaderId(
 	factionId: FactionId,
-	_snapshot: Snapshot,
-	_settings: Pick<
+	snapshot: Snapshot,
+	settings: Pick<
 		MapSettings,
-		'unionMode' | 'unionFederations' | 'unionHegemonies' | 'unionSubjects' | 'unionFederationsColor'
+		'unionMode' | 'unionFederations' | 'unionHegemonies' | 'unionSubjects'
 	>,
-	_values: ('joinedBorders' | 'separateBorders' | 'off')[],
-): FactionId {
-	return factionId;
-	// TODO
-	// const isIncludedValue = (value: string) => (values as string[]).includes(value);
-	// const country = gameState.country[factionId];
-	// if (country == null) return factionId;
-	// const overlordId = country.overlord;
-	// const overlord = overlordId != null ? gameState.country[overlordId] : null;
-	// const federation = country.federation != null ? gameState.federation[country.federation] : null;
-	// const isHegemonyFederation = federation
-	// 	? federation.federation_progress.federation_type === 'hegemony_federation'
-	// 	: false;
-	// const isNonHegemonyFederation = federation ? !isHegemonyFederation : false;
-	// const overlordFederation =
-	// 	overlord?.federation != null ? gameState.federation[overlord.federation] : null;
-	// if (!settings.unionMode) {
-	// 	return factionId;
-	// } else if (
-	// 	isIncludedValue(settings.unionFederations) &&
-	// 	isIncludedValue(settings.unionSubjects) &&
-	// 	overlordFederation
-	// ) {
-	// 	return settings.unionFederationsColor === 'leader'
-	// 		? overlordFederation.leader
-	// 		: (overlordFederation.members[0] ?? factionId);
-	// } else if (
-	// 	federation &&
-	// 	((isIncludedValue(settings.unionFederations) && isNonHegemonyFederation) ||
-	// 		(isIncludedValue(settings.unionHegemonies) && isHegemonyFederation))
-	// ) {
-	// 	return settings.unionFederationsColor === 'leader'
-	// 		? federation.leader
-	// 		: (federation.members[0] ?? factionId);
-	// } else if (isIncludedValue(settings.unionSubjects) && overlord && overlordId != null) {
-	// 	return overlordId;
-	// } else {
-	// 	return factionId;
-	// }
+	values: ('joinedBorders' | 'separateBorders' | 'off')[],
+): FactionId | null {
+	const faction = snapshot.factions[factionId];
+	if (faction == null || !settings.unionMode) return null;
+
+	const isIncludedValue = (value: string) => (values as string[]).includes(value);
+	const filterMembership = (membership: Membership): boolean => {
+		if (
+			isIncludedValue(settings.unionFederations) &&
+			HashSet.has<MembershipTag>(membership.tags, 'federation_member')
+		) {
+			return true;
+		}
+		if (
+			isIncludedValue(settings.unionHegemonies) &&
+			HashSet.has<MembershipTag>(membership.tags, 'hegemony_member')
+		) {
+			return true;
+		}
+		if (
+			isIncludedValue(settings.unionSubjects) &&
+			HashSet.has<MembershipTag>(membership.tags, 'subject')
+		) {
+			return true;
+		}
+		return false;
+	};
+
+	let organization: Faction | undefined = undefined;
+	let memberships: Membership[] = faction.organizations.filter(filterMembership);
+	while (memberships[0]) {
+		organization = memberships[0].organization;
+		memberships = organization.organizations.filter(filterMembership);
+	}
+
+	if (organization) {
+		return organization.id;
+	} else if (faction.members.filter(filterMembership).length > 0) {
+		return faction.id;
+	} else {
+		return null;
+	}
 }
 
 export function isUnionLeader(
-	_countryId: FactionId,
-	_snapshot: Snapshot,
-	_settings: Pick<
+	factionId: FactionId,
+	snapshot: Snapshot,
+	settings: Pick<
 		MapSettings,
 		'unionMode' | 'unionFederations' | 'unionHegemonies' | 'unionSubjects'
 	>,
 ) {
-	return false;
-	// TODO
-	// const country = gameState.country[countryId];
-	// if (country == null) return false;
-	// const federation = country.federation != null ? gameState.federation[country.federation] : null;
-	// const federationIsDisplayedAsUnion =
-	// 	federation?.federation_progress.federation_type === 'hegemony_federation'
-	// 		? settings.unionHegemonies !== 'off'
-	// 		: settings.unionFederations !== 'off';
-	// if (!settings.unionMode) {
-	// 	return false;
-	// } else if (federation && federationIsDisplayedAsUnion) {
-	// 	return federation.leader === countryId;
-	// } else if (settings.unionSubjects !== 'off') {
-	// 	return Boolean(country.subjects.length);
-	// } else {
-	// 	return false;
-	// }
+	return (
+		factionId ===
+		getUnionLeaderId(factionId, snapshot, settings, ['joinedBorders', 'separateBorders'])
+	);
 }
 
 export function multiPolygonToPath(
