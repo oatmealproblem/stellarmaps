@@ -90,15 +90,11 @@ export default function processSystems(
 		const ownerIsKnown = factionId != null && knownCountries.has(factionId);
 		const systemIsKnown = knownSystems.has(system.id);
 
-		// const bypassTypes = new Set(
-		// 	system.bypasses
-		// 		.map((bypassId) => gameState.bypasses[bypassId]?.type)
-		// 		.filter(Predicate.isNotNullable),
-		// );
-		const hasWormhole = false; // TODO bypassTypes.has('wormhole') || bypassTypes.has('strange_wormhole');
-		const hasGateway = false; // TODO bypassTypes.has('gateway');
-		const hasLGate = false; // TODO bypassTypes.has('lgate');
-		const hasShroudTunnel = false; // TODO bypassTypes.has('shroud_tunnel');
+		const connectionTypes = new Set(Array.from(system.connections).map((c) => c.type));
+		const hasWormhole = connectionTypes.has('wormhole');
+		const hasGateway = connectionTypes.has('gateway');
+		const hasLGate = connectionTypes.has('lgate');
+		const hasShroudTunnel = connectionTypes.has('shroud_tunnel');
 
 		const mapModeValues = mapModes[settings.mapMode]?.system?.getValues(
 			snapshot,

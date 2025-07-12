@@ -90,7 +90,7 @@
 		{#if debug.current}
 			{#each data.galaxyBorderCircles as circle}
 				<circle
-					cx={-circle.cx}
+					cx={circle.cx}
 					cy={circle.cy}
 					r={circle.r}
 					stroke-width={['outer-padded', 'inner-padded', 'outlier'].includes(circle.type) ? 2 : 1}

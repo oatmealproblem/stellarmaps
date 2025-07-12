@@ -1,11 +1,11 @@
 import * as turf from '@turf/turf';
 import { interpolateBasis } from 'd3-interpolate';
-import { Array } from 'effect';
+import { Array, Iterable, pipe } from 'effect';
 
 import type { Connection, Snapshot, SystemId } from '$lib/project/snapshot';
 
 import type { MapSettings } from '../../settings';
-import type { NonEmptyArray } from '../../utils';
+import { hasNotNullable, type NonEmptyArray } from '../../utils';
 import {
 	makeBorderCircleGeojson,
 	pointFromGeoJSON,
@@ -66,7 +66,14 @@ export default function processCircularGalaxyBorders(
 
 		// TODO don't hard-code hyperlanes, instead base on connection definition
 		const connectionFilter = (connection: Connection) => connection.type === 'hyperlane';
-		const edge = system.connections.filter(connectionFilter).map((c) => c.to);
+		const edge = pipe(
+			system.connections,
+			Iterable.filter(connectionFilter),
+			Iterable.filter(hasNotNullable('toId')),
+			Iterable.flatMap((c) => [c.fromId, c.toId]),
+			Iterable.filter((id) => id !== system.id),
+			Array.fromIterable,
+		);
 		const edgeSet = new Set(edge);
 		while (edge.length > 0) {
 			const nextId = edge.pop();
@@ -75,14 +82,19 @@ export default function processCircularGalaxyBorders(
 			const next = snapshot.systems[nextId];
 			if (next != null && !cluster.systems.has(nextId)) {
 				cluster.systems.add(nextId);
-				const nextConnections = next.connections.filter(connectionFilter);
+				const nextConnections = pipe(
+					next.connections,
+					Iterable.filter(connectionFilter),
+					Iterable.filter(hasNotNullable('toId')),
+					Array.fromIterable,
+				);
 				const isOutlier =
 					nextConnections.length === 1 &&
 					nextConnections[0] != null &&
 					Math.hypot(
 						...Array.zip(
-							getSystemCoordinates(nextId),
-							getSystemCoordinates(nextConnections[0].to),
+							getSystemCoordinates(nextConnections[0].fromId),
+							getSystemCoordinates(nextConnections[0].toId),
 						).map(([a, b]) => a - b),
 					) > OUTLIER_DISTANCE;
 				if (!isOutlier) {
@@ -103,9 +115,10 @@ export default function processCircularGalaxyBorders(
 						cluster.bBox.yMax = getSystemCoordinates(nextId)[1];
 				}
 				for (const connection of nextConnections) {
-					if (!cluster.systems.has(connection.to) && !edgeSet.has(connection.to)) {
-						edge.push(connection.to);
-						edgeSet.add(connection.to);
+					const otherId = connection.fromId === nextId ? connection.toId : connection.fromId;
+					if (!cluster.systems.has(otherId) && !edgeSet.has(otherId)) {
+						edge.push(otherId);
+						edgeSet.add(otherId);
 					}
 				}
 			}

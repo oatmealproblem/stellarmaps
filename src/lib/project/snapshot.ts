@@ -1,6 +1,8 @@
 import { Array, Equal, HashMap, identity, Iterable, Option, pipe, Record, Schema } from 'effect';
 import type { PickByValue } from 'utility-types';
 
+export const ConnectionId = Schema.String.pipe(Schema.brand('ConnectionId'));
+export type ConnectionId = typeof ConnectionId.Type;
 export const FactionId = Schema.String.pipe(Schema.brand('FactionId'));
 export type FactionId = typeof FactionId.Type;
 export const MembershipId = Schema.String.pipe(Schema.brand('MembershipId'));
@@ -160,17 +162,20 @@ export class SystemObject extends Schema.Class<SystemObject>('SystemObject')({
 	}
 }
 
+export const ConnectionType = Schema.Literal(
+	'hyperlane',
+	'hyper_relay',
+	'wormhole',
+	'lgate',
+	'shroud_tunnel',
+	'gateway',
+);
+export type ConnectionType = typeof ConnectionType.Type;
 export class Connection extends Schema.Class<Connection>('Connection')({
-	to: SystemId,
-	type: Schema.String,
-}) {}
-export class System extends Schema.Class<System>('System')({
-	id: SystemId,
-	name: Schema.String,
-	coordinate: Coordinate,
-	factionId: Schema.NullOr(FactionId),
-	sectorId: Schema.NullOr(SectorId),
-	connections: Schema.Data(Schema.Array(Connection)),
+	id: ConnectionId,
+	fromId: SystemId,
+	toId: Schema.NullOr(SystemId),
+	type: ConnectionType,
 }) {
 	#ctxRef: WeakRef<Snapshot> | null = null;
 	set ctx(ctx: Snapshot) {
@@ -180,6 +185,38 @@ export class System extends Schema.Class<System>('System')({
 		const ctx = this.#ctxRef?.deref();
 		if (ctx == null) throw new Error('Context not set');
 		return ctx;
+	}
+
+	get from(): System {
+		return pipe(this.ctx.systems[this.fromId], Option.fromNullable, Option.getOrThrow);
+	}
+
+	get to(): System | null {
+		return this.toId != null
+			? pipe(this.ctx.systems[this.toId], Option.fromNullable, Option.getOrThrow)
+			: null;
+	}
+}
+
+export class System extends Schema.Class<System>('System')({
+	id: SystemId,
+	name: Schema.String,
+	coordinate: Coordinate,
+	factionId: Schema.NullOr(FactionId),
+	sectorId: Schema.NullOr(SectorId),
+}) {
+	#ctxRef: WeakRef<Snapshot> | null = null;
+	set ctx(ctx: Snapshot) {
+		this.#ctxRef = new WeakRef(ctx);
+	}
+	get ctx(): Snapshot {
+		const ctx = this.#ctxRef?.deref();
+		if (ctx == null) throw new Error('Context not set');
+		return ctx;
+	}
+
+	get connections(): Iterable<Connection> {
+		return Iterable.appendAll(this.ctx.getConnectionsFrom(this), this.ctx.getConnectionsTo(this));
 	}
 
 	get faction(): Faction | null {
@@ -205,6 +242,12 @@ export class System extends Schema.Class<System>('System')({
 
 export class Snapshot extends Schema.Class<Snapshot>('Snapshot')({
 	date: Schema.String,
+	connections: Schema.Data(
+		Schema.Record({
+			key: ConnectionId,
+			value: Connection,
+		}),
+	),
 	factions: Schema.Data(
 		Schema.Record({
 			key: FactionId,
@@ -242,11 +285,32 @@ export class Snapshot extends Schema.Class<Snapshot>('Snapshot')({
 				object.ctx = this;
 			}
 		};
+		pipe(this.connections, Record.values, applyContext);
 		pipe(this.factions, Record.values, applyContext);
 		pipe(this.memberships, Record.values, applyContext);
 		pipe(this.sectors, Record.values, applyContext);
 		pipe(this.systems, Record.values, applyContext);
 		pipe(this.systemObjects, Record.values, applyContext);
+	}
+
+	#connectionsFromCache = HashMap.empty<System, Connection[]>();
+	getConnectionsFrom(from: System): Connection[] {
+		return getCachedOneToMany<System, Connection>(
+			from,
+			this.connections,
+			'from',
+			this.#connectionsFromCache,
+		);
+	}
+
+	#connectionsToCache = HashMap.empty<System, Connection[]>();
+	getConnectionsTo(from: System): Connection[] {
+		return getCachedOneToMany<System, Connection>(
+			from,
+			this.connections,
+			'to',
+			this.#connectionsToCache,
+		);
 	}
 
 	#membershipsWithMemberCache = HashMap.empty<Faction, Membership[]>();

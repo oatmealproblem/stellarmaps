@@ -1,9 +1,10 @@
 import { Delaunay } from 'd3-delaunay';
+import { Iterable, pipe } from 'effect';
 
 import { type Snapshot, System, SystemId } from '$lib/project/snapshot';
 
 import type { MapSettings } from '../../settings';
-import { getOrSetDefault } from '../../utils';
+import { getOrSetDefault, hasNotNullable } from '../../utils';
 import type { BorderCircle } from './processCircularGalaxyBorder';
 
 const MAX_BORDER_DISTANCE = 700; // systems further from the center than this will not have country borders
@@ -33,9 +34,13 @@ export default function processVoronoi(
 	if (settings.hyperlaneSensitiveBorders) {
 		for (const system of Object.values(snapshot.systems)) {
 			const [fromX, fromY] = getSystemCoordinates(system.id);
-			// TODO don't hard-code hyperlane, check definitions
-			for (const connection of system.connections.filter((c) => c.type === 'hyperlane')) {
-				const [toX, toY] = getSystemCoordinates(connection.to);
+			for (const connection of pipe(
+				system.connections,
+				Iterable.filter(hasNotNullable('toId')),
+				// TODO don't hard-code hyperlane, check definitions
+				Iterable.filter((c) => c.type === 'hyperlane'),
+			)) {
+				const [toX, toY] = getSystemCoordinates(connection.toId);
 				const dx = toX - fromX;
 				const dy = toY - fromY;
 				const distance = Math.hypot(dx, dy);

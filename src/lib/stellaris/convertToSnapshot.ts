@@ -1,8 +1,10 @@
-import { Data, HashSet, identity, Iterable, Option, pipe, Predicate, Record } from 'effect';
+import { Data, HashSet, identity, Iterable, Match, Option, pipe, Predicate, Record } from 'effect';
 
 import { localizeTextSync } from '$lib/map/data/locUtils';
 import {
 	Connection,
+	ConnectionId,
+	ConnectionType,
 	Coordinate,
 	Faction,
 	FactionId,
@@ -19,7 +21,7 @@ import {
 	SystemObjectId,
 } from '$lib/project/snapshot';
 
-import { type Country, type GameState } from './GameState.svelte';
+import { type Bypass, type Country, type GameState } from './GameState.svelte';
 
 type Context = {
 	loc: Record<string, string>;
@@ -28,33 +30,39 @@ type Context = {
 export default function convertToSnapshot(gameState: GameState, context: Context): Snapshot {
 	const snapshot = Snapshot.make({
 		date: gameState.date,
+		connections: pipe(
+			extractHyperlaneConnections(gameState),
+			Iterable.appendAll(extractBypassConnections(gameState)),
+			makeRecordFromIterableById,
+			Data.struct,
+		),
 		factions: pipe(
 			extractCountries(gameState, context),
 			Iterable.appendAll(extractFederations(gameState, context)),
-			(factions) => Record.fromIterableBy(factions, (faction) => faction.id),
+			makeRecordFromIterableById,
 			Data.struct,
 		),
 		memberships: pipe(
-			extractSubjectMemberships(gameState, context),
-			Iterable.appendAll(extractFederationMemberships(gameState, context)),
-			(memberships) => Record.fromIterableBy(memberships, (membership) => membership.id),
+			extractSubjectMemberships(gameState),
+			Iterable.appendAll(extractFederationMemberships(gameState)),
+			makeRecordFromIterableById,
 			Data.struct,
 		),
 		systems: pipe(
 			extractGalacticObjects(gameState, context),
-			(systems) => Record.fromIterableBy(systems, (system) => system.id),
+			makeRecordFromIterableById,
 			Data.struct,
 		),
 		systemObjects: pipe(
 			extractPlanets(gameState, context),
 			// TODO fleets
-			(systemObjects) => Record.fromIterableBy(systemObjects, (systemObject) => systemObject.id),
+			makeRecordFromIterableById,
 			Data.struct,
 		),
 		sectors: pipe(
 			extractSectors(gameState),
 			Iterable.appendAll(extractFrontierSectors(gameState)),
-			(sectors) => Record.fromIterableBy(sectors, (sector) => sector.id),
+			makeRecordFromIterableById,
 			Data.struct,
 		),
 	});
@@ -74,7 +82,7 @@ function extractCountries(gameState: GameState, context: Context): Faction[] {
 	});
 }
 
-function extractSubjectMemberships(gameState: GameState, context: Context): Membership[] {
+function extractSubjectMemberships(gameState: GameState): Membership[] {
 	return Object.values(gameState.country)
 		.map((country) => {
 			if (country.overlord == null) return null;
@@ -92,9 +100,8 @@ function extractSubjectMemberships(gameState: GameState, context: Context): Memb
 
 function extractFederations(gameState: GameState, context: Context): Faction[] {
 	return Object.values(gameState.federation).map((federation) => {
-		const foundingCountry = federation.members[0]
-			? gameState.country[federation.members[0]]
-			: undefined;
+		const foundingCountry =
+			federation.members[0] != null ? gameState.country[federation.members[0]] : undefined;
 		const faction = Faction.make({
 			id: FactionId.make(`federation-${federation.id}`),
 			name: localizeTextSync(federation.name, context.loc),
@@ -106,7 +113,7 @@ function extractFederations(gameState: GameState, context: Context): Faction[] {
 	});
 }
 
-function extractFederationMemberships(gameState: GameState, context: Context): Membership[] {
+function extractFederationMemberships(gameState: GameState): Membership[] {
 	return Object.values(gameState.federation).flatMap((federation) =>
 		federation.members.map((countryId) => {
 			const organizationId = FactionId.make(`federation-${federation.id}`);
@@ -227,18 +234,125 @@ function extractGalacticObjects(gameState: GameState, context: Context): System[
 				: starbaseOwnerId != null
 					? SectorId.make(`frontier-sector-${starbaseOwnerId}`)
 					: null,
-			connections: Data.array([
-				...galacticObject.hyperlane.map((hyperlane) =>
-					Connection.make({
-						type: 'hyperlane',
-						to: SystemId.make(`system-${hyperlane.to}`),
-					}),
-				),
-				// TODO bypasses
-			]),
 		});
 		return system;
 	});
+}
+
+function extractHyperlaneConnections(gameState: GameState): Iterable<Connection> {
+	return pipe(
+		gameState.galactic_object,
+		Record.values,
+		Iterable.flatMap((galacticObject) => {
+			return galacticObject.hyperlane.map((hyperlane) =>
+				makeConnectionFromTypeAndGalacticObjectIds('hyperlane', galacticObject.id, hyperlane.to),
+			);
+		}),
+		HashSet.fromIterable, // dedupe
+	);
+}
+
+function extractBypassConnections(gameState: GameState): Iterable<Connection> {
+	const lGateNexus = Object.values(gameState.galactic_object).find(
+		(object) => object.flags?.lcluster1,
+	);
+	const shroudTunnelNexus = Object.values(gameState.galactic_object).find(
+		(object) => object.flags?.shroud_tunnel_nexus,
+	);
+	const galacticObjectsByWormhole = pipe(
+		gameState.galactic_object,
+		Record.values,
+		Iterable.flatMap((object) =>
+			object.natural_wormholes.map((wormhole) => ({ ...object, wormhole })),
+		),
+		(iterable) => Record.fromIterableBy(iterable, (object) => object.wormhole.toString()),
+	);
+	const galacticObjectsByMegastructure = pipe(
+		gameState.galactic_object,
+		Record.values,
+		Iterable.flatMap((object) =>
+			object.megastructures.map((megastructure) => ({ ...object, megastructure })),
+		),
+		(iterable) => Record.fromIterableBy(iterable, (object) => object.megastructure.toString()),
+	);
+
+	return pipe(
+		gameState.bypasses,
+		Record.values,
+		Iterable.flatMap<Bypass, Connection | null>((bypass) =>
+			Match.value(bypass.type).pipe(
+				Match.withReturnType<Iterable<Connection | null>>(),
+				Match.when(Match.is('gateway'), () => {
+					if (!bypass.owner) return [];
+					const galacticObject = galacticObjectsByMegastructure[bypass.owner.id];
+					if (!galacticObject) return [];
+					return [makeConnectionFromTypeAndGalacticObjectIds('gateway', galacticObject.id, null)];
+				}),
+				Match.when(Match.is('wormhole', 'strange_wormhole'), () => {
+					if (!bypass.owner) return [];
+					const galacticObject = galacticObjectsByWormhole[bypass.owner.id];
+					if (!galacticObject) return [];
+					const toBypass = bypass.linked_to != null ? gameState.bypasses[bypass.linked_to] : null;
+					const toGalacticObject =
+						toBypass?.owner != null ? galacticObjectsByWormhole[toBypass.owner.id] : null;
+					return [
+						makeConnectionFromTypeAndGalacticObjectIds(
+							'wormhole',
+							galacticObject.id,
+							toGalacticObject?.id,
+						),
+					];
+				}),
+				Match.when(Match.is('lgate'), () => {
+					if (!bypass.owner) return [];
+					const galacticObject = galacticObjectsByMegastructure[bypass.owner.id];
+					if (!galacticObject) return [];
+					if (galacticObject.id === lGateNexus?.id) return [];
+					return [
+						makeConnectionFromTypeAndGalacticObjectIds('lgate', galacticObject.id, lGateNexus?.id),
+					];
+				}),
+				Match.when(Match.is('shroud_tunnel'), () => {
+					if (!bypass.owner) return [];
+					const galacticObject = galacticObjectsByWormhole[bypass.owner.id];
+					if (!galacticObject) return [];
+					if (galacticObject.id === shroudTunnelNexus?.id) return [];
+					return [
+						makeConnectionFromTypeAndGalacticObjectIds(
+							'shroud_tunnel',
+							galacticObject.id,
+							shroudTunnelNexus?.id,
+						),
+					];
+				}),
+				Match.when(Match.is('relay_bypass'), () => {
+					if (!bypass.owner) return [];
+					const galacticObject = galacticObjectsByMegastructure[bypass.owner.id];
+					if (!galacticObject) return [];
+					return galacticObject.hyperlane.map((hyperlane) => {
+						const toGalacticObject = gameState.galactic_object[hyperlane.to];
+						if (!toGalacticObject) return null;
+						if (
+							toGalacticObject.bypasses.some(
+								(bypassId) => gameState.bypasses[bypassId]?.type === 'relay_bypass',
+							)
+						) {
+							return makeConnectionFromTypeAndGalacticObjectIds(
+								'hyper_relay',
+								galacticObject.id,
+								toGalacticObject.id,
+							);
+						} else {
+							return null;
+						}
+					});
+				}),
+				Match.orElse(() => []),
+			),
+		),
+		Iterable.filter(Predicate.isNotNullable),
+		HashSet.fromIterable, // dedupe
+	);
 }
 
 function makeFlagFromCountry(country: Country | undefined) {
@@ -246,5 +360,32 @@ function makeFlagFromCountry(country: Country | undefined) {
 		primaryColor: country?.flag?.colors[0] ?? 'black',
 		secondaryColor: country?.flag?.colors[1] ?? 'black',
 		emblem: country?.flag?.icon ? `${country.flag.icon.category}/${country.flag.icon.file}` : null,
+	});
+}
+
+function makeRecordFromIterableById<T extends { id: string }>(
+	iterable: Iterable<T>,
+): Record<T['id'], T> {
+	return Record.fromIterableBy(iterable, (item) => item.id);
+}
+
+function makeConnectionFromTypeAndGalacticObjectIds(
+	type: ConnectionType,
+	id1: number,
+	id2: number | null | undefined,
+) {
+	const systemId1 = SystemId.make(`system-${id1}`);
+	const systemId2 = id2 != null ? SystemId.make(`system-${id2}`) : null;
+	const [fromId, toId] =
+		systemId2 != null ? ([systemId1, systemId2] as [SystemId, SystemId]).sort() : [systemId1, null];
+	const id =
+		toId != null
+			? ConnectionId.make(`${type}-from-${fromId}-to-${toId}`)
+			: ConnectionId.make(`${type}-from-${fromId}`);
+	return Connection.make({
+		id,
+		type,
+		fromId,
+		toId,
 	});
 }

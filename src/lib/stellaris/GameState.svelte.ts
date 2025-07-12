@@ -57,6 +57,7 @@ const galacticObjectSchema = z
 		starbases: preprocessedArray(z.number()),
 		hyperlane: preprocessedArray(z.object({ to: z.number(), length: z.number() })),
 		megastructures: preprocessedArray(z.number()),
+		natural_wormholes: preprocessedArray(z.number()),
 		colonies: preprocessedArray(z.number()),
 		bypasses: preprocessedArray(z.number()),
 		flags: z
@@ -130,7 +131,15 @@ export type Planet = WithId<z.infer<typeof planetSchema>>;
 
 const bypassSchema = z.object({
 	type: z.string(),
-	owner: z.object({ type: z.number(), id: z.number() }).optional(),
+	owner: z
+		.object({
+			// type: 6 = megastructure
+			// type: 7 = natural_wormhole
+			type: z.number(),
+			id: z.number(),
+		})
+		.optional(),
+	// bypass ID
 	linked_to: z.number().optional(),
 });
 

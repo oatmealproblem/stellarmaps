@@ -1,3 +1,5 @@
+import type { DeepNonNullable } from 'utility-types';
+
 import { type ToastData, toaster } from './Toaster.svelte';
 
 export function toastError<T>(options: {
@@ -91,4 +93,10 @@ export function getOrDefault<T>(
 	defaultValue: NonNullable<T>,
 ): NonNullable<T> {
 	return record[key] ?? defaultValue;
+}
+
+export function hasNotNullable<T extends Record<string, any>, Key extends keyof T>(
+	key: Key,
+): (item: T) => item is T & DeepNonNullable<Pick<T, Key>> {
+	return (item): item is T & DeepNonNullable<Pick<T, Key>> => item[key] != null;
 }

@@ -167,16 +167,13 @@ export default async function processMapData(snapshot: Snapshot, rawSettings: Ma
 		knownSystems,
 		getSystemCoordinates,
 	);
-	// TODO
-	const bypassLinks: ReturnType<typeof processBypassLinks> = [];
-	// const bypassLinks = timeIt(
-	// 	'bypassLinks',
-	// 	cached(processBypassLinks),
-	// 	gameState,
-	// 	knownSystems,
-	// 	knownWormholes,
-	// 	getSystemCoordinates,
-	// );
+	const bypassLinks = timeIt(
+		'bypassLinks',
+		cached(processBypassLinks),
+		snapshot,
+		knownSystems,
+		getSystemCoordinates,
+	);
 	const legend = await timeItAsync(
 		'legend',
 		cached(processLegend),

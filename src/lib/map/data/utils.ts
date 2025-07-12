@@ -1,19 +1,20 @@
 import * as turf from '@turf/turf';
 import { pathRound } from 'd3-path';
 import { curveBasis, curveBasisClosed, curveLinear, curveLinearClosed } from 'd3-shape';
+import { Array, HashSet, Iterable, pipe } from 'effect';
 
 import {
-	MembershipTag,
 	type Faction,
 	type FactionId,
 	type Membership,
+	MembershipTag,
 	type Snapshot,
 	type SystemId,
 } from '$lib/project/snapshot';
+import { hasNotNullable } from '$lib/utils';
 
 import type { MapSettings } from '../../settings';
 import type { BorderCircle } from './processCircularGalaxyBorder';
-import { HashSet } from 'effect';
 
 export type PolygonalGeometry = GeoJSON.Polygon | GeoJSON.MultiPolygon;
 export type PolygonalFeature = GeoJSON.Feature<PolygonalGeometry>;
@@ -27,6 +28,10 @@ export function pointToGeoJSON([x, y]: [number, number]): [number, number] {
 
 export function pointFromGeoJSON(point: GeoJSON.Position): [number, number] {
 	return [point[0] * SCALE, point[1] * SCALE];
+}
+
+export function pointToObject([x, y]: [number, number]): { x: number; y: number } {
+	return { x, y };
 }
 
 export function getUnionLeaderId(
@@ -177,25 +182,30 @@ export function createHyperlanePaths(
 	const hyperlanes = new Set<string>();
 	const relayHyperlanes = new Set<string>();
 	Object.values(snapshot.systems).forEach((system) => {
-		for (const connection of system.connections
+		for (const connection of pipe(
+			system.connections,
 			// TODO don't hard-code hyperlane and relay_bypass
-			.filter((c) => c.type === 'hyperlane' || c.type === 'relay_bypass')
-			.filter((connection) => {
+			Iterable.filter((c) => c.type === 'hyperlane' || c.type === 'hyper_relay'),
+			Iterable.filter(hasNotNullable('toId')),
+			Iterable.filter((connection) => {
 				if (owner != null) {
 					return (
 						systemIdToUnionLeader[system.id] === owner &&
-						systemIdToUnionLeader[connection.to] === owner
+						systemIdToUnionLeader[connection.toId] === owner
 					);
 				} else {
 					return (
 						systemIdToUnionLeader[system.id] == null ||
-						systemIdToUnionLeader[connection.to] == null ||
-						systemIdToUnionLeader[system.id] !== systemIdToUnionLeader[connection.to]
+						systemIdToUnionLeader[connection.toId] == null ||
+						systemIdToUnionLeader[system.id] !== systemIdToUnionLeader[connection.toId]
 					);
 				}
-			})) {
-			const isRelay = connection.type === 'relay_bypass';
-			const key = [system.id, connection.to].sort().join(',');
+			}),
+		)) {
+			const isRelay = Array.fromIterable(connection.from.connections).some(
+				(c) => c.type === 'hyper_relay' && c.toId === connection.toId,
+			);
+			const key = [system.id, connection.toId].sort().join(',');
 			if (isRelay) {
 				relayHyperlanes.add(key);
 			} else {
@@ -251,8 +261,10 @@ export function createHyperlanePaths(
 		}
 	};
 
-	const hyperlanesPath = Array.from(hyperlanes.values()).map(makeHyperlanePath).join(' ');
-	const relayHyperlanesPath = Array.from(relayHyperlanes.values()).map(makeHyperlanePath).join(' ');
+	const hyperlanesPath = Array.fromIterable(hyperlanes.values()).map(makeHyperlanePath).join(' ');
+	const relayHyperlanesPath = Array.fromIterable(relayHyperlanes.values())
+		.map(makeHyperlanePath)
+		.join(' ');
 	return { hyperlanesPath, relayHyperlanesPath };
 }
 
@@ -297,16 +309,20 @@ export function makeBorderCircleGeojson(
 
 	if (circle.type === 'outlier') {
 		const multiLineString = turf.multiLineString(
-			Array.from(circle.systems).flatMap((systemId) => {
+			Array.fromIterable(circle.systems).flatMap((systemId) => {
 				const system = snapshot.systems[systemId];
 				if (system == null) return [];
 				// TODO don't hardcode hyperlane, lookup definition
-				return system.connections
-					.filter((c) => c.type === 'hyperlane')
-					.map(({ to }) => [
+				return pipe(
+					system.connections,
+					Iterable.filter((c) => c.type === 'hyperlane'),
+					Iterable.filter(hasNotNullable('toId')),
+					Iterable.map(({ toId }) => [
 						pointToGeoJSON(getSystemCoordinates(systemId)),
-						pointToGeoJSON(getSystemCoordinates(to)),
-					]);
+						pointToGeoJSON(getSystemCoordinates(toId)),
+					]),
+					Array.fromIterable,
+				);
 			}),
 		);
 		const hyperlaneBuffer = turf.buffer(multiLineString, OUTLIER_HYPERLANE_PADDING / SCALE, {
