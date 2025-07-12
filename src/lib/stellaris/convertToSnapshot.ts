@@ -77,6 +77,9 @@ function extractCountries(gameState: GameState, context: Context): Faction[] {
 			name: localizeTextSync(country.name, context.loc),
 			flag: makeFlagFromCountry(country),
 			capitalId: country.capital != null ? SystemObjectId.make(`planet-${country.capital}`) : null,
+			knownSystemIds: new Set(
+				country.terra_incognita?.systems.map((systemId) => SystemId.make(`system-${systemId}`)),
+			),
 		});
 		return faction;
 	});

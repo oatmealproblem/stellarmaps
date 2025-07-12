@@ -34,7 +34,10 @@ export class Faction extends Schema.Class<Faction>('Faction')({
 	name: Schema.String,
 	flag: Flag,
 	capitalId: Schema.NullOr(SystemObjectId),
-	// subfactions
+	knownSystemIds: Schema.Set(SystemId).pipe(
+		Schema.propertySignature,
+		Schema.withConstructorDefault(() => new Set<SystemId>()),
+	),
 	// relationships
 }) {
 	#ctxRef: WeakRef<Snapshot> | null = null;

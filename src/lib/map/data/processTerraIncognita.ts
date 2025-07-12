@@ -1,6 +1,6 @@
 import { Iterable, pipe, Record } from 'effect';
 
-import type { Snapshot } from '$lib/project/snapshot';
+import type { FactionId, Snapshot } from '$lib/project/snapshot';
 
 import type { MapSettings } from '../../settings';
 
@@ -10,16 +10,28 @@ export const processTerraIncognitaDeps = [
 
 export default function processTerraIncognita(
 	snapshot: Snapshot,
-	_settings: Pick<MapSettings, (typeof processTerraIncognitaDeps)[number]>,
+	settings: Pick<MapSettings, (typeof processTerraIncognitaDeps)[number]>,
 ) {
+	const terraIncognitaPerspectiveCountryId =
+		settings.terraIncognitaPerspectiveCountry === 'player'
+			? Object.values(snapshot.factions)[0]?.id
+			: (settings.terraIncognitaPerspectiveCountry as FactionId);
+	const terraIncognitaPerspectiveCountry =
+		terraIncognitaPerspectiveCountryId != null
+			? snapshot.factions[terraIncognitaPerspectiveCountryId]
+			: null;
+
+	const knownSystems =
+		terraIncognitaPerspectiveCountry?.knownSystemIds ??
+		new Set(
+			pipe(
+				snapshot.systems,
+				Record.values,
+				Iterable.map((system) => system.id),
+			),
+		);
+
 	// TODO
-	const knownSystems = new Set(
-		pipe(
-			snapshot.systems,
-			Record.values,
-			Iterable.map((system) => system.id),
-		),
-	);
 	const knownCountries = new Set(
 		pipe(
 			snapshot.factions,
@@ -27,28 +39,6 @@ export default function processTerraIncognita(
 			Iterable.map((faction) => faction.id),
 		),
 	);
-	const knownWormholes = new Set<string>();
-
-	// const terraIncognitaPerspectiveCountryId =
-	// 	settings.terraIncognitaPerspectiveCountry === 'player'
-	// 		? gameState.player.filter((p) => gameState.country[p.country])[0]?.country
-	// 		: parseInt(settings.terraIncognitaPerspectiveCountry);
-	// const terraIncognitaPerspectiveCountry =
-	// 	terraIncognitaPerspectiveCountryId != null
-	// 		? gameState.country[terraIncognitaPerspectiveCountryId]
-	// 		: null;
-	// const knownSystems = new Set(
-	// 	terraIncognitaPerspectiveCountry?.terra_incognita?.systems ??
-	// 		Object.keys(gameState.galactic_object).map((id) => parseInt(id)),
-	// );
-	// const wormholeIds = new Set(
-	// 	Object.values(gameState.bypasses)
-	// 		.filter((bypass) => bypass.type === 'wormhole' || bypass.type === 'strange_wormhole')
-	// 		.map((bypass) => bypass.id),
-	// );
-	// const knownWormholes = terraIncognitaPerspectiveCountry
-	// 	? new Set(terraIncognitaPerspectiveCountry.usable_bypasses.filter((id) => wormholeIds.has(id)))
-	// 	: wormholeIds;
 	// const knownCountries = new Set(
 	// 	terraIncognitaPerspectiveCountryId == null
 	// 		? Object.keys(gameState.country).map((id) => parseInt(id))
@@ -62,6 +52,5 @@ export default function processTerraIncognita(
 	return {
 		knownSystems,
 		knownCountries,
-		knownWormholes,
 	};
 }

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Accordion } from '@skeletonlabs/skeleton-svelte';
 	import * as dialog from '@tauri-apps/plugin-dialog';
+	import { Array, pipe, Record } from 'effect';
 	import { Menu } from 'spare-bones';
 	import { z } from 'zod';
 
@@ -12,6 +13,7 @@
 	import ApplyChangesButton from './ApplyChangesButton.svelte';
 	import debug from './debug';
 	import HeroiconTrashMini from './icons/HeroiconTrashMini.svelte';
+	import { stellarisDataPromise } from './loadStellarisData.svelte';
 	import { localizeText } from './map/data/locUtils';
 	import SettingControl from './SettingControl/index.svelte';
 	import {
@@ -30,6 +32,7 @@
 	} from './settings';
 	import { speciesOptions } from './settings/options/speciesOptions';
 	import { PersistedRawState } from './stateUtils.svelte';
+	import convertToSnapshot from './stellaris/convertToSnapshot';
 	import { gameStatePromise, gameStateSchema } from './stellaris/GameState.svelte';
 	import type { StellarisSaveMetadata } from './stellarMapsApi';
 	import stellarMapsApi from './stellarMapsApi';
@@ -88,18 +91,12 @@
 				}),
 			);
 		promise.then(async (gameState) => {
-			Promise.all(
-				Object.values(gameState.country)
-					.filter((country) => country.type === 'default')
-					.map((country) =>
-						localizeText(country.name).then((name) => ({
-							id: country.id.toString(),
-							literalName: name,
-						})),
-					),
-			).then((value) => {
-				countryOptions.current = value;
-			});
+			countryOptions.current = pipe(
+				convertToSnapshot(gameState, { loc: (await stellarisDataPromise.current).loc }),
+				(snapshot) => snapshot.factions,
+				Record.values,
+				Array.map((faction) => ({ id: faction.id, literalName: faction.name })),
+			);
 			const speciesWithPopulation = new Set(
 				Object.values(gameState.planets.planet).flatMap((planet) =>
 					Object.keys(planet.species_information ?? {}).map((id) => parseInt(id)),
