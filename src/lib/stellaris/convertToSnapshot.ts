@@ -12,6 +12,8 @@ import {
 	Membership,
 	MembershipId,
 	MembershipTag,
+	Relationship,
+	RelationshipId,
 	Sector,
 	SectorId,
 	Snapshot,
@@ -48,6 +50,7 @@ export default function convertToSnapshot(gameState: GameState, context: Context
 			makeRecordFromIterableById,
 			Data.struct,
 		),
+		relationships: pipe(extractRelationships(gameState), makeRecordFromIterableById, Data.struct),
 		systems: pipe(
 			extractGalacticObjects(gameState, context),
 			makeRecordFromIterableById,
@@ -83,6 +86,36 @@ function extractCountries(gameState: GameState, context: Context): Faction[] {
 		});
 		return faction;
 	});
+}
+
+function extractRelationships(gameState: GameState): Iterable<Relationship> {
+	return pipe(
+		gameState.country,
+		Record.values,
+		Iterable.flatMap((country) =>
+			pipe(
+				country.relations_manager.relation,
+				Iterable.filter((relationship) => relationship.communications ?? false),
+				Iterable.map((relationship) => {
+					const [leftId, rightId] = (
+						[
+							FactionId.make(`country-${relationship.owner}`),
+							FactionId.make(`country-${relationship.country}`),
+						] as [FactionId, FactionId]
+					).sort();
+					const id = RelationshipId.make(`relationship-${leftId}-${rightId}`);
+					return Relationship.make({
+						id,
+						leftId,
+						rightId,
+						value: Math.min(Math.max(-100, Math.round(relationship.relation_current / 10)), 100),
+						militaryStatus: 'neutral', // TODO
+					});
+				}),
+			),
+		),
+		HashSet.fromIterable, // dedupe
+	);
 }
 
 function extractSubjectMemberships(gameState: GameState): Membership[] {

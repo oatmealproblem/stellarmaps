@@ -1,3 +1,5 @@
+import { Option } from 'effect';
+
 import { Faction, FactionId, type Snapshot, System } from '$lib/project/snapshot';
 
 import type { MessageID } from '../../../intl';
@@ -444,62 +446,76 @@ export const mapModes: Record<string, MapMode> = {
 					return country === povCountry;
 				},
 			},
-			// TODO
-			// {
-			// 	label: { key: 'OPINION_EXCELLENT' },
-			// 	primaryColor: 'intense_blue',
-			// 	showInLegend: 'always',
-			// 	matches: (gameState, country, povCountry) => {
-			// 		const relation = gameState.country[country]?.relations_manager.relation.find(
-			// 			(r) => r.country === povCountry,
-			// 		);
-			// 		return relation != null && relation.relation_current >= 750;
-			// 	},
-			// },
-			// {
-			// 	label: { key: 'OPINION_GOOD' },
-			// 	primaryColor: 'turquoise',
-			// 	showInLegend: 'always',
-			// 	matches: (gameState, country, povCountry) => {
-			// 		const relation = gameState.country[country]?.relations_manager.relation.find(
-			// 			(r) => r.country === povCountry,
-			// 		);
-			// 		return relation != null && relation.relation_current >= 300;
-			// 	},
-			// },
-			// {
-			// 	label: { key: 'OPINION_NEUTRAL' },
-			// 	primaryColor: 'yellow',
-			// 	showInLegend: 'always',
-			// 	matches: (gameState, country, povCountry) => {
-			// 		const relation = gameState.country[country]?.relations_manager.relation.find(
-			// 			(r) => r.country === povCountry,
-			// 		);
-			// 		return relation != null && relation.relation_current >= -300;
-			// 	},
-			// },
-			// {
-			// 	label: { key: 'OPINION_POOR' },
-			// 	primaryColor: 'intense_orange',
-			// 	showInLegend: 'always',
-			// 	matches: (gameState, country, povCountry) => {
-			// 		const relation = gameState.country[country]?.relations_manager.relation.find(
-			// 			(r) => r.country === povCountry,
-			// 		);
-			// 		return relation != null && relation.relation_current >= -750;
-			// 	},
-			// },
-			// {
-			// 	label: { key: 'OPINION_TERRIBLE' },
-			// 	primaryColor: 'intense_red',
-			// 	showInLegend: 'always',
-			// 	matches: (gameState, country, povCountry) => {
-			// 		const relation = gameState.country[country]?.relations_manager.relation.find(
-			// 			(r) => r.country === povCountry,
-			// 		);
-			// 		return relation != null && relation.relation_current < -750;
-			// 	},
-			// },
+			{
+				label: { key: 'OPINION_EXCELLENT' },
+				primaryColor: 'intense_blue',
+				showInLegend: 'always',
+				matches: (snapshot, factionId, povFactionId) => {
+					const relationship =
+						povFactionId != null
+							? snapshot.factions[factionId]
+									?.getRelationshipWith(povFactionId)
+									.pipe(Option.getOrNull)
+							: null;
+					return relationship != null && relationship.value >= 75;
+				},
+			},
+			{
+				label: { key: 'OPINION_GOOD' },
+				primaryColor: 'turquoise',
+				showInLegend: 'always',
+				matches: (snapshot, factionId, povFactionId) => {
+					const relationship =
+						povFactionId != null
+							? snapshot.factions[factionId]
+									?.getRelationshipWith(povFactionId)
+									.pipe(Option.getOrNull)
+							: null;
+					return relationship != null && relationship.value >= 30;
+				},
+			},
+			{
+				label: { key: 'OPINION_NEUTRAL' },
+				primaryColor: 'yellow',
+				showInLegend: 'always',
+				matches: (snapshot, factionId, povFactionId) => {
+					const relationship =
+						povFactionId != null
+							? snapshot.factions[factionId]
+									?.getRelationshipWith(povFactionId)
+									.pipe(Option.getOrNull)
+							: null;
+					return relationship != null && relationship.value > -30;
+				},
+			},
+			{
+				label: { key: 'OPINION_POOR' },
+				primaryColor: 'intense_orange',
+				showInLegend: 'always',
+				matches: (snapshot, factionId, povFactionId) => {
+					const relationship =
+						povFactionId != null
+							? snapshot.factions[factionId]
+									?.getRelationshipWith(povFactionId)
+									.pipe(Option.getOrNull)
+							: null;
+					return relationship != null && relationship.value > -75;
+				},
+			},
+			{
+				label: { key: 'OPINION_TERRIBLE' },
+				primaryColor: 'intense_red',
+				showInLegend: 'always',
+				matches: (snapshot, factionId, povFactionId) => {
+					const relationship =
+						povFactionId != null
+							? snapshot.factions[factionId]
+									?.getRelationshipWith(povFactionId)
+									.pipe(Option.getOrNull)
+							: null;
+					return relationship != null && relationship.value <= -75;
+				},
+			},
 			{
 				label: null,
 				showInLegend: 'never',

@@ -1,4 +1,15 @@
-import { Array, Equal, HashMap, identity, Iterable, Option, pipe, Record, Schema } from 'effect';
+import {
+	Array,
+	Equal,
+	HashMap,
+	identity,
+	Iterable,
+	Match,
+	Option,
+	pipe,
+	Record,
+	Schema,
+} from 'effect';
 import type { PickByValue } from 'utility-types';
 
 export const ConnectionId = Schema.String.pipe(Schema.brand('ConnectionId'));
@@ -7,6 +18,8 @@ export const FactionId = Schema.String.pipe(Schema.brand('FactionId'));
 export type FactionId = typeof FactionId.Type;
 export const MembershipId = Schema.String.pipe(Schema.brand('MembershipId'));
 export type MembershipId = typeof FactionId.Type;
+export const RelationshipId = Schema.String.pipe(Schema.brand('RelationshipId'));
+export type RelationshipId = typeof RelationshipId.Type;
 export const SectorId = Schema.String.pipe(Schema.brand('SectorId'));
 export type SectorId = typeof SectorId.Type;
 export const SystemId = Schema.String.pipe(Schema.brand('SystemId'));
@@ -72,6 +85,52 @@ export class Faction extends Schema.Class<Faction>('Faction')({
 
 	get organizations(): Membership[] {
 		return this.ctx.getMembershipsWithMember(this);
+	}
+
+	get relationships(): Relationship[] {
+		return this.ctx.getRelationshipsWithFaction(this);
+	}
+
+	getRelationshipWith(factionOrFactionId: Faction | FactionId): Option.Option<Relationship> {
+		const factionId =
+			typeof factionOrFactionId === 'string' ? factionOrFactionId : factionOrFactionId.id;
+		return Option.fromNullable(this.relationships.find((r) => r.getOther(this).id === factionId));
+	}
+}
+
+export class Relationship extends Schema.Class<Relationship>('Relationship')({
+	id: RelationshipId,
+	leftId: FactionId,
+	rightId: FactionId,
+	value: Schema.Int.pipe(Schema.between(-100, 100)),
+	militaryStatus: Schema.Literal('friendly', 'neutral', 'hostile'),
+}) {
+	#ctxRef: WeakRef<Snapshot> | null = null;
+	set ctx(ctx: Snapshot) {
+		this.#ctxRef = new WeakRef(ctx);
+	}
+	get ctx(): Snapshot {
+		const ctx = this.#ctxRef?.deref();
+		if (ctx == null) throw new Error('Context not set');
+		return ctx;
+	}
+
+	get left(): Faction {
+		return pipe(this.ctx.factions[this.leftId], Option.fromNullable, Option.getOrThrow);
+	}
+
+	get right(): Faction {
+		return pipe(this.ctx.factions[this.rightId], Option.fromNullable, Option.getOrThrow);
+	}
+
+	getOther(factionOrFactionId: Faction | FactionId) {
+		const factionId =
+			typeof factionOrFactionId === 'string' ? factionOrFactionId : factionOrFactionId.id;
+		return Match.value(factionId).pipe(
+			Match.when(Match.is(this.leftId), () => this.right),
+			Match.when(Match.is(this.rightId), () => this.left),
+			Match.orElseAbsurd,
+		);
 	}
 }
 
@@ -218,8 +277,8 @@ export class System extends Schema.Class<System>('System')({
 		return ctx;
 	}
 
-	get connections(): Iterable<Connection> {
-		return Iterable.appendAll(this.ctx.getConnectionsFrom(this), this.ctx.getConnectionsTo(this));
+	get connections(): Connection[] {
+		return this.ctx.getConnectionsWithSystem(this);
 	}
 
 	get faction(): Faction | null {
@@ -263,6 +322,12 @@ export class Snapshot extends Schema.Class<Snapshot>('Snapshot')({
 			value: Membership,
 		}),
 	),
+	relationships: Schema.Data(
+		Schema.Record({
+			key: RelationshipId,
+			value: Relationship,
+		}),
+	),
 	sectors: Schema.Data(
 		Schema.Record({
 			key: SectorId,
@@ -291,28 +356,19 @@ export class Snapshot extends Schema.Class<Snapshot>('Snapshot')({
 		pipe(this.connections, Record.values, applyContext);
 		pipe(this.factions, Record.values, applyContext);
 		pipe(this.memberships, Record.values, applyContext);
+		pipe(this.relationships, Record.values, applyContext);
 		pipe(this.sectors, Record.values, applyContext);
 		pipe(this.systems, Record.values, applyContext);
 		pipe(this.systemObjects, Record.values, applyContext);
 	}
 
-	#connectionsFromCache = HashMap.empty<System, Connection[]>();
-	getConnectionsFrom(from: System): Connection[] {
+	#connectionsWithSystemCache = HashMap.empty<System, Connection[]>();
+	getConnectionsWithSystem(from: System): Connection[] {
 		return getCachedOneToMany<System, Connection>(
 			from,
 			this.connections,
-			'from',
-			this.#connectionsFromCache,
-		);
-	}
-
-	#connectionsToCache = HashMap.empty<System, Connection[]>();
-	getConnectionsTo(from: System): Connection[] {
-		return getCachedOneToMany<System, Connection>(
-			from,
-			this.connections,
-			'to',
-			this.#connectionsToCache,
+			['from', 'to'],
+			this.#connectionsWithSystemCache,
 		);
 	}
 
@@ -321,7 +377,7 @@ export class Snapshot extends Schema.Class<Snapshot>('Snapshot')({
 		return getCachedOneToMany<Faction | null, Membership>(
 			faction,
 			this.memberships,
-			'member',
+			['member'],
 			this.#membershipsWithMemberCache,
 		);
 	}
@@ -331,8 +387,18 @@ export class Snapshot extends Schema.Class<Snapshot>('Snapshot')({
 		return getCachedOneToMany<Faction | null, Membership>(
 			faction,
 			this.memberships,
-			'organization',
+			['organization'],
 			this.#membershipsWithOrganizationCache,
+		);
+	}
+
+	#relationshipsWithFactionCache = HashMap.empty<Faction, Relationship[]>();
+	getRelationshipsWithFaction(faction: Faction): Relationship[] {
+		return getCachedOneToMany<Faction, Relationship>(
+			faction,
+			this.relationships,
+			['left', 'right'],
+			this.#relationshipsWithFactionCache,
 		);
 	}
 
@@ -341,7 +407,7 @@ export class Snapshot extends Schema.Class<Snapshot>('Snapshot')({
 		return getCachedOneToMany<Faction | null, Sector>(
 			faction,
 			this.sectors,
-			'faction',
+			['faction'],
 			this.#sectorsWithFactionCache,
 		);
 	}
@@ -351,26 +417,26 @@ export class Snapshot extends Schema.Class<Snapshot>('Snapshot')({
 		return getCachedOneToMany(
 			system,
 			this.systemObjects,
-			'system',
+			['system'],
 			this.#systemObjectsWithSystemCache,
 		);
 	}
 
 	#systemsWithFactionCache = HashMap.empty<Faction, System[]>();
 	getSystemsWithFaction(faction: Faction): System[] {
-		return getCachedOneToMany(faction, this.systems, 'faction', this.#systemsWithFactionCache);
+		return getCachedOneToMany(faction, this.systems, ['faction'], this.#systemsWithFactionCache);
 	}
 
 	#systemsWithSectorCache = HashMap.empty<Sector, System[]>();
 	getSystemsWithSector(sector: Sector): System[] {
-		return getCachedOneToMany(sector, this.systems, 'sector', this.#systemsWithSectorCache);
+		return getCachedOneToMany(sector, this.systems, ['sector'], this.#systemsWithSectorCache);
 	}
 }
 
 function getCachedOneToMany<One, Many>(
 	one: One,
 	many: Record<string, Many>,
-	key: keyof PickByValue<Many, One | null>,
+	keys: (keyof PickByValue<Many, One | null>)[],
 	cache: HashMap.HashMap<One, Many[]>,
 ): Many[] {
 	return Option.match(HashMap.get(cache, one), {
@@ -379,7 +445,7 @@ function getCachedOneToMany<One, Many>(
 			const result = pipe(
 				many,
 				Record.values,
-				Iterable.filter((object) => Equal.equals(object[key], one)),
+				Iterable.filter((object) => keys.some((key) => Equal.equals(object[key], one))),
 				Array.fromIterable,
 			);
 			HashMap.set(cache, one, result);

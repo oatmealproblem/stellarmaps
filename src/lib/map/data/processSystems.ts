@@ -90,7 +90,7 @@ export default function processSystems(
 		const ownerIsKnown = factionId != null && knownCountries.has(factionId);
 		const systemIsKnown = knownSystems.has(system.id);
 
-		const connectionTypes = new Set(Array.from(system.connections).map((c) => c.type));
+		const connectionTypes = new Set(system.connections.map((c) => c.type));
 		const hasWormhole = connectionTypes.has('wormhole');
 		const hasGateway = connectionTypes.has('gateway');
 		const hasLGate = connectionTypes.has('lgate');
