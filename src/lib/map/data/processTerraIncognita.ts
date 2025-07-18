@@ -31,23 +31,21 @@ export default function processTerraIncognita(
 			),
 		);
 
-	// TODO
-	const knownCountries = new Set(
-		pipe(
-			snapshot.factions,
-			Record.values,
-			Iterable.map((faction) => faction.id),
-		),
-	);
-	// const knownCountries = new Set(
-	// 	terraIncognitaPerspectiveCountryId == null
-	// 		? Object.keys(gameState.country).map((id) => parseInt(id))
-	// 		: (terraIncognitaPerspectiveCountry?.relations_manager.relation ?? [])
-	// 				.filter((relation) => relation.communications)
-	// 				.map((relation) => relation.country),
-	// );
-	// if (terraIncognitaPerspectiveCountryId != null)
-	// 	knownCountries.add(terraIncognitaPerspectiveCountryId);
+	const knownCountries =
+		terraIncognitaPerspectiveCountry != null
+			? new Set(
+					pipe(
+						terraIncognitaPerspectiveCountry.relationships,
+						Iterable.flatMap((r) => [r.leftId, r.rightId]),
+					),
+				)
+			: new Set(
+					pipe(
+						snapshot.factions,
+						Record.values,
+						Iterable.map((faction) => faction.id),
+					),
+				);
 
 	return {
 		knownSystems,
