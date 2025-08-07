@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.12.6](https://github.com/oatmealproblem/stellarmaps/compare/stellarmaps-v0.12.5...stellarmaps-v0.12.6) (2025-08-07)
+
+### Bug Fixes
+
+- improve error handling of invalid geometries ([fdc7fb5](https://github.com/oatmealproblem/stellarmaps/commit/fdc7fb582efade4d0259b576ae5d0b4786ca71fb))
+- large png exports are missing starscape (not 100% fixed) ([379bd96](https://github.com/oatmealproblem/stellarmaps/commit/379bd968d3c32209246ec41555374319be823a73))
+- wormholes for the Starlit Citadel origin do not appear ([5d8b788](https://github.com/oatmealproblem/stellarmaps/commit/5d8b7888886fc87cf932194eb1b2422f478ac1a6))
+
 ## [0.12.5](https://github.com/oatmealproblem/stellarmaps/compare/stellarmaps-v0.12.4...stellarmaps-v0.12.5) (2025-06-16)
 
 ### Bug Fixes
