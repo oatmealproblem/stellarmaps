@@ -274,7 +274,7 @@ const fleetSchema = z.object({
 	station: z.boolean().optional(),
 	military_power: z.number(),
 	mobile: z.boolean().optional(),
-	ships: z.array(z.number()),
+	ships: z.array(z.number()).default([]),
 	movement_manager: z.object({
 		coordinate: z.object({ x: z.number(), y: z.number() }),
 		formation: z.object({ angle: z.number() }),

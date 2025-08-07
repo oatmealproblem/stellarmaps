@@ -32,7 +32,12 @@ export default function processBypassLinks(
 
 		const wormholeBypass = system.bypasses
 			.map((bypassId) => gameState.bypasses[bypassId])
-			.find((b) => b?.type === 'wormhole' || b?.type === 'strange_wormhole');
+			.find(
+				(b) =>
+					b?.type === 'wormhole' ||
+					b?.type === 'strange_wormhole' ||
+					b?.type === 'starlit_wormhole',
+			);
 		const wormholeIsKnown = wormholeBypass != null && knownWormholes.has(wormholeBypass.id);
 		const wormholeLinksTo = Object.values(gameState.galactic_object).find((go) =>
 			go.bypasses.includes(wormholeBypass?.linked_to as number),

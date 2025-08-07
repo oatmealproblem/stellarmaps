@@ -72,7 +72,15 @@ export default async function convertSvgToPng(
 			async function () {
 				// the data url images within the SVG haven't necessarily loaded at this point
 				// wait a bit to give them time to render
-				await wait(100);
+				const WAIT_FACTOR = 100 / 4096 ** 2; // 100ms per 4096^2 px
+				const MIN_WAIT = 100;
+				const MAX_WAIT = 10_000;
+				await wait(
+					Math.min(
+						MAX_WAIT,
+						Math.max(MIN_WAIT, Math.ceil(outputWidth * outputHeight * WAIT_FACTOR)),
+					),
+				);
 				if (backgroundColor != null) {
 					ctx.fillStyle = backgroundColor;
 					ctx.fillRect(0, 0, outputWidth, outputHeight);
