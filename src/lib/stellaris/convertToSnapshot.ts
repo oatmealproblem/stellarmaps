@@ -324,7 +324,7 @@ function extractBypassConnections(gameState: GameState): Iterable<Connection> {
 					if (!galacticObject) return [];
 					return [makeConnectionFromTypeAndGalacticObjectIds('gateway', galacticObject.id, null)];
 				}),
-				Match.when(Match.is('wormhole', 'strange_wormhole'), () => {
+				Match.when(Match.is('wormhole', 'strange_wormhole', 'starlit_wormhole'), () => {
 					if (!bypass.owner) return [];
 					const galacticObject = galacticObjectsByWormhole[bypass.owner.id];
 					if (!galacticObject) return [];
