@@ -283,7 +283,21 @@ export function applyGalaxyBoundary(
 	externalBorder: PolygonalFeature | null,
 ) {
 	if (externalBorder != null) {
-		return turf.intersect(geojson, externalBorder);
+		try {
+			return turf.intersect(geojson, externalBorder);
+		} catch {
+			// try again with buffered shapes; this _can_ repair invalid geojson
+			// but it is expensive and it can produce artifacts so don't do this by default
+			console.warn('Intersect failed; retrying with buffered geometries');
+			return turf.intersect(
+				turf.buffer(turf.buffer(geojson, 10 ** -5, { units: 'millimeters' }), 10 ** -5, {
+					units: 'millimeters',
+				}),
+				turf.buffer(turf.buffer(externalBorder, 10 ** -5, { units: 'millimeters' }), 10 ** -5, {
+					units: 'millimeters',
+				}),
+			);
+		}
 	}
 	return geojson;
 }
