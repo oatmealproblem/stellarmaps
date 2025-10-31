@@ -108,7 +108,7 @@ const planetSchema = z.object({
 			z.object({ num_pops: z.number().optional(), num_enslaved: z.number().optional() }),
 		)
 		.optional(),
-	planet_size: z.number(),
+	planet_size: z.number().default(0),
 	planet_class: z.string(),
 	entity_name: z.string().optional(),
 	orbit: z.number(),
