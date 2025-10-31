@@ -90,7 +90,7 @@
 		{#await localizeText(system.name)}
 			{$t('generic.loading')}
 		{:then name}
-			{name} {system.id}
+			{name}
 		{/await}
 	</strong>
 	{#if processedSystem?.mapModeCountryLabel}
