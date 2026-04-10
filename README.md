@@ -2,7 +2,7 @@ Stylized and customizable Stellaris maps
 
 [Download the latest release here.](https://github.com/MichaelMakesGames/stellarmaps/releases)
 
-<img src="./examples/default.png" alt="Example map">
+<img src="./examples/default.png" alt="Example map ">
 
 # Features
 
