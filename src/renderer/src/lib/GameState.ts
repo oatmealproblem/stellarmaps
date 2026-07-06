@@ -116,12 +116,28 @@ const planetSchema = z.object({
 	moon_of: z.number().optional(),
 	has_ring: z.boolean().optional(),
 	coordinate: z.object({ x: z.number(), y: z.number() }),
+	colony: z.number().optional(),
 });
 
 /**
  * @public
  */
 export type Planet = WithId<z.infer<typeof planetSchema>>;
+
+const colonySchema = z.object({
+	num_sapient_pops: z.number().optional(),
+	species_information: z
+		.record(
+			z.string(),
+			z.object({ num_pops: z.number().optional(), num_enslaved: z.number().optional() }),
+		)
+		.optional(),
+	carrier: z.object({
+		type: z.enum(['planet', 'ship']),
+		reference: z.number(),
+	}),
+});
+export type Colony = WithId<z.infer<typeof colonySchema>>;
 
 const bypassSchema = z.object({
 	type: z.string(),
@@ -384,6 +400,7 @@ function stellarisDb<T extends z.ZodType>(schema: T) {
 
 export const gameStateSchema = z
 	.object({
+		version: z.string(),
 		galactic_object: stellarisDb(galacticObjectSchema),
 		country: stellarisDb(countrySchema),
 		ships: stellarisDb(shipSchema),
@@ -398,6 +415,7 @@ export const gameStateSchema = z
 		player: preprocessedArray(z.object({ name: z.coerce.string(), country: z.number() })),
 		galaxy: z.object({ shape: z.string(), core_radius: z.number() }),
 		planets: z.object({ planet: stellarisDb(planetSchema) }).default({}),
+		colony: stellarisDb(colonySchema),
 		species_db: stellarisDb(speciesSchema),
 		trade_routes: stellarisDb(tradeRouteSchema),
 		nebula: nebulaSchema.optional(),
@@ -453,6 +471,7 @@ function convertSchemaToGameStateFilter(schema: z.ZodType): boolean | Record<str
 	} else if (
 		schema instanceof z.ZodNumber ||
 		schema instanceof z.ZodString ||
+		schema instanceof z.ZodEnum ||
 		schema instanceof z.ZodBoolean
 	) {
 		return false;

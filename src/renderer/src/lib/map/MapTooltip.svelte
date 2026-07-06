@@ -10,6 +10,7 @@
 	import { mapModes } from './data/mapModes';
 	import type { ProcessedSystem } from './data/processSystems';
 	import { resolveColor } from './mapUtils';
+	import { getSystemColonies } from './data/utils';
 
 	export let x: number;
 	export let y: number;
@@ -55,10 +56,7 @@
 	});
 	onDestroy(() => cleanup?.());
 
-	$: planets = system.colonies
-		?.map((planetId) => gameState?.planets.planet[planetId])
-		.filter(isDefined)
-		.sort((a, b) => (b?.num_sapient_pops ?? 0) - (a?.num_sapient_pops ?? 0));
+	$: colonies = gameState == null ? [] : getSystemColonies(gameState, system);
 
 	async function localizeValueLabel(
 		message: MessageID | LocalizedText,
@@ -143,20 +141,20 @@
 			{/each}
 		</ul>
 	{/if}
-	{#if planets?.length}
+	{#if colonies.length}
 		<strong class="mt-2 block">{$t('map.tooltip.colonies')}</strong>
 		<ul class="ps-4">
-			{#each planets as planet}
+			{#each colonies as colony}
 				<li class="flex flex-row justify-between text-sm">
 					<span>
-						{#await localizeText(planet.name)}
+						{#await localizeText(colony.name)}
 							{$t('generic.loading')}
 						{:then name}
 							{name}
 						{/await}
 					</span>
 					<span class="ms-3 inline-block">
-						{planet.num_sapient_pops}<HeroiconUserMicro class="inline h-3 w-3" />
+						{colony.num_sapient_pops}<HeroiconUserMicro class="inline h-3 w-3" />
 					</span>
 				</li>
 			{/each}

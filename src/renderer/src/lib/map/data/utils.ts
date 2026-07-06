@@ -2,8 +2,9 @@ import * as turf from '@turf/turf';
 import { pathRound } from 'd3-path';
 import { curveBasis, curveBasisClosed, curveLinear, curveLinearClosed } from 'd3-shape';
 
-import type { GameState } from '../../GameState';
+import type { Colony, GalacticObject, GameState, Planet } from '../../GameState';
 import type { MapSettings } from '../../settings';
+import { isDefined } from '../../utils';
 import type { BorderCircle } from './processCircularGalaxyBorder';
 
 export type PolygonalGeometry = turf.Polygon | turf.MultiPolygon;
@@ -364,4 +365,24 @@ const measureTextContext = document
 export function getTextAspectRatio(text: string, fontFamily: string) {
 	measureTextContext.font = `10px '${fontFamily}'`;
 	return 10 / measureTextContext.measureText(text).width;
+}
+
+export function getSystemColonies(
+	gameState: GameState,
+	system: GalacticObject,
+): (Pick<Colony, 'num_sapient_pops' | 'species_information'> &
+	Pick<Planet, 'name' | 'owner' | 'controller'>)[] {
+	return (
+		gameState.version.match(/v4\.[45678]/)
+			? system.colonies
+					.map((colonyId) => gameState.colony[colonyId])
+					.filter(isDefined)
+					.filter((colony) => colony.carrier.type === 'planet')
+					.map((colony) => ({
+						name: { key: 'UNKNOWN' },
+						...colony,
+						...gameState.planets.planet[colony.carrier.reference],
+					}))
+			: system.colonies.map((planetId) => gameState.planets.planet[planetId]).filter(isDefined)
+	).sort((a, b) => (b.num_sapient_pops ?? 0) - (a.num_sapient_pops ?? 0));
 }

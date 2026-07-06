@@ -1,8 +1,8 @@
 import type { MessageID } from '../../../intl';
 import type { Country, GalacticObject, GameState, LocalizedText, Species } from '../../GameState';
 import type { ColorSetting, MapSettings } from '../../settings';
-import { isDefined, parseNumberEntry } from '../../utils';
-import { getUnionLeaderId } from './utils';
+import { parseNumberEntry } from '../../utils';
+import { getSystemColonies, getUnionLeaderId } from './utils';
 
 interface MapMode {
 	id: string;
@@ -116,10 +116,8 @@ export const mapModes: Record<string, MapMode> = {
 		],
 		system: {
 			getValues: (gameState, system) => {
-				const planets = system.colonies
-					.map((planetId) => gameState.planets.planet[planetId])
-					.filter(isDefined);
-				const population = planets.reduce(
+				const colonies = getSystemColonies(gameState, system);
+				const population = colonies.reduce(
 					(totalPopulation, planet) => totalPopulation + (planet.num_sapient_pops ?? 0),
 					0,
 				);
@@ -148,10 +146,8 @@ export const mapModes: Record<string, MapMode> = {
 		],
 		system: {
 			getValues: (gameState, system) => {
-				const planets = system.colonies
-					.map((planetId) => gameState.planets.planet[planetId])
-					.filter(isDefined);
-				const populationByCountry: Map<number, number> = planets.reduce<Map<number, number>>(
+				const colonies = getSystemColonies(gameState, system);
+				const populationByCountry: Map<number, number> = colonies.reduce<Map<number, number>>(
 					(acc, planet) => {
 						if (planet.owner != null && planet.num_sapient_pops != null) {
 							acc.set(planet.owner, (acc.get(planet.owner) ?? 0) + planet.num_sapient_pops);
@@ -196,14 +192,12 @@ export const mapModes: Record<string, MapMode> = {
 		],
 		system: {
 			getValues: (gameState, system, _, selectedSpecies) => {
-				const planets = system.colonies
-					.map((planetId) => gameState.planets.planet[planetId])
-					.filter(isDefined);
-				const population = planets.reduce(
+				const colonies = getSystemColonies(gameState, system);
+				const population = colonies.reduce(
 					(totalPopulation, planet) => totalPopulation + (planet.num_sapient_pops ?? 0),
 					0,
 				);
-				const { freePopulation, enslavedPopulation } = planets.reduce(
+				const { freePopulation, enslavedPopulation } = colonies.reduce(
 					(acc, planet) => {
 						let freePlanetPopulation = 0;
 						let enslavedPlanetPopulation = 0;
