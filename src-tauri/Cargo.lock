@@ -3254,7 +3254,7 @@ dependencies = [
 
 [[package]]
 name = "stellarmaps"
-version = "0.12.6"
+version = "0.12.8"
 dependencies = [
  "anyhow",
  "assert-json-diff",

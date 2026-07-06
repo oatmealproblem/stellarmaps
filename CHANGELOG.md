@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.12.8](https://github.com/oatmealproblem/stellarmaps/compare/stellarmaps-v0.12.7...stellarmaps-v0.12.8) (2026-07-06)
+
+### Bug Fixes
+
+- population and occupation data incorrect for Stellaris 4.4 saves ([c37200a](https://github.com/oatmealproblem/stellarmaps/commit/c37200ac46fd03c814ffdcde7e07c9fbbd47fd20))
+
 ## [0.12.7](https://github.com/oatmealproblem/stellarmaps/compare/stellarmaps-v0.12.6...stellarmaps-v0.12.7) (2025-10-31)
 
 ### Bug Fixes
