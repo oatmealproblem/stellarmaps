@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { arrow, autoUpdate, computePosition, flip, offset, shift } from '@floating-ui/dom';
-	import { Predicate } from 'effect';
 	import { onDestroy, onMount } from 'svelte';
 
 	import { locale, type MessageID, t } from '../../intl';
@@ -11,6 +10,7 @@
 	import { localizeText } from './data/locUtils';
 	import { mapModes } from './data/mapModes';
 	import type { ProcessedSystem } from './data/processSystems';
+	import { getSystemColonies } from './data/utils';
 	import { resolveColor } from './mapUtils';
 
 	interface Props {
@@ -61,12 +61,7 @@
 	});
 	onDestroy(() => cleanup?.());
 
-	let planets = $derived(
-		system.colonies
-			.map((planetId) => gameState?.planets.planet[planetId])
-			.filter(Predicate.isNotNullable)
-			.sort((a, b) => (b.num_sapient_pops ?? 0) - (a.num_sapient_pops ?? 0)),
-	);
+	let colonies = $derived(gameState == null ? [] : getSystemColonies(gameState, system));
 
 	async function localizeValueLabel(
 		message: MessageID | LocalizedText,
@@ -155,20 +150,20 @@
 			{/each}
 		</ul>
 	{/if}
-	{#if planets.length}
+	{#if colonies.length}
 		<strong class="mt-2 block">{t('map.tooltip.colonies')}</strong>
 		<ul class="ps-4">
-			{#each planets as planet}
+			{#each colonies as colony}
 				<li class="flex flex-row justify-between text-sm">
 					<span>
-						{#await localizeText(planet.name)}
+						{#await localizeText(colony.name)}
 							{t('generic.loading')}
 						{:then name}
 							{name}
 						{/await}
 					</span>
 					<span class="ms-3 inline-block">
-						{planet.num_sapient_pops}<HeroiconUserMicro class="inline h-3 w-3" />
+						{colony.num_sapient_pops}<HeroiconUserMicro class="inline h-3 w-3" />
 					</span>
 				</li>
 			{/each}

@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.12.8](https://github.com/oatmealproblem/stellarmaps/compare/stellarmaps-v0.12.7...stellarmaps-v0.12.8) (2026-07-06)
+
+### Bug Fixes
+
+- population and occupation data incorrect for Stellaris 4.4 saves ([c37200a](https://github.com/oatmealproblem/stellarmaps/commit/c37200ac46fd03c814ffdcde7e07c9fbbd47fd20))
+
+## [0.12.7](https://github.com/oatmealproblem/stellarmaps/compare/stellarmaps-v0.12.6...stellarmaps-v0.12.7) (2025-10-31)
+
+### Bug Fixes
+
+- handle saves with missing planet_size ([e90f4e6](https://github.com/oatmealproblem/stellarmaps/commit/e90f4e613e825d8444bae8e15633775a9230bfce))
+- remove system ID from tooltip ([0651ad4](https://github.com/oatmealproblem/stellarmaps/commit/0651ad4a924df297e0ef2a3c41ab9b6863927289))
+
 ## [0.12.6](https://github.com/oatmealproblem/stellarmaps/compare/stellarmaps-v0.12.5...stellarmaps-v0.12.6) (2025-08-07)
 
 ### Bug Fixes

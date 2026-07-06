@@ -100,11 +100,14 @@
 			).then((value) => {
 				countryOptions.current = value;
 			});
-			const speciesWithPopulation = new Set(
-				Object.values(gameState.planets.planet).flatMap((planet) =>
+			const speciesWithPopulation = new Set([
+				...Object.values(gameState.planets.planet).flatMap((planet) =>
 					Object.keys(planet.species_information ?? {}).map((id) => parseInt(id)),
 				),
-			);
+				...Object.values(gameState.colony).flatMap((colony) =>
+					Object.keys(colony.species_information ?? {}).map((id) => parseInt(id)),
+				),
+			]);
 			Promise.all(
 				Object.values(gameState.species_db)
 					.filter(

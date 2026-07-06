@@ -3,7 +3,12 @@ import * as turf from '@turf/turf';
 import type { GameState } from '../../GameState.svelte';
 import type { MapSettings } from '../../settings';
 import { getOrDefault, getOrSetDefault, parseNumberEntry } from '../../utils';
-import { getFrontierSectorPseudoId, getUnionLeaderId, pointToGeoJSON } from './utils';
+import {
+	getFrontierSectorPseudoId,
+	getSystemColonies,
+	getUnionLeaderId,
+	pointToGeoJSON,
+} from './utils';
 
 export const processSystemOwnershipDeps = [
 	'frontierBubbleThreshold',
@@ -65,9 +70,7 @@ export default function processSystemOwnership(
 			const occupier = mainStar?.controller !== ownerId ? mainStar?.controller : null;
 			if (occupier != null) {
 				if (
-					system.colonies.every((colonyId) => {
-						const planet = gameState.planets.planet[colonyId];
-						if (!planet) return true; // bad data, don't care
+					getSystemColonies(gameState, system).every((planet) => {
 						if (planet.owner !== ownerId) return true; // different owner (eg pre-FTL), don't care
 						return planet.controller != null && planet.controller !== ownerId; // occupied
 					})
